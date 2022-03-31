@@ -1,0 +1,53 @@
+{
+    "simfiles":
+    {
+        "standardRes":
+        {
+            "no_CRs": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
+
+            "with_CRs": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/"
+        },
+        "highRes":
+        {
+            "no_CRs":null,
+
+            "with_CRs": null
+        }
+    },
+
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
+
+    "saveParams" : ["T","R","n_H","B","vrad","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic","tcool","theat","tff","tcool_tff"],
+
+    "saveEssentials" : ["FoFHaloID","SubHaloID","Lookback","Snap","type","mass","pos"],
+
+    "snapMin" : 100,
+
+    "snapMax" : 127,
+
+    "percentiles" :  [0.13, 2.28 , 15.87, 50.0, 84.13, 97.72, 99.87],
+
+    "targetTlst" : [4.0, 5.0, 6.0],
+
+    "deltaT" : 0.25,
+
+    "Rinner" : [25.0, 75.0, 125.0],
+
+    "Router" : [75.0, 125.0, 175.0],
+
+    "Axes" : [2,0],
+
+    "zAxis" : [1],
+
+    "QuadPlotBool" : true,
+
+    "boxsize" : 400.0,
+
+    "boxlos" : 50.0,
+
+    "pixres" : 0.2,
+
+    "pixreslos" : 4.0,
+
+    "haloID" : 0
+}

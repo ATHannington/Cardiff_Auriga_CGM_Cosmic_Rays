@@ -2,6 +2,7 @@
 Author: A. T. Hannington
 Created: 31/03/2022
 """
+
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -13,6 +14,5 @@ import const as c
 import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
-import CRParams as param
 from Tracers_Subroutines import *
 import h5py

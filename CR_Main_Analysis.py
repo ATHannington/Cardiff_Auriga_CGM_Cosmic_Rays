@@ -16,9 +16,13 @@ from gadget_subfind import *
 from Tracers_Subroutines import *
 from CR_Subroutines import *
 import h5py
+import json
 import multiprocessing as mp
 import sys
 import logging
+
+CRParamsPath = "CRParams.json"
+CRPARAMS = json.load(CRParamsPath)
 
 # ==============================================================================#
 #       USER DEFINED PARAMETERS
