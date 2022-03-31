@@ -118,7 +118,7 @@ if __name__ == "__main__":
 #     print("\n" + f"Opening {n_processes} core Pool!")
 #     pool = mp.Pool(processes=n_processes)
 #
-#     # Compute Snap analysis
+#     # C ompute Snap analysis
 #     output_list = [
 #         pool.apply_async(snap_analysis, args=args, error_callback=err_catcher)
 #         for args in args_list

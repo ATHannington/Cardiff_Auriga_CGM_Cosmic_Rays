@@ -115,7 +115,7 @@ def cr_analysis(
                 snapGas = pad_non_entries(snapGas, snapNumber)
 
                 # for targetT in CRPARAMS["targetTLst"]:
-                #     for (rin, rout) in zip(CRPARAMS["Rinner"], CRPARAMS["Router"]):
+                #      for (rin, rout) in zip(CRPARAMS["Rinner"], CRPARAMS["Router"]):
                 if (
                     (CRPARAMS["QuadPlotBool"] == True)
                     # & (targetT == int(CRPARAMS["targetTLst"][0]))
