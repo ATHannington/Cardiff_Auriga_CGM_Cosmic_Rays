@@ -1499,7 +1499,7 @@ def load_tracers_parameters(TracersParamsPath):
     Tlst = [str(item) for item in TRACERSPARAMS["targetTLst"]]
     Tstr = "-".join(Tlst)
 
-    # This rather horrible savepath ensures the data can only be combined with the right input file, TracersParams.csv, to be plotted/manipulated
+    # This rather horrible savepath ensures the data can only be combined with the right input file, TracersParams.csv, to  be plotted/manipulated
     DataSavepath = (
         TRACERSPARAMS["savepath"]
         + f"Data_selectSnap{int(TRACERSPARAMS['selectSnap'])}_targetT{Tstr}"
@@ -3479,6 +3479,7 @@ def tracer_plot(
                 if snapNumber in outerPlotSnaps:
                     if snapNumber == outerPlotSnaps[-1]:
                         cax = inset_axes(axOuterObj, width="95%", height="5%", loc="lower center")
+HERE
                         cbarfigOuter = figOuter.colorbar(
                             pcm1Outer,
                             cax = cax,
