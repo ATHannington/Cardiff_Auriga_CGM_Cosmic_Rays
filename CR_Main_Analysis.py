@@ -22,7 +22,7 @@ import sys
 import logging
 
 CRParamsPath = "CRParams.json"
-CRPARAMS = json.load(CRParamsPath)
+CRPARAMS = json.load(open(CRParamsPath, 'r'))
 DataSavepathBase = CRPARAMS['savepath']
 
 snapNumber = int(CRPARAMS['snapMax'])
@@ -54,8 +54,8 @@ if __name__ == "__main__":
         CRPARAMS,
         DataSavepathBase,
         FullDataPathSuffix=".h5",
-        lazyLoadBool=True,
-    ):
+        lazyLoadBool=lazyLoadBool,
+    )
 
 #     TracersTFC, CellsTFC, CellIDsTFC, ParentsTFC, _, _ = tracer_selection_snap_analysis(
 #         TRACERSPARAMS,

@@ -3479,7 +3479,6 @@ def tracer_plot(
                 if snapNumber in outerPlotSnaps:
                     if snapNumber == outerPlotSnaps[-1]:
                         cax = inset_axes(axOuterObj, width="95%", height="5%", loc="lower center")
-HERE
                         cbarfigOuter = figOuter.colorbar(
                             pcm1Outer,
                             cax = cax,
