@@ -23,6 +23,9 @@ import logging
 
 CRParamsPath = "CRParams.json"
 CRPARAMS = json.load(CRParamsPath)
+DataSavepathBase = CRPARAMS['savepath']
+
+snapNumber = int(CRPARAMS['snapMax'])
 
 # ==============================================================================#
 #       USER DEFINED PARAMETERS
@@ -44,7 +47,16 @@ def err_catcher(arg):
     return
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+
+    cr_analysis(
+        snapNumber,
+        CRPARAMS,
+        DataSavepathBase,
+        FullDataPathSuffix=".h5",
+        lazyLoadBool=True,
+    ):
+
 #     TracersTFC, CellsTFC, CellIDsTFC, ParentsTFC, _, _ = tracer_selection_snap_analysis(
 #         TRACERSPARAMS,
 #         HaloID,
