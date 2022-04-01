@@ -36,6 +36,8 @@ CRPARAMS['finalSnap'] = copy.copy(CRPARAMS['snapMax'])
 #   Full: full FullDict data
 FullDataPathSuffix = f".h5"
 
+lazyLoadBool = True
+
 # Number of cores to run on:
 n_processes = 4
 # ==============================================================================#
@@ -65,13 +67,20 @@ if __name__ == "__main__":
     # # Setup arguments combinations for parallel processing pool
     # print("\n" + f"Sorting multi-core arguments!")
     #
-    # args_default = [
+    # args_default =  [
     #     CRPARAMS,
     #     DataSavepathBase,
     #     FullDataPathSuffix,
+    #     lazyLoadBool
     # ]
     #
-    # args_list = [[snap] + args_default for snap in snapRange]
+    # args_list = []
+    # for resolution, pathsDict in CRPARAMS['simfiles'].items():
+    #     print(f"{resolution}")
+    #     for CR_indicator, loadpath in pathsDict.items():
+    #         print(f"{CR_indicator}")
+    #         if loadpath is not None :
+    #             args_list.append([snapRange,resolution,CR_indicator,loadpath] + args_default)
     #
     # # Open multiprocesssing pool
     #
@@ -94,18 +103,6 @@ if __name__ == "__main__":
     #
     # print("No Errors!")
 
-
-    print("\n" + f"Starting SERIAL type Analysis!")
-    out = {}
-    for snap in snapRange:
-        tmpOut = cr_analysis_per_time(snap,CRPARAMS,
-           DataSavepathBase,
-           FullDataPathSuffix)
-        out.update(tmpOut)
-  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-
-
-
     # out = {}
     # for output in output_list:
     #
@@ -113,42 +110,29 @@ if __name__ == "__main__":
     #
     #     # as function gives out dictionary extract what want (or just save dict)
     #     out.update(tmpOut)
+  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
+    print("\n" + f"Starting SERIAL type Analysis!")
+    out = {}
     for resolution, pathsDict in CRPARAMS['simfiles'].items():
         print(f"{resolution}")
         for CR_indicator, loadpath in pathsDict.items():
             print(f"{CR_indicator}")
             if loadpath is not None :
-
-                DataSavepath = DataSavepathBase + f"Data_{resolution}_{CR_indicator}"
-
-                snapList = []
-                for snap in snapRange:
-                    snapList.append(out[(f"{resolution}",f"{CR_indicator}",f"{snapNumber}")])
-
-                snapGas = combine_snapshots(snapList, flatConcatBool = True)
-
-                if (
-                    (CRPARAMS["QuadPlotBool"] == True)
-                    # & (targetT == int(CRPARAMS["targetTLst"][0]))
-                    # & (rin == CRPARAMS["Rinner"][0])
-                ):
-                    plot_projections(
-                        snapGas,
-                        snapNumber=None,
-                        targetT=None,
-                        rin=None,
-                        rout=None,
-                        TRACERSPARAMS=CRPARAMS,
-                        DataSavepath=DataSavepath,
-                        FullDataPathSuffix=None,
-                        titleBool = False,
-                        Axes=CRPARAMS["Axes"],
-                        zAxis=CRPARAMS["zAxis"],
-                        boxsize=CRPARAMS["boxsize"],
-                        boxlos=CRPARAMS["boxlos"],
-                        pixres=CRPARAMS["pixres"],
-                        pixreslos=CRPARAMS["pixreslos"],
+                tmpOut = cr_analysis(
+                    snapRange,
+                    resolution,
+                    CR_indicator,
+                    loadpath,
+                    CRPARAMS,
+                    DataSavepathBase,
+                    FullDataPathSuffix,
+                    lazyLoadBool
                     )
+                out.update(tmpOut)
+            else:
+                pass
+  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+
 
     print("Done! End of Analysis :)")
