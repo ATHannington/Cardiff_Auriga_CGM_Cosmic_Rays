@@ -16,14 +16,18 @@ from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
 import h5py
+import copy
+import sys
 
-def cr_analysis(
+sys.setrecursionlimit(10000)
+
+def cr_analysis_per_time(
     snapNumber,
     CRPARAMS,
     DataSavepathBase,
     FullDataPathSuffix=".h5",
-    lazyLoadBool=True,
 ):
+    out = {}
     for resolution, pathsDict in CRPARAMS['simfiles'].items():
         print(f"{resolution}")
         for CR_indicator, loadpath in pathsDict.items():
@@ -46,7 +50,7 @@ def cr_analysis(
                     loadpath,
                     hdf5=True,
                     loadonlytype=[0, 4, 1],
-                    lazy_load=lazyLoadBool,
+                    lazy_load=False,
                     subfind=snap_subfind,
                 )
 
@@ -114,28 +118,54 @@ def cr_analysis(
                 # Pad stars and gas data with Nones so that all keys have values of same first dimension shape
                 snapGas = pad_non_entries(snapGas, snapNumber)
 
+                # Trim snapshot...
+                keys = list(snapGas.data.keys())
+                for key in keys:
+                    if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
+                        del snapGas.data[key]
+
                 # for targetT in CRPARAMS["targetTLst"]:
                 #      for (rin, rout) in zip(CRPARAMS["Rinner"], CRPARAMS["Router"]):
-                if (
-                    (CRPARAMS["QuadPlotBool"] == True)
-                    # & (targetT == int(CRPARAMS["targetTLst"][0]))
-                    # & (rin == CRPARAMS["Rinner"][0])
-                ):
-                    plot_projections(
-                        snapGas,
-                        snapNumber,
-                        targetT=None,
-                        rin=None,
-                        rout=None,
-                        TRACERSPARAMS=CRPARAMS,
-                        DataSavepath=DataSavepath,
-                        FullDataPathSuffix=None,
-                        Axes=CRPARAMS["Axes"],
-                        zAxis=CRPARAMS["zAxis"],
-                        boxsize=CRPARAMS["boxsize"],
-                        boxlos=CRPARAMS["boxlos"],
-                        pixres=CRPARAMS["pixres"],
-                        pixreslos=CRPARAMS["pixreslos"],
-                    )
+                out.update({(f"{resolution}",f"{CR_indicator}",f"{snapNumber}") : copy.deepcopy(snapGas)})
+            else:
+                print(f"[@{resolution}, @{CR_indicator}, @{int(snapNumber)}]: No simfile...")
+                pass
+        print(f"[@{int(snapNumber)}]: Finishing process...")
+    return out
 
-    return
+def combine_snapshots(snapList, flatConcatBool = True):
+
+    if len(snapList)==0:
+        raise Exception("[@combine_snapshots]: WARNING:CRITICAL! Empty snapList received! Cannot combine!")
+    elif (len(snapList)==1):
+        print("[@combine_snapshots]: WARNING: SINGULAR snapList received! Cannot combine!")
+        return snapList[0]
+    else:
+        outSnap = copy.deepcopy(snapList[-1])
+
+    # Wipe the copied snapshot to access the base class
+    for key in outSnap.data.keys():
+        outSnap.data[key] = np.array([])
+
+    # Combine all snapshots into one output snap shot, concatenating data as needed
+    for snap in snapList:
+        for key, values in snap.data.items():
+            outValues = outSnap.data[key]
+
+            # If we don't want a temporal axis...
+            if flatConcatBool is True:
+                if len(outValues)==0:
+                    updatedValues = values
+                else:
+                    updatedValues = np.concatenate((outValues,values),axis=0)
+
+            # If we DO want a temporal axis...
+            else:
+                outValues = outValues[np.newaxis]
+                if np.shape(outValues)[1]==0:
+                    updatedValues = values[np.newaxis]
+                else:
+                    updatedValues = np.concatenate((outValues,values[np.newaxis]),axis=0)
+            outSnap.data[key].update({key : updatedValues})
+
+    return outSnap
