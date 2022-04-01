@@ -114,12 +114,6 @@ def cr_analysis(
         # Pad stars and gas data with Nones so that all keys have values of same first dimension shape
         snapGas = pad_non_entries(snapGas, snapNumber)
 
-        # Trim snapshot...
-        keys = list(snapGas.data.keys())
-        for key in keys:
-            if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
-                del snapGas.data[key]
-
         # Redshift
         redshift = snapGas.redshift  # z
         aConst = 1.0 / (1.0 + redshift)  # [/]
@@ -160,6 +154,12 @@ def cr_analysis(
             pixres=CRPARAMS["pixres"],
             pixreslos=CRPARAMS["pixreslos"],
         )
+
+    # Trim snapshot...
+    keys = list(snapGas.data.keys())
+    for key in keys:
+        if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
+            del snapGas.data[key]
 
     # Make normal dictionary form of snapGas
     for key, value in snapGas.items():
