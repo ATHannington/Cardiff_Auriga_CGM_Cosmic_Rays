@@ -63,75 +63,75 @@ if __name__ == "__main__":
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 #   MAIN ANALYSIS
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-    # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
-    # # Setup arguments combinations for parallel processing pool
-    # print("\n" + f"Sorting multi-core arguments!")
-    #
-    # args_default =  [
-    #     CRPARAMS,
-    #     DataSavepathBase,
-    #     FullDataPathSuffix,
-    #     lazyLoadBool
-    # ]
-    #
-    # args_list = []
-    # for resolution, pathsDict in CRPARAMS['simfiles'].items():
-    #     print(f"{resolution}")
-    #     for CR_indicator, loadpath in pathsDict.items():
-    #         print(f"{CR_indicator}")
-    #         if loadpath is not None :
-    #             args_list.append([snapRange,resolution,CR_indicator,loadpath] + args_default)
-    #
-    # # Open multiprocesssing pool
-    #
-    # print("\n" + f"Opening {n_processes} core Pool!")
-    # pool = mp.Pool(processes=n_processes)
-    #
-    # # C ompute Snap analysis
-    # output_list = [
-    #     pool.apply_async(cr_analysis_per_time, args=args, error_callback=err_catcher)
-    #     for args in args_list
-    # ]
-    #
-    # pool.close()
-    # pool.join()
-    # # Close multiprocesssing pool
-    # print(f"Closing core Pool!")
-    # print(f"Error checks")
-    # success = [result.successful() for result in output_list]
-    # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
-    #
-    # print("No Errors!")
+    print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+    # Setup arguments combinations for parallel processing pool
+    print("\n" + f"Sorting multi-core arguments!")
 
-    # out = {}
-    # for output in output_list:
-    #
-    #     tmpOut = output.get()
-    #
-    #     # as function gives out dictionary extract what want (or just save dict)
-    #     out.update(tmpOut)
-  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+    args_default =  [
+        CRPARAMS,
+        DataSavepathBase,
+        FullDataPathSuffix,
+        lazyLoadBool
+    ]
 
-    print("\n" + f"Starting SERIAL type Analysis!")
-    out = {}
+    args_list = []
     for resolution, pathsDict in CRPARAMS['simfiles'].items():
         print(f"{resolution}")
         for CR_indicator, loadpath in pathsDict.items():
             print(f"{CR_indicator}")
             if loadpath is not None :
-                tmpOut = cr_analysis(
-                    snapRange,
-                    resolution,
-                    CR_indicator,
-                    loadpath,
-                    CRPARAMS,
-                    DataSavepathBase,
-                    FullDataPathSuffix,
-                    lazyLoadBool
-                    )
-                out.update(tmpOut)
-            else:
-                pass
+                args_list.append([snapRange,resolution,CR_indicator,loadpath] + args_default)
+
+    # Open multiprocesssing pool
+
+    print("\n" + f"Opening {n_processes} core Pool!")
+    pool = mp.Pool(processes=n_processes)
+
+    # C ompute Snap analysis
+    output_list = [
+        pool.apply_async(cr_analysis, args=args, error_callback=err_catcher)
+        for args in args_list
+    ]
+
+    pool.close()
+    pool.join()
+    # Close multiprocesssing pool
+    print(f"Closing core Pool!")
+    print(f"Error checks")
+    success = [result.successful() for result in output_list]
+    assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+
+    print("No Errors!")
+
+    out = {}
+    for output in output_list:
+
+        tmpOut = output.get()
+
+        # as function gives out dictionary extract what want (or just save dict)
+        out.update(tmpOut)
+  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+
+    # print("\n" + f"Starting SERIAL type Analysis!")
+    # out = {}
+    # for resolution, pathsDict in CRPARAMS['simfiles'].items():
+    #     print(f"{resolution}")
+    #     for CR_indicator, loadpath in pathsDict.items():
+    #         print(f"{CR_indicator}")
+    #         if loadpath is not None :
+    #             tmpOut = cr_analysis(
+    #                 snapRange,
+    #                 resolution,
+    #                 CR_indicator,
+    #                 loadpath,
+    #                 CRPARAMS,
+    #                 DataSavepathBase,
+    #                 FullDataPathSuffix,
+    #                 lazyLoadBool
+    #                 )
+    #             out.update(tmpOut)
+    #         else:
+    #             pass
   ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
 

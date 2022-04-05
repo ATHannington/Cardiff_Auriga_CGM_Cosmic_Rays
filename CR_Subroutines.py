@@ -109,7 +109,7 @@ def cr_analysis(
         snapGas = halo_id_finder(snapGas, snap_subfind, snapNumber)
 
         # if snapNumber == int(CRPARAMS["selectSnap"]):
-        snapGas = halo_only_gas_select(snapGas, snap_subfind, CRPARAMS['HaloID'], snapNumber)
+        #     snapGas = halo_only_gas_select(snapGas, snap_subfind, CRPARAMS['HaloID'], snapNumber)
 
         # Pad stars and gas data with Nones so that all keys have values of same first dimension shape
         snapGas = pad_non_entries(snapGas, snapNumber)
