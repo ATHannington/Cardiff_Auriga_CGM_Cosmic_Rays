@@ -127,8 +127,6 @@ def cr_analysis(
         snapGas.data["Lookback"] = np.array([lookback])
         snapGas.data["Snap"] = np.array([snapNumber])
 
-        snapList.append(snapGas)
-
 
         if (
             (CRPARAMS["QuadPlotBool"] == True)
@@ -163,7 +161,7 @@ def cr_analysis(
 
         # Make normal dictionary form of snapGas
         inner = {}
-        for key, value in snapGas.items():
+        for key, value in snapGas.data.items():
             if key in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
                 inner.update({key : value})
 
