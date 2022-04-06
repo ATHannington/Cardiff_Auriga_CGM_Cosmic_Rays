@@ -80,7 +80,8 @@ if __name__ == "__main__":
         for CR_indicator, loadpath in pathsDict.items():
             print(f"{CR_indicator}")
             if loadpath is not None :
-                args_list.append([snapRange,resolution,CR_indicator,loadpath] + args_default)
+                for snapNumber in snapRange:
+                    args_list.append([snapNumber,resolution,CR_indicator,loadpath] + args_default)
 
     # Open multiprocesssing pool
 
@@ -119,20 +120,21 @@ if __name__ == "__main__":
     #     for CR_indicator, loadpath in pathsDict.items():
     #         print(f"{CR_indicator}")
     #         if loadpath is not None :
-    #             tmpOut = cr_analysis(
-    #                 snapRange,
-    #                 resolution,
-    #                 CR_indicator,
-    #                 loadpath,
-    #                 CRPARAMS,
-    #                 DataSavepathBase,
-    #                 FullDataPathSuffix,
-    #                 lazyLoadBool
-    #                 )
-    #             out.update(tmpOut)
+    #             for snapNumber in snapRange:
+    #                 tmpOut = cr_analysis(
+    #                     snapNumber,
+    #                     resolution,
+    #                     CR_indicator,
+    #                     loadpath,
+    #                     CRPARAMS,
+    #                     DataSavepathBase,
+    #                     FullDataPathSuffix,
+    #                     lazyLoadBool
+    #                     )
+    #                 out.update(tmpOut)
     #         else:
     #             pass
-  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+    ##-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
 
     print("Done! End of Analysis :)")
