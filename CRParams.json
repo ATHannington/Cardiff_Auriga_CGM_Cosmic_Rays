@@ -17,7 +17,7 @@
 
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
 
-    "saveParams" : ["T","R","n_H","B","vrad","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic","tcool","theat","tff","tcool_tff"],
+    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
     "saveEssentials" : ["FoFHaloID","SubHaloID","Lookback","Snap","type","mass","pos"],
 
@@ -25,7 +25,7 @@
 
     "snapMax" : 127,
 
-    "percentiles" :  [0.13, 2.28 , 15.87, 50.0, 84.13, 97.72, 99.87],
+    "percentiles" :  [15.87, 50.0, 84.13],
 
     "Rinner" : [25.0, 75.0, 125.0],
 

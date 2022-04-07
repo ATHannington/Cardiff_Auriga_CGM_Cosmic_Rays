@@ -16,6 +16,7 @@ from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
 import h5py
+import copy
 
 def cr_analysis(
     snapNumber,
@@ -181,12 +182,17 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
                 tmp = {}
                 newKey = (f"{resolution}",f"{CR_indicator}")
                 selectKey0 = (f"{resolution}",f"{CR_indicator}",f"{int(snapRange[0])}")
-                for ii,subkey in enumerate(dataDict[selectKey0].keys()):
-                    print(f"{float(ii)/float(len(list(dataDict[selectKey0].keys()))):3.1%}")
+                
+                keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
+
+                for ii,subkey in enumerate(keys):
+                    print(f"{float(ii)/float(len(keys)):3.1%}")
                     concatenateList = []
                     for snapNumber in snapRange:
                         selectKey = (f"{resolution}",f"{CR_indicator}",f"{int(snapNumber)}")
-                        concatenateList.append(dataDict[selectKey][subkey])
+                        concatenateList.append(dataDict[selectKey][subkey].copy())
+
+                        del dataDict[selectKey][subkey]
                         # # Fix values to arrays to remove concat error of 0D arrays
                         # for k, val in dataDict[selectKey].items():
                         #     dataDict[selectKey][k] = np.array([val]).flatten()

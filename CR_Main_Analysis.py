@@ -113,7 +113,11 @@ if __name__ == "__main__":
         # as function gives out dictionary extract what want (or just save dict)
         out.update(tmpOut)
 
+    del output_list, pool
+
     dataDict = flatten_wrt_time(out, CRPARAMS, snapRange)
+
+    del out
 
     savePath = DataSavepathBase + "Data_CR" + FullDataPathSuffix
     print("Saving data as ", savePath)
