@@ -104,6 +104,7 @@ if __name__ == "__main__":
 
     print("No Errors!")
 
+    print("Gather the multiprocess outputs")
     out = {}
     for output in output_list:
 
@@ -111,6 +112,13 @@ if __name__ == "__main__":
 
         # as function gives out dictionary extract what want (or just save dict)
         out.update(tmpOut)
+
+    dataDict = flatten_wrt_time(out, CRPARAMS, snapRange)
+
+    savePath = DataSavepathBase + "Data_CR" + FullDataPathSuffix
+    print("Saving data as ", savePath)
+    hdf5_save(savePath, dataDict)
+
   ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
     # print("\n" + f"Starting SERIAL type Analysis!")

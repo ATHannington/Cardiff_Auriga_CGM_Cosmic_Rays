@@ -167,3 +167,45 @@ def cr_analysis(
 
     print(f"[@{resolution}, @{CR_indicator}, @{int(snapNumber)}]: Finishing process...")
     return out
+
+
+def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
+
+    print("Flattening with respect to time...")
+    flatData = {}
+    for resolution, pathsDict in CRPARAMS['simfiles'].items():
+        print(f"{resolution}")
+        for CR_indicator, loadpath in pathsDict.items():
+            print(f"{CR_indicator}")
+            if loadpath is not None :
+                tmp = {}
+                newKey = (f"{resolution}",f"{CR_indicator}")
+                selectKey0 = (f"{resolution}",f"{CR_indicator}",f"{int(snapRange[0])}")
+                for ii,subkey in enumerate(dataDict[selectKey0].keys()):
+                    print(f"{float(ii)/float(len(list(dataDict[selectKey0].keys()))):3.1%}")
+                    concatenateList = []
+                    for snapNumber in snapRange:
+                        selectKey = (f"{resolution}",f"{CR_indicator}",f"{int(snapNumber)}")
+                        concatenateList.append(dataDict[selectKey][subkey])
+                        # # Fix values to arrays to remove concat error of 0D arrays
+                        # for k, val in dataDict[selectKey].items():
+                        #     dataDict[selectKey][k] = np.array([val]).flatten()
+                    outvals = np.concatenate(
+                        (concatenateList), axis=0
+                    )
+                    tmp.update({subkey: outvals})
+                flatData.update({newKey : tmp})
+    print("...done!")
+
+
+
+    print("")
+    print("***DEBUG!***")
+    print("flatData.keys()")
+    print(flatData.keys())
+    print("flatData[newKey].keys()")
+    print(flatData[newKey].keys())
+
+
+
+    return flatData
