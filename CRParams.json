@@ -1,25 +1,16 @@
 {
-    "simfiles":
+    "sim":
     {
-        "standardRes":
-        {
-            "no_CRs": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
-
-            "with_CRs": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/"
-        },
-        "highRes":
-        {
-            "no_CRs":null,
-
-            "with_CRs": null
-        }
+        "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
+        "resolution": "standard",
+        "with_CRs" : false
     },
 
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
-    "saveEssentials" : ["FoFHaloID","SubHaloID","Lookback","Snap","type","mass","pos"],
+    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos"],
 
     "snapMin" : 100,
 
@@ -45,5 +36,42 @@
 
     "pixreslos" : 4.0,
 
-    "HaloID" : 0
+    "HaloID" : 0,
+
+    "DPI" : 150,
+
+    "xsize" : 4.0,
+
+    "ysize" : 4.0,
+
+    "colourmapMain" : "plasma",
+
+    "titleBool" : false,
+
+    "fontsize" : 13,
+    
+    "fontsizeTitle" : 14,
+
+    "logParameters" : [
+        "dens",
+        "ndens",
+        "rho_rhomean",
+        "csound",
+        "T",
+        "n_H",
+        "B",
+        "gz",
+        "L",
+        "P_thermal",
+        "P_magnetic",
+        "P_kinetic",
+        "P_tot",
+        "Pthermal_Pmagnetic",
+        "tcool",
+        "theat",
+        "tcross",
+        "tff",
+        "tcool_tff",
+        "mass",
+    ],
 }

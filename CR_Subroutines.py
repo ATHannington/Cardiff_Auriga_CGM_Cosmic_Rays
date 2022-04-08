@@ -20,9 +20,6 @@ import copy
 
 def cr_analysis(
     snapNumber,
-    resolution,
-    CR_indicator,
-    loadpath,
     CRPARAMS,
     DataSavepathBase,
     FullDataPathSuffix=".h5",
@@ -30,11 +27,13 @@ def cr_analysis(
 ):
 
     out = {}
-    DataSavepath = DataSavepathBase + f"Data_{resolution}_{CR_indicator}"
+    DataSavepath = DataSavepathBase + f"Data_{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}"
 
 
     print("")
-    print(f"[@{resolution}, @{CR_indicator}, @{int(snapNumber)}]: Starting Snap {snapNumber}")
+    print(f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}")
+
+    loadpath = CRPARAMS['sim']['simfile']
 
     # load in the subfind group files
     snap_subfind = load_subfind(snapNumber, dir=loadpath)
@@ -46,7 +45,7 @@ def cr_analysis(
         snapNumber,
         loadpath,
         hdf5=True,
-        loadonlytype=[0, 4, 1],
+        loadonlytype=[0, 1],
         lazy_load=lazyLoadBool,
         subfind=snap_subfind,
     )
@@ -65,15 +64,15 @@ def cr_analysis(
     del tmp
 
     print(
-        f"[@{resolution}, @{CR_indicator}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
+        f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
     )
 
-    # Centre the simulation on HaloID 0
-    snapGas = set_centre(
-        snap=snapGas, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
-    )
+    # # Centre the simulation on HaloID 0
+    # snapGas = set_centre(
+    #     snap=snapGas, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
+    # )
 
-    # snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
+    snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
     # snapGas.select_halo(snap_subfind, do_rotation=True)
     # --------------------------#
     ##    Units Conversion    ##
@@ -98,19 +97,38 @@ def cr_analysis(
         snapNumber,
     )
 
-    # Pad stars and gas data with Nones so that all keys have values of same first dimension shape
-    snapGas = pad_non_entries(snapGas, snapNumber)
+    whereDM = np.where(snapGas.type == 1)[0]
+    whereGas = np.where(snapGas.type == 0)[0]
+
+    NDM = len(whereDM)
+    NGas = len(whereGas)
+    deleteKeys = []
+    for key, value in snapGas.data.items():
+        if value is not None:
+            # print("")
+            # print(key)
+            # print(np.shape(value))
+            if np.shape(value)[0] == (NGas + NDM) :
+                # print("Gas")
+                snapGas.data[key] = value.copy()[whereGas]
+            elif np.shape(value)[0] == (NDM):
+                # print("DM")
+                deleteKeys.append(key)
+            else:
+                # print("Gas or Stars")
+                pass
+            # print(np.shape(snapGas.data[key]))
+
+    for key in deleteKeys:
+        del snapGas.data[key]
+
+    # # select the CGM, acounting for variable disk extent
+    # whereDiskSFR = np.where(snapGas.data["sfr"] > 0.0)[0]
+    # maxDiskRadius = np.nanmax(snapGas.data["R"][whereDiskSFR])
+    # whereCGM = np.where((snapGas.data["sfr"]<0.0) & (snapGas.data["R"]>=maxDiskRadius))
 
     # Select only gas in High Res Zoom Region
     snapGas = high_res_only_gas_select(snapGas, snapNumber)
-
-    # Find Halo=HaloID data for only selection snapshot.
-
-    # Assign SubHaloID and FoFHaloIDs
-    snapGas = halo_id_finder(snapGas, snap_subfind, snapNumber)
-
-    # Pad stars and gas data with Nones so that all keys have values of same first dimension shape
-    snapGas = pad_non_entries(snapGas, snapNumber)
 
     # Redshift
     redshift = snapGas.redshift  # z
@@ -164,43 +182,37 @@ def cr_analysis(
             inner.update({key : value})
 
     # Add to final output
-    out.update({(f"{resolution}",f"{CR_indicator}",f"{int(snapNumber)}") : inner})
+    out.update({(f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}",f"{int(snapNumber)}") : inner})
 
-    print(f"[@{resolution}, @{CR_indicator}, @{int(snapNumber)}]: Finishing process...")
+    print(f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: Finishing process...")
     return out
-
 
 def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
 
     print("Flattening with respect to time...")
     flatData = {}
-    for resolution, pathsDict in CRPARAMS['simfiles'].items():
-        print(f"{resolution}")
-        for CR_indicator, loadpath in pathsDict.items():
-            print(f"{CR_indicator}")
-            if loadpath is not None :
-                tmp = {}
-                newKey = (f"{resolution}",f"{CR_indicator}")
-                selectKey0 = (f"{resolution}",f"{CR_indicator}",f"{int(snapRange[0])}")
-                
-                keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
+    tmp = {}
+    newKey = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}")
+    selectKey0 = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}",f"{int(snapRange[0])}")
 
-                for ii,subkey in enumerate(keys):
-                    print(f"{float(ii)/float(len(keys)):3.1%}")
-                    concatenateList = []
-                    for snapNumber in snapRange:
-                        selectKey = (f"{resolution}",f"{CR_indicator}",f"{int(snapNumber)}")
-                        concatenateList.append(dataDict[selectKey][subkey].copy())
+    keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
 
-                        del dataDict[selectKey][subkey]
-                        # # Fix values to arrays to remove concat error of 0D arrays
-                        # for k, val in dataDict[selectKey].items():
-                        #     dataDict[selectKey][k] = np.array([val]).flatten()
-                    outvals = np.concatenate(
-                        (concatenateList), axis=0
-                    )
-                    tmp.update({subkey: outvals})
-                flatData.update({newKey : tmp})
+    for ii,subkey in enumerate(keys):
+        print(f"{float(ii)/float(len(keys)):3.1%}")
+        concatenateList = []
+        for snapNumber in snapRange:
+            selectKey = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}",f"{int(snapNumber)}")
+            concatenateList.append(dataDict[selectKey][subkey].copy())
+
+            del dataDict[selectKey][subkey]
+            # # Fix values to arrays to remove concat error of 0D arrays
+            # for k, val in dataDict[selectKey].items():
+            #     dataDict[selectKey][k] = np.array([val]).flatten()
+        outvals = np.concatenate(
+            (concatenateList), axis=0
+        )
+        tmp.update({subkey: outvals})
+    flatData.update({newKey : tmp})
     print("...done!")
 
 
@@ -215,3 +227,44 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
 
 
     return flatData
+
+def cr_calculate_statistics(
+    dataDict,
+    xParam = "R",
+    Nbins=150,
+):
+    selectKey = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}"))
+
+    if xParam in CRPARAMS['logParameters']:
+        xBins = np.logspace(start = np.log10(np.nanmin(dataDict[selectKey][xParam])), stop=np.log10(np.nanmax(dataDict[selectKey][xParam])), num=Nbins, base=10.0)
+    else:
+        xBins = np.linspace(start=np.nanmin(dataDict[selectKey][xParam]), stop=np.nanmax(dataDict[selectKey][xParam]), num=Nbins)
+
+    statsData = {}
+    xData = []
+    for xmin,xmax in zip(xBins[:-1],xBins[1:]):
+        xData.append((float(xmax)-float(xmin))/2.)
+        whereData = np.where((dataDict[selectKey][xParam]>= xmin)&(dataDict[selectKey][xParam]< xmax))[0]
+
+        binnedData = dataDict[selectKey][analysisParam][whereData].copy()
+
+        dat = calculate_statistics(
+            binnedData,
+            TRACERSPARAMS=CRPARAMS,
+            saveParams=CRPARAMS['saveParams']
+        )
+        # Fix values to arrays to remove concat error of 0D arrays
+        for k, val in dat.items():
+            dat[k] = np.array([val]).flatten()
+
+        for subkey, vals in dat.items():
+            if subkey in list(statsData.keys()):
+
+                statsData[subkey] = np.concatenate(
+                    (statsData[subkey], dat[subkey]), axis=0
+                )
+            else:
+                statsData.update({subkey: dat[subkey]})
+
+                
+    return statsData

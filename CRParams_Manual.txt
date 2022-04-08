@@ -3,29 +3,18 @@ CRParams.json Guide
 ###################
 
 {
-    "simfiles":
+    "sim":
     {
-        "standardRes":
-        {
-            # Set path to simulation data without Cosmic Rays
-            "no_CRs": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
-            # Set path to simulation data with Cosmic Rays
-            "with_CRs": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/"
-        },
-        "highRes":
-        {
-            # Set path to simulation data without Cosmic Rays
-            "no_CRs":null,
-            # Set path to simulation data with Cosmic Rays
-            "with_CRs": null
-        }
+        "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
+        "resolution": "standard",
+        "with_CRs" : false
     },
     # Set path to save data
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
     # Set saved parameters
     "saveParams" : ["T","R","n_H","B","vrad","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic","tcool","theat","tff","tcool_tff"],
     # Set other saved parameters that should NOT be changed! These are required to be tracked in order for the analysis to work
-    "saveEssentials" : ["FoFHaloID","SubHaloID","Lookback","Snap","type","mass","pos"],
+    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos"],
     # Set minimum snap (largest lookback time) to look at
     "snapMin" : 100,
     # Set Max snapshot to look at tracers from snapnum

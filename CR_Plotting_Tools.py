@@ -24,8 +24,6 @@ def medians_versus_plot(
     logParameters,
     ylabel,
     titleBool,
-    xParam = "R",
-    Nbins=150,
     DPI=150,
     xsize = 4.0,
     ysize = 8.0,
@@ -78,44 +76,13 @@ def medians_versus_plot(
             ymaxlist = []
             patchList = []
             labelList = []
-            for (ii,(resolution, pathsDict)) in enumerate(CRPARAMS['simfiles'].items()):
-                print(f"{resolution}")
-                for CR_indicator, loadpath in pathsDict.items():
-                    print(f"{CR_indicator}")
-                    if loadpath is not None :
+            # for (ii,(resolution, pathsDict)) in enumerate(CRPARAMS['simfiles'].items()):
+            #     print(f"{resolution}")
+            #     for CR_indicator, loadpath in pathsDict.items():
+            #         print(f"{CR_indicator}")
+            #         if loadpath is not None :
 
-                        selectKey = (f"{resolution}",f"{CR_indicator}")
 
-                        if xParam in logParameters:
-                            xBins = np.logspace(start = np.log10(np.nanmin(dataDict[selectKey][xParam])), stop = np.log10(np.nanmax(dataDict[selectKey][xParam])),num=Nbins, base=10.0)
-                        else:
-                            xBins = np.linspace(start = np.nanmin(dataDict[selectKey][xParam]), stop = np.nanmax(dataDict[selectKey][xParam]),num=Nbins)
-
-                        statsData = {}
-                        xData = []
-                        for xmin,xmax in zip(xBins[:-1],xBins[1:]):
-                            xData.append((float(xmax)-float(xmin))/2.)
-                            whereData = np.where((dataDict[selectKey][xParam]>= xmin)&(dataDict[selectKey][xParam]< xmax))[0]
-
-                            binnedData = dataDict[selectKey][analysisParam][whereData].copy()
-
-                            dat = calculate_statistics(
-                                binnedData,
-                                TRACERSPARAMS=CRPARAMS,
-                                saveParams=saveParams
-                            )
-                            # Fix values to arrays to remove concat error of 0D arrays
-                            for k, val in dat.items():
-                                dat[k] = np.array([val]).flatten()
-
-                            for subkey, vals in dat.items():
-                                if subkey in list(statsData.keys()):
-
-                                    statsData[subkey] = np.concatenate(
-                                        (statsData[subkey], dat[subkey]), axis=0
-                                    )
-                                else:
-                                    statsData.update({subkey: dat[subkey]})
 
                         xData = np.array(xData)
                         plotData = statsData
@@ -180,7 +147,7 @@ def medians_versus_plot(
                         currentAx.xaxis.set_minor_locator(AutoMinorLocator())
                         currentAx.yaxis.set_minor_locator(AutoMinorLocator())
                         currentAx.tick_params(axis="both",which="both",labelsize=fontsize)
-                        
+
                         currentAx.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
 
 
