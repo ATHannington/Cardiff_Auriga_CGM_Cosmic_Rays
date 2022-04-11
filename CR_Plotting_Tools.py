@@ -7,30 +7,73 @@ import matplotlib.pyplot as plt
 import matplotlib.transforms as tx
 from matplotlib.ticker import AutoMinorLocator
 import const as c
+import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
-import h5py
 from Tracers_Subroutines import *
-from random import sample
+from CR_Subroutines import *
+import copy
+import h5py
+import json
 import math
+from random import sample
+import sys
+import logging
+#
+# CRParamsPath = "CRParams.json"
+# CRPARAMS = json.load(open(CRParamsPath, 'r'))
+#
+# if (CRPARAMS['sim']['with_CRs'] is True):
+#     CRPARAMS['sim']['CR_indicator'] = "with_CRs"
+# else:
+#     CRPARAMS['sim']['CR_indicator'] = "no_CRs"
+#
+#
+# DataSavepathBase = CRPARAMS['savepath']
+#
+# CRPARAMS['finalSnap'] = copy.copy(CRPARAMS['snapMax'])
+#
+#
+# ylabel = {
+#     "T": r"Temperature (K)",
+#     "R": r"Radius (kpc)",
+#     "n_H": r"n$_H$ (cm$^{-3}$)",
+#     "B": r"|B| ($ \mu $G)",
+#     "vrad": r"Radial Velocity (km s$^{-1}$)",
+#     "gz": r"Average Metallicity Z/Z$_{\odot}$",
+#     "L": r"Specific Angular Momentum" +"\n" + r"(kpc km s$^{-1}$)",
+#     "P_thermal": r"P$_{Thermal}$ / k$_B$ (K cm$^{-3}$)",
+#     "P_magnetic": r"P$_{Magnetic}$ / k$_B$ (K cm$^{-3}$)",
+#     "P_kinetic": r"P$_{Kinetic}$ / k$_B$ (K cm$^{-3}$)",
+#     "P_tot": r"P$_{tot}$ = (P$_{thermal}$ + P$_{magnetic}$)/ k$_B$" +"\n" + r"(K cm$^{-3}$)",
+#     "Pthermal_Pmagnetic": r"P$_{thermal}$/P$_{magnetic}$",
+#     "tcool": r"Cooling Time (Gyr)",
+#     "theat": r"Heating Time (Gyr)",
+#     "tcross": r"Sound Crossing Cell Time (Gyr)",
+#     "tff": r"Free Fall Time (Gyr)",
+#     "tcool_tff": r"t$_{Cool}$/t$_{FreeFall}$",
+#     "csound": r"Sound Speed (km s$^{-1}$)",
+#     "rho_rhomean": r"$\rho / \langle \rho \rangle$",
+#     "dens": r"Density (g cm$^{-3}$)",
+#     "ndens": r"Number density (cm$^{-3}$)",
+#     "mass": r"Log10 Mass per pixel (M/M$_{\odot}$)",
+# }
+#
+# for entry in CRPARAMS['logParameters']:
+#     ylabel[entry] : r"$Log_{10}$" + ylabel[entry]
 
-fontsize = 13
-fontsizeTitle = 14
+
 
 def medians_versus_plot(
-    dataDict,
-    CRPARAMS,
-    saveParams,
-    logParameters,
+    statsDict,
     ylabel,
-    titleBool,
+    xParam = "R",
     DPI=150,
     xsize = 4.0,
-    ysize = 8.0,
+    ysize = 4.0,
     opacityPercentiles = 0.25,
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
     colourDict = {"with_CRs": "red", "no_CRs": "cyan"},
-    DataSavepathSuffix=f".h5"
 ):
 
     xlimDict = {
@@ -56,36 +99,35 @@ def medians_versus_plot(
     }
 
 
-    for analysisParam in saveParams:
-        if analysisParam != xParam:
-            print("")
-            print(f"Starting {analysisParam} Sub-plots!")
+    for halo, allSimsDict in CRSELECTEDHALOES.items():
+        print(f"Starting {halo}!")
+        fig, ax = plt.subplots(
+            nrows=1,
+            ncols=1,
+            sharex=True,
+            sharey=True,
+            figsize=(xsize, ysize),
+            dpi=DPI,
+        )
+        for simDict in allSimsDict.values():
+            loadpath = simDict['sim']['simfile']
+            if loadpath is not None :
+                print(f"{simDict['resolution']}, @{simDict['CR_indicator']}")
 
-            print("")
-            print("Loading Data!")
-            # Create a plot for each Temperature
-            fig, ax = plt.subplots(
-                nrows=2,
-                ncols=1,
-                sharex=True,
-                sharey=True,
-                figsize=(xsize, ysize),
-                dpi=DPI,
-            )
-            yminlist = []
-            ymaxlist = []
-            patchList = []
-            labelList = []
-            # for (ii,(resolution, pathsDict)) in enumerate(CRPARAMS['simfiles'].items()):
-            #     print(f"{resolution}")
-            #     for CR_indicator, loadpath in pathsDict.items():
-            #         print(f"{CR_indicator}")
-            #         if loadpath is not None :
+                selectKey = (f"{simDict['resolution']}",f"{simDict['CR_indicator']}")
+                for analysisParam in saveParams:
+                    if analysisParam != xParam:
+                        print("")
+                        print(f"Starting {analysisParam} plots!")
 
+                        # Create a plot for each Temperature
+                        yminlist = []
+                        ymaxlist = []
+                        patchList = []
+                        labelList = []
 
-
-                        xData = np.array(xData)
-                        plotData = statsData
+                        plotData = statsDict[halo][selectKey].copy()
+                        xData = statsDict[halo][selectKey][xParam].copy()
 
                         colour = colourDict[CR_indicator]
                         lineStyle = lineStyleDict[CR_indicator]
@@ -115,11 +157,8 @@ def medians_versus_plot(
                         ):
                             print("Data All Inf/NaN! Skipping entry!")
                             continue
-                        print("")
-                        print("Sub-Plot!")
 
-
-                        currentAx = ax[ii]
+                        currentAx = ax
 
 
                         midPercentile = math.floor(len(loadPercentilesTypes) / 2.0)
@@ -139,7 +178,7 @@ def medians_versus_plot(
                         currentAx.plot(
                             xData,
                             plotData[median],
-                            label=f"{resolution}: {CR_indicator}",
+                            label=f"{simDict['resolution']}: {simDict['CR_indicator']}",
                             color=colour,
                             lineStyle=lineStyleMedian,
                         )
@@ -189,7 +228,7 @@ def medians_versus_plot(
                     else:
                         plt.subplots_adjust(hspace=0.1,left=0.15)
 
-                    opslaan = (f"./Plots/{resolution}/{CR_indicator}"+f"CR_{resolution}_{CR_indicator}"+f"_{analysisParam}_Medians.pdf"
+                    opslaan = (f"./Plots/{halo}/{simDict['resolution']}/{simDict['CR_indicator']}"+f"CR_{halo}_{simDict['resolution']}_{simDict['CR_indicator']}_{analysisParam}_Medians.pdf"
                     )
                     plt.savefig(opslaan, dpi=DPI, transparent=False)
                     print(opslaan)
