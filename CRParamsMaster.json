@@ -1,12 +1,12 @@
 {
     "sim":
     {
-        "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
-        "resolution": "standard",
-        "with_CRs" : false
+        "simfile": null,
+        "resolution": null,
+        "with_CRs" : null
     },
 
-    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/halo_12/",
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
