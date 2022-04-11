@@ -22,18 +22,10 @@ import multiprocessing as mp
 import sys
 import logging
 
-CRParamsPath = "CRParams.json"
-CRPARAMS = json.load(open(CRParamsPath, 'r'))
-
-if (CRPARAMS['sim']['with_CRs'] is True):
-    CRPARAMS['sim']['CR_indicator'] = "with_CRs"
-else:
-    CRPARAMS['sim']['CR_indicator'] = "no_CRs"
-
-
+CRPARAMSPATH = "CRParams.json"
+CRPARAMS = load_cr_parameters(CRPARAMSPATH)
 DataSavepathBase = CRPARAMS['savepath']
 
-CRPARAMS['finalSnap'] = copy.copy(CRPARAMS['snapMax'])
 
 # ==============================================================================#
 #       USER DEFINED PARAMETERS
@@ -69,72 +61,83 @@ if __name__ == "__main__":
 # # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 # #   MAIN ANALYSIS
 # # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-    # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
-    # # Setup arguments combinations for parallel processing pool
-    # print("\n" + f"Sorting multi-core arguments!")
+    print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+    # Setup arguments combinations for parallel processing pool
+    print("\n" + f"Sorting multi-core arguments!")
+
+    args_default =  [
+        CRPARAMS,
+        DataSavepathBase,
+        FullDataPathSuffix,
+        lazyLoadBool
+    ]
+
+    args_list = [[snapNumber] + args_default for snapNumber in snapRange]
+
+    # Open multiprocesssing pool
+
+    print("\n" + f"Opening {n_processes} core Pool!")
+    pool = mp.Pool(processes=n_processes)
+
+    # C ompute Snap analysis
+    output_list = [
+        pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
+        for args in args_list
+    ]
+
+    pool.close()
+    pool.join()
+    # Close multiprocesssing pool
+    print(f"Closing core Pool!")
+    print(f"Error checks")
+    success = [result.successful() for result in output_list]
+    assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+
+    print("No Errors!")
+
+    print("Gather the multiprocess outputs")
+    out = {}
+    for output in output_list:
+
+        tmpOut = output.get()
+
+        # as function gives out dictionary extract what want (or just save dict)
+        out.update(tmpOut)
+
+    del output_list, pool
+
+    dataDict = flatten_wrt_time(out, CRPARAMS, snapRange)
+
+    del out
+
+    savePath = DataSavepathBase + f"Data_CR__{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}_CGM" + FullDataPathSuffix
+    print("Saving data as ", savePath)
+    hdf5_save(savePath, dataDict)
+
+
+  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
     #
-    # args_default =  [
-    #     CRPARAMS,
-    #     DataSavepathBase,
-    #     FullDataPathSuffix,
-    #     lazyLoadBool
-    # ]
-    #
-    # args_list = [[snapNumber] + args_default for snapNumber in snapRange]
-    #
-    # # Open multiprocesssing pool
-    #
-    # print("\n" + f"Opening {n_processes} core Pool!")
-    # pool = mp.Pool(processes=n_processes)
-    #
-    # # C ompute Snap analysis
-    # output_list = [
-    #     pool.apply_async(cr_analysis, args=args, error_callback=err_catcher)
-    #     for args in args_list
-    # ]
-    #
-    # pool.close()
-    # pool.join()
-    # # Close multiprocesssing pool
-    # print(f"Closing core Pool!")
-    # print(f"Error checks")
-    # success = [result.successful() for result in output_list]
-    # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
-    #
-    # print("No Errors!")
-    #
-    # print("Gather the multiprocess outputs")
+    # print("\n" + f"Starting SERIAL type Analysis!")
     # out = {}
-    # for output in output_list:
-    #
-    #     tmpOut = output.get()
-    #
-    #     # as function gives out dictionary extract what want (or just save dict)
+    # for snapNumber in snapRange:
+    #     tmpOut = cr_cgm_analysis(
+    #         snapNumber,
+    #         CRPARAMS,
+    #         DataSavepathBase,
+    #         FullDataPathSuffix,
+    #         lazyLoadBool
+    #         )
     #     out.update(tmpOut)
     #
-    # del output_list, pool
+    # del tmpOut
     #
     # dataDict = flatten_wrt_time(out, CRPARAMS, snapRange)
     #
     # del out
     #
-    # savePath = DataSavepathBase + "Data_CR" + FullDataPathSuffix
+    # savePath = DataSavepathBase + f"Data_CR__{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}_CGM" + FullDataPathSuffix
     # print("Saving data as ", savePath)
     # hdf5_save(savePath, dataDict)
-
-  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-
-    print("\n" + f"Starting SERIAL type Analysis!")
-    out = {}
-    for snapNumber in snapRange:
-        tmpOut = cr_analysis(
-            snapNumber,
-            CRPARAMS,
-            DataSavepathBase,
-            FullDataPathSuffix,
-            lazyLoadBool
-            )
-        out.update(tmpOut)
 
     ##-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 

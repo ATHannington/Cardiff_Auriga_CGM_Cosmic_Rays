@@ -16,9 +16,10 @@ from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
 import h5py
+import json
 import copy
 
-def cr_analysis(
+def cr_cgm_analysis(
     snapNumber,
     CRPARAMS,
     DataSavepathBase,
@@ -27,7 +28,7 @@ def cr_analysis(
 ):
 
     out = {}
-    DataSavepath = DataSavepathBase + f"Data_{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}"
+    DataSavepath = DataSavepathBase + f"Data_CR_{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}"
 
 
     print("")
@@ -56,7 +57,7 @@ def cr_analysis(
     #   Be in memory so taking the subset would be skipped.
 
     tmp = snapGas.data["id"]
-    tmp = snapGas.data["age"]
+    tmp = snapGas.data["sfr"]
     tmp = snapGas.data["hrgm"]
     tmp = snapGas.data["mass"]
     tmp = snapGas.data["pos"]
@@ -67,13 +68,15 @@ def cr_analysis(
         f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
     )
 
-    # # Centre the simulation on HaloID 0
-    # snapGas = set_centre(
-    #     snap=snapGas, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
-    # )
 
     snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
-    # snapGas.select_halo(snap_subfind, do_rotation=True)
+
+    # Centre the simulation on HaloID 0
+    snapGas = set_centre(
+        snap=snapGas, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
+    )
+
+    # snapGas.select_halo(snap_subfind, do_rotation=False)
     # --------------------------#
     ##    Units Conversion    ##
     # --------------------------#
@@ -86,16 +89,7 @@ def cr_analysis(
     snapGas.hrgm *= 1e10  # [Msol]
 
     # Calculate New Parameters and Load into memory others we want to track
-    snapGas = calculate_tracked_parameters(
-        snapGas,
-        oc.elements,
-        oc.elements_Z,
-        oc.elements_mass,
-        oc.elements_solar,
-        oc.Zsolar,
-        oc.omegabaryon0,
-        snapNumber,
-    )
+    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber)
 
     whereDM = np.where(snapGas.type == 1)[0]
     whereGas = np.where(snapGas.type == 0)[0]
@@ -122,10 +116,14 @@ def cr_analysis(
     for key in deleteKeys:
         del snapGas.data[key]
 
-    # # select the CGM, acounting for variable disk extent
-    # whereDiskSFR = np.where(snapGas.data["sfr"] > 0.0)[0]
-    # maxDiskRadius = np.nanmax(snapGas.data["R"][whereDiskSFR])
-    # whereCGM = np.where((snapGas.data["sfr"]<0.0) & (snapGas.data["R"]>=maxDiskRadius))
+    # select the CGM, acounting for variable disk extent
+    whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
+    maxDiskRadius = np.nanpercentile(snapGas.data["R"][whereDiskSFR],97.72,axis=0)
+    whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"]>=maxDiskRadius)) [0]
+
+    for key, value in snapGas.data.items():
+        if value is not None:
+            snapGas.data[key] = value.copy()[whereCGM]
 
     # Select only gas in High Res Zoom Region
     snapGas = high_res_only_gas_select(snapGas, snapNumber)
@@ -145,7 +143,7 @@ def cr_analysis(
 
 
     if (
-        (CRPARAMS["QuadPlotBool"] == True)
+        (CRPARAMS["QuadPlotBool"] is True)
         # & (targetT == int(CRPARAMS["targetTLst"][0]))
         # & (rin == CRPARAMS["Rinner"][0])
     ):
@@ -187,6 +185,21 @@ def cr_analysis(
     print(f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: Finishing process...")
     return out
 
+def load_cr_parameters(CRPARAMSPATH = "CRParams.json"):
+    CRPARAMS = json.load(open(CRPARAMSPATH, 'r'))
+
+    if (CRPARAMS['sim']['with_CRs'] is True):
+        CRPARAMS['sim']['CR_indicator'] = "with_CRs"
+    else:
+        CRPARAMS['sim']['CR_indicator'] = "no_CRs"
+
+    try:
+        CRPARAMS['finalSnap'] = copy.copy(CRPARAMS['snapMax'])
+    except:
+        pass
+
+    return CRPARAMS
+
 def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
 
     print("Flattening with respect to time...")
@@ -202,12 +215,12 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
         concatenateList = []
         for snapNumber in snapRange:
             selectKey = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}",f"{int(snapNumber)}")
-            concatenateList.append(dataDict[selectKey][subkey].copy())
+            concatenateList.append(dataDict[subkey].copy())
 
-            del dataDict[selectKey][subkey]
+            del dataDict[subkey]
             # # Fix values to arrays to remove concat error of 0D arrays
-            # for k, val in dataDict[selectKey].items():
-            #     dataDict[selectKey][k] = np.array([val]).flatten()
+            # for k, val in dataDict.items():
+            #     dataDict[k] = np.array([val]).flatten()
         outvals = np.concatenate(
             (concatenateList), axis=0
         )
@@ -217,12 +230,12 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
 
 
 
-    print("")
-    print("***DEBUG!***")
-    print("flatData.keys()")
-    print(flatData.keys())
-    print("flatData[newKey].keys()")
-    print(flatData[newKey].keys())
+    # print("")
+    # print("***DEBUG!***")
+    # print("flatData.keys()")
+    # print(flatData.keys())
+    # print("flatData[newKey].keys()")
+    # print(flatData[newKey].keys())
 
 
 
@@ -230,41 +243,50 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
 
 def cr_calculate_statistics(
     dataDict,
+    CRPARAMS,
     xParam = "R",
     Nbins=150,
 ):
-    selectKey = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}"))
 
     if xParam in CRPARAMS['logParameters']:
-        xBins = np.logspace(start = np.log10(np.nanmin(dataDict[selectKey][xParam])), stop=np.log10(np.nanmax(dataDict[selectKey][xParam])), num=Nbins, base=10.0)
+        xBins = np.logspace(start = np.log10(np.nanmin(dataDict[xParam])), stop=np.log10(np.nanmax(dataDict[xParam])), num=Nbins, base=10.0)
     else:
-        xBins = np.linspace(start=np.nanmin(dataDict[selectKey][xParam]), stop=np.nanmax(dataDict[selectKey][xParam]), num=Nbins)
+        xBins = np.linspace(start=np.nanmin(dataDict[xParam]), stop=np.nanmax(dataDict[xParam]), num=Nbins)
 
-    statsData = {}
     xData = []
+    whereList = []
     for xmin,xmax in zip(xBins[:-1],xBins[1:]):
         xData.append((float(xmax)-float(xmin))/2.)
-        whereData = np.where((dataDict[selectKey][xParam]>= xmin)&(dataDict[selectKey][xParam]< xmax))[0]
+        whereList.append(np.where((dataDict[xParam]>= xmin)&(dataDict[xParam]< xmax)) [0])
 
-        binnedData = dataDict[selectKey][analysisParam][whereData].copy()
+    statsData = {}
+    for whereData in whereList:
+        binnedData = {}
+        for param, values in dataDict.items():
+            if param in CRPARAMS['saveParams']:
+                binnedData.update({param: values[whereData]})
 
         dat = calculate_statistics(
             binnedData,
             TRACERSPARAMS=CRPARAMS,
             saveParams=CRPARAMS['saveParams']
         )
+
         # Fix values to arrays to remove concat error of 0D arrays
         for k, val in dat.items():
             dat[k] = np.array([val]).flatten()
 
-        for subkey, vals in dat.items():
-            if subkey in list(statsData.keys()):
+        if selectKey in list(statsData.keys()):
+            for subkey, vals in dat.items():
+                if subkey in list(statsData.keys()):
 
-                statsData[subkey] = np.concatenate(
-                    (statsData[subkey], dat[subkey]), axis=0
-                )
-            else:
-                statsData.update({subkey: dat[subkey]})
+                    statsData[subkey] = np.concatenate(
+                        (statsData[subkey], dat[subkey]), axis=0
+                    )
+                else:
+                    statsData.update({subkey: dat[subkey]})
+        else:
+            statsData.update({selectKey: dat})
 
-                
+    statsData.update({f"{xParam}": xData})
     return statsData
