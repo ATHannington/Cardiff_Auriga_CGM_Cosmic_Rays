@@ -41,4 +41,20 @@ CRParams.json Guide
     "pixreslos" : 4.0,
     # Select SubHalo to select. Unbound in relevant FoF halo will also be selected
     "haloID" : 0
+    # Set Global Plot DPI
+    "DPI" : 150,
+    # Set Global Plot figure x-axis size
+    "xsize" : 4.0,
+    # Set Global Plot figure y-axis size
+    "ysize" : 4.0,
+    # Set Global Plot colormap
+    "colourmapMain" : "plasma",
+    # Set Global Plot with or without titles boolean
+    "titleBool" : false,
+    # Set Global Plot fontsize
+    "fontsize" : 13,
+    # Set Global Plot fontsize for Titles
+    "fontsizeTitle" : 14,
+    # Set Global Plot parameters for which we take Log10
+    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic","tcool","theat","tcross","tff","tcool_tff","mass"]
 }
