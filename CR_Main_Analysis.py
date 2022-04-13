@@ -1,35 +1,35 @@
-"""
-Author: A. T. Hannington
-Created: 31/03/2022
-Known Bugs:
-"""
 import numpy as np
 import pandas as pd
 import matplotlib
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
 import matplotlib.pyplot as plt
+import matplotlib.transforms as tx
+from matplotlib.ticker import AutoMinorLocator
 import const as c
 import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
 from CR_Subroutines import *
+from CR_Plotting_Tools import *
 import copy
 import h5py
 import json
+import math
+from random import sample
 import multiprocessing as mp
 import sys
 import logging
 
-CRPARAMSPATH = "CRParams.json"
-CRPARAMS = load_cr_parameters(CRPARAMSPATH)
-DataSavepathBase = CRPARAMS['savepath']+ f"{CRPARAMS['sim']['resolution']}/{CRPARAMS['sim']['CR_indicator']}/"
+CRPARAMSPATHMASTER = "CRParams.json"
+CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, 'r'))
 
-
-# ==============================================================================#
-#       USER DEFINED PARAMETERS
-# ==============================================================================#
+# =============================================================================#
+#
+#               USER DEFINED PARAMETERS
+#
+#==============================================================================#
 # File types for data save.
 #   Full: full FullDict data
 FullDataPathSuffix = f".h5"
@@ -38,112 +38,181 @@ lazyLoadBool = True
 
 # Number of cores to run on:
 n_processes = 4
-# ==============================================================================#
-#       MAIN PROGRAM
-# ==============================================================================#
+
+xParam = "R"
+
+Nbins = 150
+
+FullDataPathSuffix = f".h5"
+
+CRSELECTEDHALOESPATH = "CRSelectedHaloes.json"
+CRSELECTEDHALOES = json.load(open(CRSELECTEDHALOESPATH, 'r'))
+
+ylabel = {
+    "T": r"Temperature (K)",
+    "R": r"Radius (kpc)",
+    "n_H": r"n$_H$ (cm$^{-3}$)",
+    "B": r"|B| ($ \mu $G)",
+    "vrad": r"Radial Velocity (km s$^{-1}$)",
+    "gz": r"Average Metallicity Z/Z$_{\odot}$",
+    "L": r"Specific Angular Momentum" +"\n" + r"(kpc km s$^{-1}$)",
+    "P_thermal": r"P$_{Thermal}$ / k$_B$ (K cm$^{-3}$)",
+    "P_magnetic": r"P$_{Magnetic}$ / k$_B$ (K cm$^{-3}$)",
+    "P_kinetic": r"P$_{Kinetic}$ / k$_B$ (K cm$^{-3}$)",
+    "P_tot": r"P$_{tot}$ = (P$_{thermal}$ + P$_{magnetic}$)/ k$_B$" +"\n" + r"(K cm$^{-3}$)",
+    "Pthermal_Pmagnetic": r"P$_{thermal}$/P$_{magnetic}$",
+    "tcool": r"Cooling Time (Gyr)",
+    "theat": r"Heating Time (Gyr)",
+    "tcross": r"Sound Crossing Cell Time (Gyr)",
+    "tff": r"Free Fall Time (Gyr)",
+    "tcool_tff": r"t$_{Cool}$/t$_{FreeFall}$",
+    "csound": r"Sound Speed (km s$^{-1}$)",
+    "rho_rhomean": r"$\rho / \langle \rho \rangle$",
+    "dens": r"Density (g cm$^{-3}$)",
+    "ndens": r"Number density (cm$^{-3}$)",
+    "mass": r"Log10 Mass per pixel (M/M$_{\odot}$)",
+}
+
+xlimDict = {
+    "R": {"xmin": 0.0, "xmax": 500.0},
+    "mass": {"xmin": 5.0, "xmax": 9.0},
+    "L": {"xmin": 3.0, "xmax": 4.5},
+    "T": {"xmin": 3.75, "xmax": 6.5},
+    "n_H": {"xmin": -5.0, "xmax": 0.0},
+    "B": {"xmin": -2.0, "xmax": 1.0},
+    "vrad": {"xmin": -150.0, "xmax": 150.0},
+    "gz": {"xmin": -1.5, "xmax": 0.5},
+    "P_thermal": {"xmin": 1.0, "xmax": 4.0},
+    "P_magnetic": {"xmin": -1.5, "xmax": 5.0},
+    "P_kinetic": {"xmin": -1.0, "xmax": 8.0},
+    "P_tot": {"xmin": -1.0, "xmax": 7.0},
+    "Pthermal_Pmagnetic": {"xmin": -2.0, "xmax": 3.0},
+    "tcool": {"xmin": -5.0, "xmax": 2.0},
+    "theat": {"xmin": -4.0, "xmax": 4.0},
+    "tff": {"xmin": -1.5, "xmax": 0.5},
+    "tcool_tff": {"xmin": -4.0, "xmax": 2.0},
+    "rho_rhomean": {"xmin": 0.0, "xmax": 8.0},
+    "dens": {"xmin": -30.0, "xmax": -22.0},
+    "ndens": {"xmin": -6.0, "xmax": 2.0}
+}
+
+#==============================================================================#
+#
+#          Main
+#
+#==============================================================================#
+
 def err_catcher(arg):
     raise Exception(f"Child Process died and gave error: {arg}")
     return
 
+snapRange = [
+    xx
+    for xx in range(
+        int(CRPARAMSMASTER["snapMin"]),
+        min(int(CRPARAMSMASTER["snapMax"]) + 1, int(CRPARAMSMASTER["finalSnap"]) + 1),
+        1,
+    )
+]
 
 if __name__ == "__main__":
+    for halo,allSimsDict in CRSELECTEDHALOES.items():
+        dataDict = {}
+        CRPARAMSHALO = {}
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #   MAIN ANALYSIS
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        for sim, simDict in allSimsDict.items():
+            CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+            CRPARAMSHALO.update({sim : CRPARAMS})
+            if CRPARAMS['simfile'] is not None:
+                print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+                # Setup arguments combinations for parallel processing pool
+                print("\n" + f"Sorting multi-core arguments!")
+                manager = mp.Manager()
+                args_list = manager.list()
+                args_default =  [
+                    CRPARAMS,
+                    DataSavepathBase,
+                    FullDataPathSuffix,
+                    lazyLoadBool
+                ]
 
-    snapRange = [
-        xx
-        for xx in range(
-            int(CRPARAMS["snapMin"]),
-            min(int(CRPARAMS["snapMax"]) + 1, int(CRPARAMS["finalSnap"]) + 1),
-            1,
+                args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
+
+                # Open multiprocesssing pool
+
+                print("\n" + f"Opening {n_processes} core Pool!")
+                pool = mp.Pool(processes=n_processes)
+
+                # C ompute Snap analysis
+                output_list = [
+                    pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
+                    for args in args_list
+                ]
+
+                pool.close()
+                pool.join()
+                # Close multiprocesssing pool
+                print(f"Closing core Pool!")
+                print(f"Error checks")
+                success = [result.successful() for result in output_list]
+                assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+
+                print("No Errors!")
+
+                print("Gather the multiprocess outputs")
+                out = {}
+                for output in output_list:
+
+                    tmpOut = output.get()
+
+                    # as function gives out dictionary extract what want (or just save dict)
+                    out.update(tmpOut)
+
+                del output_list, pool
+
+                flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
+
+                del out
+
+                dataDict.update(flatDict)
+        #----------------------------------------------------------------------#
+        #       Calculate statistics...
+        #----------------------------------------------------------------------#
+        print("")
+        print("Calculate Statistics!")
+        print(f"{halo}")
+        statsDict = {}
+        for sim, simDict in allSimsDict.items():
+            if CRPARAMSHALO[sim]['simfile'] is not None:
+                print(f"{sim}")
+                print("Calculate Statistics...")
+                dat = cr_calculate_statistics(
+                    dataDict = dataDict,
+                    CRPARAMS = CRPARAMSHALO[sim],
+                    xParam = xParam,
+                    Nbins = Nbins,
+                    xlimDict = xlimDict
+                )
+                statsDict.update(dat)
+        print("...done!")
+        print("Statistics calculated!")
+        #----------------------------------------------------------------------#
+        #   Plots...
+        #----------------------------------------------------------------------#
+
+        #----------------------------------------------------------------------#
+        #       medians_versus_plot...
+        #----------------------------------------------------------------------#
+
+        print("")
+        print(f"Medians vs {xParam} Plot!")
+        medians_versus_plot(
+            statsDict = statsDict,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            xParam = xParam,
+            xlimDict = xlimDict
         )
-    ]
-
-
-# # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-# #   MAIN ANALYSIS
-# # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-    print("\n" + f"Starting MULTIPROCESSING type Analysis!")
-    # Setup arguments combinations for parallel processing pool
-    print("\n" + f"Sorting multi-core arguments!")
-    manager = mp.Manager()
-    args_list = manager.list()
-    args_default =  [
-        CRPARAMS,
-        DataSavepathBase,
-        FullDataPathSuffix,
-        lazyLoadBool
-    ]
-
-    args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
-
-    # Open multiprocesssing pool
-
-    print("\n" + f"Opening {n_processes} core Pool!")
-    pool = mp.Pool(processes=n_processes)
-
-    # C ompute Snap analysis
-    output_list = [
-        pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
-        for args in args_list
-    ]
-
-    pool.close()
-    pool.join()
-    # Close multiprocesssing pool
-    print(f"Closing core Pool!")
-    print(f"Error checks")
-    success = [result.successful() for result in output_list]
-    assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
-
-    print("No Errors!")
-
-    print("Gather the multiprocess outputs")
-    out = {}
-    for output in output_list:
-
-        tmpOut = output.get()
-
-        # as function gives out dictionary extract what want (or just save dict)
-        out.update(tmpOut)
-
-    del output_list, pool
-
-    dataDict = flatten_wrt_time(out, CRPARAMS, snapRange)
-
-    del out
-
-    savePath = DataSavepathBase +  f"Data_CR_{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}_CGM" + FullDataPathSuffix
-    print("Saving data as ", savePath)
-    hdf5_save(savePath, dataDict)
-
-
-
-
-
-  ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-    #
-    # print("\n" + f"Starting SERIAL type Analysis!")
-    # out = {}
-    # for snapNumber in snapRange:
-    #     tmpOut = cr_cgm_analysis(
-    #         snapNumber,
-    #         CRPARAMS,
-    #         DataSavepathBase,
-    #         FullDataPathSuffix,
-    #         lazyLoadBool
-    #         )
-    #     out.update(tmpOut)
-    #
-    # del tmpOut
-    #
-    # dataDict = flatten_wrt_time(out, CRPARAMS, snapRange)
-    #
-    # del out
-    #
-    # savePath = DataSavepathBase + f"Data_CR__{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}_CGM" + FullDataPathSuffix
-    # print("Saving data as ", savePath)
-    # hdf5_save(savePath, dataDict)
-
-    ##-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-
-
-    print("Done! End of Analysis :)")
