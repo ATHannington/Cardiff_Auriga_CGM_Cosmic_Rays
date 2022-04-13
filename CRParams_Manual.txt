@@ -3,12 +3,6 @@ CRParams.json Guide
 ###################
 
 {
-    "sim":
-    {
-        "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
-        "resolution": "standard",
-        "with_CRs" : false
-    },
     # Set path to save data
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
     # Set saved parameters

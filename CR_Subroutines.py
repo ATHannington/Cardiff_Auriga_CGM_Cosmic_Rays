@@ -28,13 +28,13 @@ def cr_cgm_analysis(
 ):
 
     out = {}
-    DataSavepath = DataSavepathBase + f"Data_CR_{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}"
+    DataSavepath = DataSavepathBase + f"Data_CR_{CRPARAMS['resolution']}_{CRPARAMS['CR_indicator']}"
 
 
     print("")
-    print(f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}")
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}")
 
-    loadpath = CRPARAMS['sim']['simfile']
+    loadpath = CRPARAMS['simfile']
 
     # load in the subfind group files
     snap_subfind = load_subfind(snapNumber, dir=loadpath)
@@ -65,7 +65,7 @@ def cr_cgm_analysis(
     del tmp
 
     print(
-        f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
+        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
     )
 
 
@@ -180,18 +180,19 @@ def cr_cgm_analysis(
             inner.update({key : value})
 
     # Add to final output
-    out.update({(f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}",f"{int(snapNumber)}") : inner})
+    out.update({(f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}") : inner})
 
-    print(f"[@{CRPARAMS['sim']['resolution']}, @{CRPARAMS['sim']['CR_indicator']}, @{int(snapNumber)}]: Finishing process...")
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process...")
     return out
 
-def load_cr_parameters(CRPARAMSPATH = "CRParams.json"):
-    CRPARAMS = json.load(open(CRPARAMSPATH, 'r'))
+def cr_parameters(CRPARAMSMASTER, simDict):
+    CRPARAMS = copy.deepcopy(CRPARAMSMASTER)
+    CRPARAMS.update(simDict)
 
-    if (CRPARAMS['sim']['with_CRs'] is True):
-        CRPARAMS['sim']['CR_indicator'] = "with_CRs"
+    if (CRPARAMS['with_CRs'] is True):
+        CRPARAMS['CR_indicator'] = "with_CRs"
     else:
-        CRPARAMS['sim']['CR_indicator'] = "no_CRs"
+        CRPARAMS['CR_indicator'] = "no_CRs"
 
     try:
         CRPARAMS['finalSnap'] = copy.copy(CRPARAMS['snapMax'])
@@ -205,8 +206,8 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
     print("Flattening with respect to time...")
     flatData = {}
     tmp = {}
-    newKey = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}")
-    selectKey0 = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}",f"{int(snapRange[0])}")
+    newKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+    selectKey0 = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapRange[0])}")
 
     keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
 
@@ -214,10 +215,10 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
         print(f"{float(ii)/float(len(keys)):3.1%}")
         concatenateList = []
         for snapNumber in snapRange:
-            selectKey = (f"{CRPARAMS['sim']['resolution']}",f"{CRPARAMS['sim']['CR_indicator']}",f"{int(snapNumber)}")
-            concatenateList.append(dataDict[subkey].copy())
+            selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}")
+            concatenateList.append(dataDict[selectKey][subkey].copy())
 
-            del dataDict[subkey]
+            del dataDict[selectKey][subkey]
             # # Fix values to arrays to remove concat error of 0D arrays
             # for k, val in dataDict.items():
             #     dataDict[k] = np.array([val]).flatten()
@@ -245,24 +246,64 @@ def cr_calculate_statistics(
     dataDict,
     CRPARAMS,
     xParam = "R",
-    Nbins=150,
-):
+    Nbins = 150,
+    xlimDict = {
+        "R": {"xmin": 0.0, "xmax": 500.0},
+        "mass": {"xmin": 5.0, "xmax": 9.0},
+        "L": {"xmin": 3.0, "xmax": 4.5},
+        "T": {"xmin": 3.75, "xmax": 6.5},
+        "n_H": {"xmin": -5.0, "xmax": 0.0},
+        "B": {"xmin": -2.0, "xmax": 1.0},
+        "vrad": {"xmin": -150.0, "xmax": 150.0},
+        "gz": {"xmin": -1.5, "xmax": 0.5},
+        "P_thermal": {"xmin": 1.0, "xmax": 4.0},
+        "P_magnetic": {"xmin": -1.5, "xmax": 5.0},
+        "P_kinetic": {"xmin": -1.0, "xmax": 8.0},
+        "P_tot": {"xmin": -1.0, "xmax": 7.0},
+        "Pthermal_Pmagnetic": {"xmin": -2.0, "xmax": 3.0},
+        "tcool": {"xmin": -5.0, "xmax": 2.0},
+        "theat": {"xmin": -4.0, "xmax": 4.0},
+        "tff": {"xmin": -1.5, "xmax": 0.5},
+        "tcool_tff": {"xmin": -4.0, "xmax": 2.0},
+        "rho_rhomean": {"xmin": 0.0, "xmax": 8.0},
+        "dens": {"xmin": -30.0, "xmax": -22.0},
+        "ndens": {"xmin": -6.0, "xmax": 2.0}
+    },
+    printpercent = 5.0):
 
+
+    selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+
+    print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS['logParameters']:
-        xBins = np.logspace(start = np.log10(np.nanmin(dataDict[xParam])), stop=np.log10(np.nanmax(dataDict[xParam])), num=Nbins, base=10.0)
+        xBins = np.logspace(start=xlimDict[xParam]['xmin'], stop=xlimDict[xParam]['xmax'], num=Nbins, base=10.0)
     else:
-        xBins = np.linspace(start=np.nanmin(dataDict[xParam]), stop=np.nanmax(dataDict[xParam]), num=Nbins)
+        xBins = np.linspace(start=xlimDict[xParam]['xmin'], stop=xlimDict[xParam]['xmax'], num=Nbins)
 
     xData = []
     whereList = []
-    for xmin,xmax in zip(xBins[:-1],xBins[1:]):
-        xData.append((float(xmax)-float(xmin))/2.)
-        whereList.append(np.where((dataDict[xParam]>= xmin)&(dataDict[xParam]< xmax)) [0])
+    printcount = 0.0
+    # print(xBins)
+    print("[@cr_calculate_statistics]: Generate where in bins")
+    for (ii,(xmin,xmax)) in enumerate(zip(xBins[:-1],xBins[1:])):
+        # print(xmin,xParam,xmax)
+        percentage = (float(ii)/float(len(xBins[:-1])))*100.
+        if percentage >= printcount:
+            print(f"{percentage:0.02f}% bins assigned!")
+            printcount += printpercent
+        xData.append((float(xmax)+float(xmin))/2.)
+        whereList.append(np.where((dataDict[selectKey][xParam]>= xmin)&(dataDict[selectKey][xParam]< xmax)) [0])
 
+    print("[@cr_calculate_statistics]: Bin data and calculate statistics")
     statsData = {}
-    for whereData in whereList:
+    printcount = 0.0
+    for ii, whereData in enumerate(whereList):
+        percentage = (float(ii)/float(len(whereList)))*100.
+        if percentage >= printcount:
+            print(f"{percentage:0.02f}% data processed!")
+            printcount += printpercent
         binnedData = {}
-        for param, values in dataDict.items():
+        for param, values in dataDict[selectKey].items():
             if param in CRPARAMS['saveParams']:
                 binnedData.update({param: values[whereData]})
 
@@ -276,17 +317,15 @@ def cr_calculate_statistics(
         for k, val in dat.items():
             dat[k] = np.array([val]).flatten()
 
-        if selectKey in list(statsData.keys()):
-            for subkey, vals in dat.items():
-                if subkey in list(statsData.keys()):
+        for subkey, vals in dat.items():
+            if subkey in list(statsData.keys()):
 
-                    statsData[subkey] = np.concatenate(
-                        (statsData[subkey], dat[subkey]), axis=0
-                    )
-                else:
-                    statsData.update({subkey: dat[subkey]})
-        else:
-            statsData.update({selectKey: dat})
+                statsData[subkey] = np.concatenate(
+                    (statsData[subkey], dat[subkey]), axis=0
+                )
+            else:
+                statsData.update({subkey: dat[subkey]})
+
 
     statsData.update({f"{xParam}": xData})
-    return statsData
+    return {selectKey : statsData}

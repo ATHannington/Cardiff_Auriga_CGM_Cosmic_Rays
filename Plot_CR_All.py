@@ -12,26 +12,41 @@ from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
 from CR_Subroutines import *
+from CR_Plotting_Tools import *
 import copy
 import h5py
 import json
 import math
 from random import sample
+import multiprocessing as mp
 import sys
 import logging
-import unittest
 
+CRPARAMSPATHMASTER = "CRParams.json"
+CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, 'r'))
+
+# =============================================================================#
+#
+#               USER DEFINED PARAMETERS
+#
+#==============================================================================#
+# File types for data save.
+#   Full: full FullDict data
 FullDataPathSuffix = f".h5"
+
+lazyLoadBool = True
+
+# Number of cores to run on:
+n_processes = 4
+
 xParam = "R"
 
-CRPARAMSPATH = "CRParams.json"
-CRPARAMSMASTERPATH = "CRParams.json"
-CRPARAMSMASTER = load_cr_parameters(CRPARAMSMASTERPATH)
+Nbins = 150
+
+FullDataPathSuffix = f".h5"
 
 CRSELECTEDHALOESPATH = "CRSelectedHaloes.json"
-CRSELECTEDHALOES = load_cr_parameters(CRSELECTEDHALOESPATH)
-
-MustBeSameSettings = ["saveParams","saveEssentials","snapMin","snapMax"]
+CRSELECTEDHALOES = json.load(open(CRSELECTEDHALOESPATH, 'r'))
 
 ylabel = {
     "T": r"Temperature (K)",
@@ -58,58 +73,146 @@ ylabel = {
     "mass": r"Log10 Mass per pixel (M/M$_{\odot}$)",
 }
 
-for entry in CRPARAMS['logParameters']:
-    ylabel[entry] : r"$Log_{10}$" + ylabel[entry]
+xlimDict = {
+    "R": {"xmin": 0.0, "xmax": 500.0},
+    "mass": {"xmin": 5.0, "xmax": 9.0},
+    "L": {"xmin": 3.0, "xmax": 4.5},
+    "T": {"xmin": 3.75, "xmax": 6.5},
+    "n_H": {"xmin": -5.0, "xmax": 0.0},
+    "B": {"xmin": -2.0, "xmax": 1.0},
+    "vrad": {"xmin": -150.0, "xmax": 150.0},
+    "gz": {"xmin": -1.5, "xmax": 0.5},
+    "P_thermal": {"xmin": 1.0, "xmax": 4.0},
+    "P_magnetic": {"xmin": -1.5, "xmax": 5.0},
+    "P_kinetic": {"xmin": -1.0, "xmax": 8.0},
+    "P_tot": {"xmin": -1.0, "xmax": 7.0},
+    "Pthermal_Pmagnetic": {"xmin": -2.0, "xmax": 3.0},
+    "tcool": {"xmin": -5.0, "xmax": 2.0},
+    "theat": {"xmin": -4.0, "xmax": 4.0},
+    "tff": {"xmin": -1.5, "xmax": 0.5},
+    "tcool_tff": {"xmin": -4.0, "xmax": 2.0},
+    "rho_rhomean": {"xmin": 0.0, "xmax": 8.0},
+    "dens": {"xmin": -30.0, "xmax": -22.0},
+    "ndens": {"xmin": -6.0, "xmax": 2.0}
+}
 
 #==============================================================================#
 #
-#          Main Plotting...
+#          Main
 #
 #==============================================================================#
 
-#------------------------------------------------------------------------------#
-#       Load data...
-#------------------------------------------------------------------------------#
+def err_catcher(arg):
+    raise Exception(f"Child Process died and gave error: {arg}")
+    return
 
-dataDict = {}
-for halo,allSimsDict in CRSELECTEDHALOES.items():
-    dataDict.update({halo : None})
-    for sim, simDict in allSimsDict.items():
-        if simDict['simfile'] is not None:
-            loadPath = CRPARAMSMASTER['savepath'] + CRPARAMSPATH
-            TMPCRPARAMS= load_cr_parameters(loadPath)
-            CRSELECTEDHALOES[halo][sim].update(TMPCRPARAMS)
-            for key in MustBeSameSettings:
-                unittest.assertCountEqual(TMPCRPARAMS[key],CRPARAMS[key], f"FAILURE! Loaded simulation {halo}: {sim} does not have the same base config as CRParams.json!")
-            loadPath = CRPARAMSMASTER['savepath'] + f"{halo}/" + f"Data_CR__{TMPCRPARAMS['sim']['resolution']}_{TMPCRPARAMS['sim']['CR_indicator']}_CGM" + FullDataPathSuffix
-            loadedData = hdf5_load(loadPath)
-            dataDict[halo].update(loadedData)
-#------------------------------------------------------------------------------#
-#       Calculate statistics...
-#------------------------------------------------------------------------------#
-statsDict = {}
-for halo ,allSimsDict in dataDict.items():
-    statsDict.update({halo : None})
-    for sim, simDict in allSimsDict.items():
-        dat = cr_calculate_statistics(
-            dataDict[halo],
-            CRPARAMS[halo],
-            xParam
+snapRange = [
+    xx
+    for xx in range(
+        int(CRPARAMSMASTER["snapMin"]),
+        min(int(CRPARAMSMASTER["snapMax"]) + 1, int(CRPARAMSMASTER["finalSnap"]) + 1),
+        1,
+    )
+]
+
+if __name__ == "__main__":
+    for halo,allSimsDict in CRSELECTEDHALOES.items():
+        dataDict = {}
+        CRPARAMSHALO = {}
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #   MAIN ANALYSIS
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        for sim, simDict in allSimsDict.items():
+            CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+            CRPARAMSHALO.update({sim : CRPARAMS})
+            if CRPARAMS['simfile'] is not None:
+                print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+                # Setup arguments combinations for parallel processing pool
+                print("\n" + f"Sorting multi-core arguments!")
+                manager = mp.Manager()
+                args_list = manager.list()
+                args_default =  [
+                    CRPARAMS,
+                    DataSavepathBase,
+                    FullDataPathSuffix,
+                    lazyLoadBool
+                ]
+
+                args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
+
+                # Open multiprocesssing pool
+
+                print("\n" + f"Opening {n_processes} core Pool!")
+                pool = mp.Pool(processes=n_processes)
+
+                # C ompute Snap analysis
+                output_list = [
+                    pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
+                    for args in args_list
+                ]
+
+                pool.close()
+                pool.join()
+                # Close multiprocesssing pool
+                print(f"Closing core Pool!")
+                print(f"Error checks")
+                success = [result.successful() for result in output_list]
+                assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+
+                print("No Errors!")
+
+                print("Gather the multiprocess outputs")
+                out = {}
+                for output in output_list:
+
+                    tmpOut = output.get()
+
+                    # as function gives out dictionary extract what want (or just save dict)
+                    out.update(tmpOut)
+
+                del output_list, pool
+
+                flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
+
+                del out
+
+                dataDict.update(flatDict)
+        #----------------------------------------------------------------------#
+        #       Calculate statistics...
+        #----------------------------------------------------------------------#
+        print("")
+        print("Calculate Statistics!")
+        print(f"{halo}")
+        statsDict = {}
+        for sim, simDict in allSimsDict.items():
+            if CRPARAMSHALO[sim]['simfile'] is not None:
+                print(f"{sim}")
+                print("Calculate Statistics...")
+                dat = cr_calculate_statistics(
+                    dataDict = dataDict,
+                    CRPARAMS = CRPARAMSHALO[sim],
+                    xParam = xParam,
+                    Nbins = Nbins,
+                    xlimDict = xlimDict
+                )
+                statsDict.update(dat)
+        print("...done!")
+        print("Statistics calculated!")
+        #----------------------------------------------------------------------#
+        #   Plots...
+        #----------------------------------------------------------------------#
+
+        #----------------------------------------------------------------------#
+        #       medians_versus_plot...
+        #----------------------------------------------------------------------#
+
+        print("")
+        print(f"Medians vs {xParam} Plot!")
+        medians_versus_plot(
+            statsDict = statsDict,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            xParam = xParam,
+            xlimDict = xlimDict
         )
-        selectKey = (f"{simDict['sim']['resolution']}",f"{simDict['sim']['CR_indicator']}")
-        statsDict[halo].update({selectKey : dat})
-
-#-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+#
-#
-#   Plots...
-#
-#-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+#
-
-#------------------------------------------------------------------------------#
-#       medians_versus_plot...
-#------------------------------------------------------------------------------#
-medians_versus_plot(
-    statsDict,
-    ylabel,
-    xParam
-)

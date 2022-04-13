@@ -24,7 +24,7 @@ import logging
 
 CRPARAMSPATH = "CRParams.json"
 CRPARAMS = load_cr_parameters(CRPARAMSPATH)
-DataSavepathBase = CRPARAMS['savepath']
+DataSavepathBase = CRPARAMS['savepath']+ f"{CRPARAMS['sim']['resolution']}/{CRPARAMS['sim']['CR_indicator']}/"
 
 
 # ==============================================================================#
@@ -64,7 +64,8 @@ if __name__ == "__main__":
     print("\n" + f"Starting MULTIPROCESSING type Analysis!")
     # Setup arguments combinations for parallel processing pool
     print("\n" + f"Sorting multi-core arguments!")
-
+    manager = mp.Manager()
+    args_list = manager.list()
     args_default =  [
         CRPARAMS,
         DataSavepathBase,
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         lazyLoadBool
     ]
 
-    args_list = [[snapNumber] + args_default for snapNumber in snapRange]
+    args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
 
     # Open multiprocesssing pool
 
@@ -110,9 +111,12 @@ if __name__ == "__main__":
 
     del out
 
-    savePath = DataSavepathBase + f"Data_CR__{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}_CGM" + FullDataPathSuffix
+    savePath = DataSavepathBase +  f"Data_CR_{CRPARAMS['sim']['resolution']}_{CRPARAMS['sim']['CR_indicator']}_CGM" + FullDataPathSuffix
     print("Saving data as ", savePath)
     hdf5_save(savePath, dataDict)
+
+
+
 
 
   ###-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
