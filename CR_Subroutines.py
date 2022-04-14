@@ -140,7 +140,7 @@ def cr_cgm_analysis(
 
     snapGas.data["Lookback"] = np.array([lookback])
     snapGas.data["Snap"] = np.array([snapNumber])
-
+    snapGas.data['maxDiskRadius'] = np.array([maxDiskRadius])
 
     if (
         (CRPARAMS["QuadPlotBool"] is True)
@@ -193,11 +193,6 @@ def cr_parameters(CRPARAMSMASTER, simDict):
         CRPARAMS['CR_indicator'] = "with_CRs"
     else:
         CRPARAMS['CR_indicator'] = "no_CRs"
-
-    try:
-        CRPARAMS['finalSnap'] = copy.copy(CRPARAMS['snapMax'])
-    except:
-        pass
 
     return CRPARAMS
 
@@ -271,9 +266,6 @@ def cr_calculate_statistics(
     },
     printpercent = 5.0):
 
-
-    selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-
     print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS['logParameters']:
         xBins = np.logspace(start=xlimDict[xParam]['xmin'], stop=xlimDict[xParam]['xmax'], num=Nbins, base=10.0)
@@ -292,7 +284,7 @@ def cr_calculate_statistics(
             print(f"{percentage:0.02f}% bins assigned!")
             printcount += printpercent
         xData.append((float(xmax)+float(xmin))/2.)
-        whereList.append(np.where((dataDict[selectKey][xParam]>= xmin)&(dataDict[selectKey][xParam]< xmax)) [0])
+        whereList.append(np.where((dataDict[xParam]>= xmin)&(dataDict[xParam]< xmax)) [0])
 
     print("[@cr_calculate_statistics]: Bin data and calculate statistics")
     statsData = {}
@@ -303,7 +295,7 @@ def cr_calculate_statistics(
             print(f"{percentage:0.02f}% data processed!")
             printcount += printpercent
         binnedData = {}
-        for param, values in dataDict[selectKey].items():
+        for param, values in dataDict.items():
             if param in CRPARAMS['saveParams']:
                 binnedData.update({param: values[whereData]})
 
@@ -328,4 +320,4 @@ def cr_calculate_statistics(
 
 
     statsData.update({f"{xParam}": xData})
-    return {selectKey : statsData}
+    return statsData

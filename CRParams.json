@@ -1,9 +1,9 @@
 {
-    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V1-0/",
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
-    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos"],
+    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","maxDiskRadius"],
 
     "snapMin" : 100,
 

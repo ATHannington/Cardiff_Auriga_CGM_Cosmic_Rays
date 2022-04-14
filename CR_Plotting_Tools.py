@@ -20,6 +20,8 @@ from random import sample
 import sys
 import logging
 
+fontsize = 13
+fontsizeTitle = 14
 
 def medians_versus_plot(
     statsDict,
@@ -28,31 +30,34 @@ def medians_versus_plot(
     ylabel,
     xlimDict,
     xParam = "R",
+    titleBool=False,
     DPI=150,
-    xsize = 4.0,
-    ysize = 4.0,
+    xsize = 6.0,
+    ysize = 6.0,
     opacityPercentiles = 0.25,
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
-    colourDict = {"with_CRs": "red", "no_CRs": "cyan"},
+    colourmapMain = "plasma",
 ):
 
-    fig, ax = plt.subplots(
-        nrows=1,
-        ncols=1,
-        sharex=True,
-        sharey=True,
-        figsize=(xsize, ysize),
-        dpi=DPI,
-    )
-    for selectKey, simDict in statsDict.items():
-        loadpath = CRPARAMSHALO[selectKey]['simfile']
-        if loadpath is not None :
-            print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
-            for analysisParam in CRPARAMSHALO[selectKey]['saveParams']:
-                if analysisParam != xParam:
-                    print("")
-                    print(f"Starting {analysisParam} plots!")
-
+    keys = list(CRPARAMSHALO.keys())
+    selectKey0 = keys[0]
+    for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
+        if analysisParam != xParam:
+            print("")
+            print(f"Starting {analysisParam} plots!")
+            fig, ax = plt.subplots(
+                nrows=1,
+                ncols=1,
+                sharex=True,
+                sharey=True,
+                figsize=(xsize, ysize),
+                dpi=DPI,
+            )
+            Nkeys = len(list(statsDict.items()))
+            for (ii, (selectKey, simDict)) in enumerate(statsDict.items()):
+                loadpath = CRPARAMSHALO[selectKey]['simfile']
+                if loadpath is not None :
+                    print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
                     # Create a plot for each Temperature
                     yminlist = []
                     ymaxlist = []
@@ -62,8 +67,10 @@ def medians_versus_plot(
                     plotData = simDict.copy()
                     xData = simDict[xParam].copy()
 
-                    colour = colourDict[CR_indicator]
-                    lineStyle = lineStyleDict[CR_indicator]
+                    cmap = matplotlib.cm.get_cmap(colourmapMain)
+                    colour = cmap(float(ii) / float(Nkeys))
+
+                    lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
 
                     loadPercentilesTypes = [
                         analysisParam + "_" + str(percentile) + "%"
@@ -77,8 +84,8 @@ def medians_versus_plot(
                         for k, v in plotData.items():
                             plotData.update({k: np.log10(v)})
 
-                    ymin = np.nanmin(plotData[LO])
-                    ymax = np.nanmax(plotData[UP])
+                    ymin = np.nanmin(plotData[LO][np.isfinite(plotData[LO])])
+                    ymax = np.nanmax(plotData[UP][np.isfinite(plotData[UP])])
                     yminlist.append(ymin)
                     ymaxlist.append(ymax)
 
@@ -88,6 +95,7 @@ def medians_versus_plot(
                         or (np.isnan(ymin) == True)
                         or (np.isnan(ymax) == True)
                     ):
+                        # print()
                         print("Data All Inf/NaN! Skipping entry!")
                         continue
 
@@ -113,7 +121,7 @@ def medians_versus_plot(
                         plotData[median],
                         label=f"{CRPARAMSHALO[selectKey]['resolution']}: {CRPARAMSHALO[selectKey]['CR_indicator']}",
                         color=colour,
-                        lineStyle=lineStyleMedian,
+                        lineStyle=lineStyle,
                     )
 
                     currentAx.xaxis.set_minor_locator(AutoMinorLocator())
@@ -132,39 +140,201 @@ def medians_versus_plot(
                 # Only give 1 x-axis a label, as they sharex
 
 
-                ax[-1].set_xlabel(ylabel[xParam], fontsize=fontsize)
+            ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
 
+            try:
                 finalymin = min(np.nanmin(yminlist),xlimDict[analysisParam]['xmin'])
                 finalymax = max(np.nanmax(ymaxlist),xlimDict[analysisParam]['xmax'])
-                if (
-                    (np.isinf(finalymin) == True)
-                    or (np.isinf(finalymax) == True)
-                    or (np.isnan(finalymin) == True)
-                    or (np.isnan(finalymax) == True)
-                ):
-                    print("Data All Inf/NaN! Skipping entry!")
-                    continue
-                finalymin = numpy.round_(finalymin, decimals = 1)
-                finalymax = numpy.round_(finalymax, decimals = 1)
+            except:
+                finalymin = np.nanmin(yminlist)
+                finalymax = np.nanmax(ymaxlist)
+            else:
+                pass
 
-                custom_ylim = (finalymin, finalymax)
-                plt.setp(
-                    ax,
-                    ylim=custom_ylim,
-                    xlim=(max(xData), min(xData)),
-                )
-                axis0.legend(loc="upper right",fontsize=fontsize)
+            if (
+                (np.isinf(finalymin) == True)
+                or (np.isinf(finalymax) == True)
+                or (np.isnan(finalymin) == True)
+                or (np.isnan(finalymax) == True)
+            ):
+                print("Data All Inf/NaN! Skipping entry!")
+                continue
+            finalymin = numpy.round_(finalymin, decimals = 1)
+            finalymax = numpy.round_(finalymax, decimals = 1)
 
-                plt.tight_layout()
-                if titleBool is True:
-                    plt.subplots_adjust(top=0.875, hspace=0.1,left=0.15)
-                else:
-                    plt.subplots_adjust(hspace=0.1,left=0.15)
+            custom_ylim = (finalymin, finalymax)
+            plt.setp(
+                ax,
+                ylim=custom_ylim,
+                xlim=(min(xData), max(xData)),
+            )
+            ax.legend(loc="upper right",fontsize=fontsize)
 
-                opslaan = (f"./Plots/{halo}/{CRPARAMSHALO[selectKey]['resolution']}/{CRPARAMSHALO[selectKey]['CR_indicator']}"+f"CR_{halo}_{CRPARAMSHALO[selectKey]['resolution']}_{CRPARAMSHALO[selectKey]['CR_indicator']}_{analysisParam}_Medians.pdf"
-                )
-                plt.savefig(opslaan, dpi=DPI, transparent=False)
-                print(opslaan)
-                plt.close()
+            # plt.tight_layout()
+            if titleBool is True:
+                plt.subplots_adjust(top=0.875, hspace=0.1,left=0.15)
+            else:
+                plt.subplots_adjust(hspace=0.1,left=0.15)
+
+            opslaan = (f"./Plots/{halo}/"+f"CR_{halo}_{analysisParam}_Medians.pdf"
+            )
+            plt.savefig(opslaan, dpi=DPI, transparent=False)
+            print(opslaan)
+            plt.close()
+
+    return
+
+
+def mass_pdf_versus_plot(
+    dataDict,
+    CRPARAMSHALO,
+    halo,
+    ylabel,
+    xlimDict,
+    titleBool=False,
+    DPI=150,
+    Nbins = 150,
+    xsize = 6.0,
+    ysize = 6.0,
+    colourmapMain = "plasma",
+    lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
+):
+
+    keys = list(CRPARAMSHALO.keys())
+    selectKey0 = keys[0]
+    for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
+        if analysisParam != "mass":
+            print("")
+            print(f"Starting {analysisParam} plots!")
+            fig, ax = plt.subplots(
+                nrows=1,
+                ncols=1,
+                sharex=True,
+                sharey=True,
+                figsize=(xsize, ysize),
+                dpi=DPI,
+            )
+            Nkeys = len(list(dataDict.items()))
+            for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+                loadpath = CRPARAMSHALO[selectKey]['simfile']
+                if loadpath is not None :
+                    print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
+                    # Create a plot for each Temperature
+                    xminlist = []
+                    xmaxlist = []
+                    yminlist = []
+                    ymaxlist = []
+                    patchList = []
+                    labelList = []
+
+                    plotData = simDict[analysisParam].copy()
+                    weightsData = simDict["mass"].copy()
+
+                    lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
+
+                    cmap = matplotlib.cm.get_cmap(colourmapMain)
+                    colour = cmap(float(ii) / float(Nkeys))
+
+                    if analysisParam in CRPARAMSHALO[selectKey]['logParameters']:
+                        plotData = np.log10(plotData)
+
+                    xmin = np.nanmin(plotData[np.isfinite(plotData)])
+                    xmax = np.nanmax(plotData[np.isfinite(plotData)])
+                    xminlist.append(xmin)
+                    xmaxlist.append(xmax)
+
+                    if (
+                        (np.isinf(xmin) == True)
+                        or (np.isinf(xmax) == True)
+                        or (np.isnan(xmin) == True)
+                        or (np.isnan(xmax) == True)
+                    ):
+                        # print()
+                        print("Data All Inf/NaN! Skipping entry!")
+                        continue
+
+                    try:
+                        xBins = np.linspace(start=xlimDict[analysisParam]['xmin'], stop=xlimDict[analysisParam]['xmax'], num=Nbins)
+                    except:
+                        xBins = np.linspace(start=xmin, stop=xmax, num=Nbins)
+                    else:
+                        pass
+
+                    currentAx = ax
+
+                    hist, bin_edges = np.histogram(plotData,bins=xBins, weights = weightsData)
+
+                    hist = np.log10(hist)
+
+                    yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
+                    ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
+
+                    xFromBins = np.array([(x1+x2)/2. for (x1,x2) in zip(bin_edges[:-1],bin_edges[1:])])
+
+                    currentAx.plot(xFromBins,hist,label=f"{CRPARAMSHALO[selectKey]['resolution']}: {CRPARAMSHALO[selectKey]['CR_indicator']}", color=colour, linestyle= lineStyle)
+
+                    currentAx.xaxis.set_minor_locator(AutoMinorLocator())
+                    currentAx.yaxis.set_minor_locator(AutoMinorLocator())
+                    currentAx.tick_params(axis="both",which="both",labelsize=fontsize)
+
+                    currentAx.set_ylabel(ylabel["mass"], fontsize=fontsize)
+
+
+                    if titleBool is True:
+                        fig.suptitle(
+                            f"PDF of"+"\n"+f" mass vs {analysisParam}",
+                            fontsize=fontsizeTitle,
+                        )
+
+                # Only give 1 x-axis a label, as they sharex
+
+
+            ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
+
+            try:
+                finalxmin = min(np.nanmin(xminlist),xlimDict[analysisParam]['xmin'])
+                finalxmax = max(np.nanmax(xmaxlist),xlimDict[analysisParam]['xmax'])
+            except:
+                finalxmin = np.nanmin(xminlist)
+                finalxmax = np.nanmax(xmaxlist)
+            else:
+                pass
+
+            finalymin = 9.0#Msol #np.nanmin(yminlist)
+            finalymax = np.nanmax(ymaxlist)
+
+            if (
+                (np.isinf(finalxmin) == True)
+                or (np.isinf(finalxmax) == True)
+                or (np.isnan(finalxmin) == True)
+                or (np.isnan(finalxmax) == True)
+            ):
+                print("Data All Inf/NaN! Skipping entry!")
+                continue
+            finalxmin = numpy.round_(finalxmin, decimals = 1)
+            finalxmax = numpy.round_(finalxmax, decimals = 1)
+            finalymin = numpy.round_(finalymin, decimals = 1)
+            finalymax = numpy.round_(finalymax, decimals = 1)
+
+            custom_xlim = (finalxmin, finalxmax)
+            custom_ylim = (finalymin, finalymax)
+            plt.setp(
+                ax,
+                xlim=custom_xlim,
+                ylim=custom_ylim
+            )
+            ax.legend(loc="upper right",fontsize=fontsize)
+
+            # plt.tight_layout()
+            if titleBool is True:
+                plt.subplots_adjust(top=0.875, hspace=0.1,left=0.15)
+            else:
+                plt.subplots_adjust(hspace=0.1,left=0.15)
+
+            opslaan = (f"./Plots/{halo}/"+f"CR_{halo}_{analysisParam}_PDF.pdf"
+            )
+            plt.savefig(opslaan, dpi=DPI, transparent=False)
+            print(opslaan)
+            plt.close()
 
     return

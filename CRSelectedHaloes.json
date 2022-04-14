@@ -1,21 +1,21 @@
 {
 "halo_12" : {
-  ("standard","no_CRs") : {
+  "standard_no_CRs" : {
     "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
     "resolution": "standard",
     "with_CRs" : false
     },
-  ("standard","with_CRs") : {
+  "standard_with_CRs" : {
     "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
     "resolution": "standard",
     "with_CRs" : true
     },
-  ("high","with_CRs") : {
+  "high_with_CRs" : {
     "simfile": null,
     "resolution": "high",
     "with_CRs" : false
     },
-  ("high","with_CRs") : {
+  "high_with_CRs" : {
     "simfile": null,
     "resolution": "high",
     "with_CRs" : true

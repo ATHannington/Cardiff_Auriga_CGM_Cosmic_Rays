@@ -24,7 +24,7 @@ import logging
 
 CRPARAMSPATHMASTER = "CRParams.json"
 CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, 'r'))
-
+DataSavepathBase = CRPARAMSMASTER['savepath']
 # =============================================================================#
 #
 #               USER DEFINED PARAMETERS
@@ -70,7 +70,7 @@ ylabel = {
     "rho_rhomean": r"$\rho / \langle \rho \rangle$",
     "dens": r"Density (g cm$^{-3}$)",
     "ndens": r"Number density (cm$^{-3}$)",
-    "mass": r"Log10 Mass per pixel (M/M$_{\odot}$)",
+    "mass": r"Mass (M/M$_{\odot}$)",
 }
 
 xlimDict = {
@@ -96,6 +96,11 @@ xlimDict = {
     "ndens": {"xmin": -6.0, "xmax": 2.0}
 }
 
+
+for entry in CRPARAMSMASTER['logParameters']:
+    ylabel[entry] = r"$Log_{10}$" + ylabel[entry]
+
+
 #==============================================================================#
 #
 #          Main
@@ -110,7 +115,7 @@ snapRange = [
     xx
     for xx in range(
         int(CRPARAMSMASTER["snapMin"]),
-        min(int(CRPARAMSMASTER["snapMax"]) + 1, int(CRPARAMSMASTER["finalSnap"]) + 1),
+        int(CRPARAMSMASTER["snapMax"]) + 1,
         1,
     )
 ]
@@ -121,11 +126,15 @@ if __name__ == "__main__":
         CRPARAMSHALO = {}
         # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
         #   MAIN ANALYSIS
-        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         for sim, simDict in allSimsDict.items():
             CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
-            CRPARAMSHALO.update({sim : CRPARAMS})
+            selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+            CRPARAMSHALO.update({selectKey : CRPARAMS})
             if CRPARAMS['simfile'] is not None:
+                # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+                # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+
                 print("\n" + f"Starting MULTIPROCESSING type Analysis!")
                 # Setup arguments combinations for parallel processing pool
                 print("\n" + f"Sorting multi-core arguments!")
@@ -172,42 +181,77 @@ if __name__ == "__main__":
 
                 del output_list, pool
 
+                #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #
+        #         print("\n" + f"Starting SERIAL type Analysis!")
+        #         out = {}
+        #         for snapNumber in snapRange:
+        #             tmpOut = cr_cgm_analysis(
+        #                 snapNumber,
+        #                 CRPARAMS,
+        #                 DataSavepathBase,
+        #                 FullDataPathSuffix,
+        #                 lazyLoadBool
+        #                 )
+        #             out.update(tmpOut)
+        #
+        #         del tmpOut
+                #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+
                 flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
 
                 del out
 
                 dataDict.update(flatDict)
         #----------------------------------------------------------------------#
+        #       Calculate Radius xmin
+        #------------------------------------------------------------------------#-
+
+        xminList = []
+        for sim, CRPARAMS in CRPARAMSHALO.items():
+            if CRPARAMS['simfile'] is not None:
+                print(f"{sim}")
+                print("Calculate Radius xmin...")
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+                xminList.append(np.nanmedian(dataDict[maxDiskRadius]['R']))
+        xmin = np.nanmedian(np.array(xminList))
+        xlimDict['R']['xmin'] = xmin
+        #----------------------------------------------------------------------#
         #       Calculate statistics...
         #----------------------------------------------------------------------#
+
         print("")
         print("Calculate Statistics!")
         print(f"{halo}")
         statsDict = {}
-        for sim, simDict in allSimsDict.items():
-            if CRPARAMSHALO[sim]['simfile'] is not None:
+        for sim, CRPARAMS in CRPARAMSHALO.items():
+            if CRPARAMS['simfile'] is not None:
                 print(f"{sim}")
                 print("Calculate Statistics...")
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+
                 dat = cr_calculate_statistics(
-                    dataDict = dataDict,
-                    CRPARAMS = CRPARAMSHALO[sim],
+                    dataDict = dataDict[selectKey],
+                    CRPARAMS = CRPARAMS,
                     xParam = xParam,
                     Nbins = Nbins,
                     xlimDict = xlimDict
                 )
-                statsDict.update(dat)
+                statsDict.update({selectKey: dat})
         print("...done!")
         print("Statistics calculated!")
-        #----------------------------------------------------------------------#
+        # ----------------------------------------------------------------------#
         #   Plots...
-        #----------------------------------------------------------------------#
-
-        #----------------------------------------------------------------------#
+        # ----------------------------------------------------------------------#
+        #
+        # ----------------------------------------------------------------------#
         #       medians_versus_plot...
-        #----------------------------------------------------------------------#
+        # ----------------------------------------------------------------------#
 
         print("")
         print(f"Medians vs {xParam} Plot!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
         medians_versus_plot(
             statsDict = statsDict,
             CRPARAMSHALO =  CRPARAMSHALO,
@@ -216,3 +260,20 @@ if __name__ == "__main__":
             xParam = xParam,
             xlimDict = xlimDict
         )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+
+        print("")
+        print(f"Mass PDF vs Plot!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        mass_pdf_versus_plot(
+            dataDict = dataDict,
+            CRPARAMSHALO = CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            xlimDict = xlimDict
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
