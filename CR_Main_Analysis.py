@@ -78,20 +78,20 @@ xlimDict = {
     "mass": {"xmin": 5.0, "xmax": 9.0},
     "L": {"xmin": 3.0, "xmax": 4.5},
     "T": {"xmin": 3.75, "xmax": 6.5},
-    "n_H": {"xmin": -5.0, "xmax": 0.0},
-    "B": {"xmin": -2.0, "xmax": 1.0},
+    "n_H": {"xmin": -6.5, "xmax": 0.0},
+    "B": {"xmin": -6.5, "xmax": 1.0},
     "vrad": {"xmin": -150.0, "xmax": 150.0},
-    "gz": {"xmin": -1.5, "xmax": 0.5},
-    "P_thermal": {"xmin": 1.0, "xmax": 4.0},
-    "P_magnetic": {"xmin": -1.5, "xmax": 5.0},
+    "gz": {"xmin": -8.5, "xmax": 0.5},
+    "P_thermal": {"xmin": -1.0, "xmax": 4.0},
+    "P_magnetic": {"xmin": -10.5, "xmax": 4.5},
     "P_kinetic": {"xmin": -1.0, "xmax": 8.0},
     "P_tot": {"xmin": -1.0, "xmax": 7.0},
-    "Pthermal_Pmagnetic": {"xmin": -2.0, "xmax": 3.0},
-    "tcool": {"xmin": -5.0, "xmax": 2.0},
+    "Pthermal_Pmagnetic": {"xmin": -1.5, "xmax": 9.5},
+    "tcool": {"xmin": -3.5, "xmax": 3.0},
     "theat": {"xmin": -4.0, "xmax": 4.0},
-    "tff": {"xmin": -1.5, "xmax": 0.5},
-    "tcool_tff": {"xmin": -4.0, "xmax": 2.0},
-    "rho_rhomean": {"xmin": 0.0, "xmax": 8.0},
+    "tff": {"xmin": -1.5, "xmax": 0.75},
+    "tcool_tff": {"xmin": -2.5, "xmax": 2.5},
+    "rho_rhomean": {"xmin": 0.0, "xmax": 6.0},
     "dens": {"xmin": -30.0, "xmax": -22.0},
     "ndens": {"xmin": -6.0, "xmax": 2.0}
 }
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         #
         #         del tmpOut
                 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-
+                
                 flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
 
                 del out
@@ -205,7 +205,7 @@ if __name__ == "__main__":
                 dataDict.update(flatDict)
         #----------------------------------------------------------------------#
         #       Calculate Radius xmin
-        #------------------------------------------------------------------------#-
+        #----------------------------------------------------------------------#
 
         xminList = []
         for sim, CRPARAMS in CRPARAMSHALO.items():
@@ -213,7 +213,7 @@ if __name__ == "__main__":
                 print(f"{sim}")
                 print("Calculate Radius xmin...")
                 selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-                xminList.append(np.nanmedian(dataDict[maxDiskRadius]['R']))
+                xminList.append(np.nanmedian(dataDict[selectKey]['maxDiskRadius']))
         xmin = np.nanmedian(np.array(xminList))
         xlimDict['R']['xmin'] = xmin
         #----------------------------------------------------------------------#
@@ -273,7 +273,8 @@ if __name__ == "__main__":
             CRPARAMSHALO = CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
-            xlimDict = xlimDict
+            xlimDict = xlimDict,
+            snapRange = snapRange
         )
         matplotlib.rc_file_defaults()
         plt.close("all")

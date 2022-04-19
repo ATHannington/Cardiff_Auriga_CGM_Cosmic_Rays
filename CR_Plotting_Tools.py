@@ -23,6 +23,9 @@ import logging
 fontsize = 13
 fontsizeTitle = 14
 
+def round_it(x, sig):
+    return round(x, sig-int(math.floor(math.log10(abs(x))))-1)
+
 def medians_versus_plot(
     statsDict,
     CRPARAMSHALO,
@@ -159,17 +162,24 @@ def medians_versus_plot(
             ):
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
-            finalymin = numpy.round_(finalymin, decimals = 1)
-            finalymax = numpy.round_(finalymax, decimals = 1)
+            finalymin = numpy.round_(finalymin, decimals = 2)
+            finalymax = numpy.round_(finalymax, decimals = 2)
 
             custom_ylim = (finalymin, finalymax)
+
+            xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
+            custom_xlim = (min(xData),max(xData)*1.05)
+            if xParam == "R":
+                ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+                custom_xlim = (0,max(xData)*1.05)
+            ax.set_xticks(xticks)
+            ax.legend(loc="upper right",fontsize=fontsize)
+
             plt.setp(
                 ax,
                 ylim=custom_ylim,
-                xlim=(min(xData), max(xData)),
+                xlim=custom_xlim
             )
-            ax.legend(loc="upper right",fontsize=fontsize)
-
             # plt.tight_layout()
             if titleBool is True:
                 plt.subplots_adjust(top=0.875, hspace=0.1,left=0.15)
@@ -191,6 +201,7 @@ def mass_pdf_versus_plot(
     halo,
     ylabel,
     xlimDict,
+    snapRange,
     titleBool=False,
     DPI=150,
     Nbins = 150,
@@ -199,6 +210,8 @@ def mass_pdf_versus_plot(
     colourmapMain = "plasma",
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
 ):
+
+    Nsnaps = float(len(snapRange))
 
     keys = list(CRPARAMSHALO.keys())
     selectKey0 = keys[0]
@@ -264,6 +277,7 @@ def mass_pdf_versus_plot(
 
                     hist, bin_edges = np.histogram(plotData,bins=xBins, weights = weightsData)
 
+                    hist = hist/Nsnaps
                     hist = np.log10(hist)
 
                     yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
@@ -292,15 +306,15 @@ def mass_pdf_versus_plot(
             ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
 
             try:
-                finalxmin = min(np.nanmin(xminlist),xlimDict[analysisParam]['xmin'])
-                finalxmax = max(np.nanmax(xmaxlist),xlimDict[analysisParam]['xmax'])
+                finalxmin = xlimDict[analysisParam]['xmin']
+                finalxmax = xlimDict[analysisParam]['xmax']
             except:
                 finalxmin = np.nanmin(xminlist)
                 finalxmax = np.nanmax(xmaxlist)
             else:
                 pass
 
-            finalymin = 9.0#Msol #np.nanmin(yminlist)
+            finalymin = np.nanmin(yminlist)
             finalymax = np.nanmax(ymaxlist)
 
             if (
@@ -311,10 +325,10 @@ def mass_pdf_versus_plot(
             ):
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
-            finalxmin = numpy.round_(finalxmin, decimals = 1)
-            finalxmax = numpy.round_(finalxmax, decimals = 1)
-            finalymin = numpy.round_(finalymin, decimals = 1)
-            finalymax = numpy.round_(finalymax, decimals = 1)
+            finalxmin = numpy.round_(finalxmin, decimals = 2)
+            finalxmax = numpy.round_(finalxmax, decimals = 2)
+            finalymin = numpy.round_(finalymin, decimals = 2)
+            finalymax = numpy.round_(finalymax, decimals = 2)
 
             custom_xlim = (finalxmin, finalxmax)
             custom_ylim = (finalymin, finalymax)
