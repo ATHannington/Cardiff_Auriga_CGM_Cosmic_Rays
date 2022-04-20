@@ -18,6 +18,7 @@ from Tracers_Subroutines import *
 import h5py
 import json
 import copy
+import os
 
 def cr_cgm_analysis(
     snapNumber,
@@ -28,6 +29,15 @@ def cr_cgm_analysis(
 ):
 
     out = {}
+
+    # Generate halo directory
+    try:
+        os.mkdir(DataSavepathBase)
+    except:
+        pass
+    else:
+        pass
+
     DataSavepath = DataSavepathBase + f"Data_CR_{CRPARAMS['resolution']}_{CRPARAMS['CR_indicator']}"
 
 

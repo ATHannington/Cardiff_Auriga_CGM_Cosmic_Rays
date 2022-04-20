@@ -24,7 +24,6 @@ import logging
 
 CRPARAMSPATHMASTER = "CRParams.json"
 CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, 'r'))
-DataSavepathBase = CRPARAMSMASTER['savepath']
 # =============================================================================#
 #
 #               USER DEFINED PARAMETERS
@@ -124,6 +123,7 @@ if __name__ == "__main__":
     for halo,allSimsDict in CRSELECTEDHALOES.items():
         dataDict = {}
         CRPARAMSHALO = {}
+        DataSavepathBase = CRPARAMSMASTER['savepath'] + f"{halo}/"
         # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
         #   MAIN ANALYSIS
         # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         #
         #         del tmpOut
                 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-                
+
                 flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
 
                 del out

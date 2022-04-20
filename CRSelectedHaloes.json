@@ -10,13 +10,13 @@
     "resolution": "standard",
     "with_CRs" : true
     },
-  "high_with_CRs" : {
-    "simfile": null,
+  "high_no_CRs" : {
+    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc/output/",
     "resolution": "high",
     "with_CRs" : false
     },
   "high_with_CRs" : {
-    "simfile": null,
+    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",
     "resolution": "high",
     "with_CRs" : true
     }

@@ -42,6 +42,14 @@ def medians_versus_plot(
     colourmapMain = "plasma",
 ):
 
+    savePath = f"./Plots/{halo}/Medians/"
+    try:
+        os.mkdir(savePath)
+    except:
+        pass
+    else:
+        pass
+
     keys = list(CRPARAMSHALO.keys())
     selectKey0 = keys[0]
     for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
@@ -186,7 +194,7 @@ def medians_versus_plot(
             else:
                 plt.subplots_adjust(hspace=0.1,left=0.15)
 
-            opslaan = (f"./Plots/{halo}/"+f"CR_{halo}_{analysisParam}_Medians.pdf"
+            opslaan = (savePath+f"CR_{halo}_{analysisParam}_Medians.pdf"
             )
             plt.savefig(opslaan, dpi=DPI, transparent=False)
             print(opslaan)
@@ -210,6 +218,14 @@ def mass_pdf_versus_plot(
     colourmapMain = "plasma",
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
 ):
+
+    savePath = f"./Plots/{halo}/PDFs/"
+    try:
+        os.mkdir(savePath)
+    except:
+        pass
+    else:
+        pass
 
     Nsnaps = float(len(snapRange))
 
@@ -345,7 +361,7 @@ def mass_pdf_versus_plot(
             else:
                 plt.subplots_adjust(hspace=0.1,left=0.15)
 
-            opslaan = (f"./Plots/{halo}/"+f"CR_{halo}_{analysisParam}_PDF.pdf"
+            opslaan = (savePath+f"CR_{halo}_{analysisParam}_PDF.pdf"
             )
             plt.savefig(opslaan, dpi=DPI, transparent=False)
             print(opslaan)
