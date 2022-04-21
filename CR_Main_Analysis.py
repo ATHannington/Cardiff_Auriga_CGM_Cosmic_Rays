@@ -36,7 +36,7 @@ FullDataPathSuffix = f".h5"
 lazyLoadBool = True
 
 # Number of cores to run on:
-n_processes = 4
+n_processes = 2
 
 xParam = "R"
 
@@ -73,8 +73,8 @@ ylabel = {
 }
 
 xlimDict = {
-    "R": {"xmin": 0.0, "xmax": 500.0},
-    "mass": {"xmin": 5.0, "xmax": 9.0},
+    "R": {"xmin": 0.0, "xmax": CRPARAMSMASTER['Router']},
+    # "mass": {"xmin": 5.0, "xmax": 9.0},
     "L": {"xmin": 3.0, "xmax": 4.5},
     "T": {"xmin": 3.75, "xmax": 6.5},
     "n_H": {"xmin": -6.5, "xmax": 0.0},

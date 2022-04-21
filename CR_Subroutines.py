@@ -101,6 +101,29 @@ def cr_cgm_analysis(
     # Calculate New Parameters and Load into memory others we want to track
     snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber)
 
+    if (
+        (CRPARAMS["QuadPlotBool"] is True)
+    ):
+        plot_projections(
+            snapGas,
+            snapNumber=snapNumber,
+            targetT=None,
+            rin=None,
+            rout=None,
+            TRACERSPARAMS=CRPARAMS,
+            DataSavepath=DataSavepath,
+            FullDataPathSuffix=None,
+            titleBool = False,
+            Axes=CRPARAMS["Axes"],
+            zAxis=CRPARAMS["zAxis"],
+            boxsize=CRPARAMS["boxsize"],
+            boxlos=CRPARAMS["boxlos"],
+            pixres=CRPARAMS["pixres"],
+            pixreslos=CRPARAMS["pixreslos"],
+            numThreads = CRPARAMS["QuadPlotNumThreads"]
+        )
+
+
     whereDM = np.where(snapGas.type == 1)[0]
     whereGas = np.where(snapGas.type == 0)[0]
 
@@ -127,9 +150,9 @@ def cr_cgm_analysis(
         del snapGas.data[key]
 
     # select the CGM, acounting for variable disk extent
-    whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
+    whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
     maxDiskRadius = np.nanpercentile(snapGas.data["R"][whereDiskSFR],97.72,axis=0)
-    whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"]>=maxDiskRadius)) [0]
+    whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"]>=maxDiskRadius) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
 
     for key, value in snapGas.data.items():
         if value is not None:
@@ -152,30 +175,6 @@ def cr_cgm_analysis(
     snapGas.data["Snap"] = np.array([snapNumber])
     snapGas.data['maxDiskRadius'] = np.array([maxDiskRadius])
 
-    if (
-        (CRPARAMS["QuadPlotBool"] is True)
-        # & (targetT == int(CRPARAMS["targetTLst"][0]))
-        # & (rin == CRPARAMS["Rinner"][0])
-    ):
-        plot_projections(
-            snapGas,
-            snapNumber=snapNumber,
-            targetT=None,
-            rin=None,
-            rout=None,
-            TRACERSPARAMS=CRPARAMS,
-            DataSavepath=DataSavepath,
-            FullDataPathSuffix=None,
-            titleBool = False,
-            Axes=CRPARAMS["Axes"],
-            zAxis=CRPARAMS["zAxis"],
-            boxsize=CRPARAMS["boxsize"],
-            boxlos=CRPARAMS["boxlos"],
-            pixres=CRPARAMS["pixres"],
-            pixreslos=CRPARAMS["pixreslos"],
-        )
-
-
 
     # Trim snapshot...
     keys = list(snapGas.data.keys())
@@ -187,7 +186,9 @@ def cr_cgm_analysis(
     inner = {}
     for key, value in snapGas.data.items():
         if key in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
-            inner.update({key : value})
+            inner.update({key : copy.deepcopy(value)})
+
+    del snapGas
 
     # Add to final output
     out.update({(f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}") : inner})

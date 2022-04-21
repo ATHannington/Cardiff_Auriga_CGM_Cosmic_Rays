@@ -11,15 +11,17 @@
 
     "percentiles" :  [15.87, 50.0, 84.13],
 
-    "Rinner" : [25.0, 75.0, 125.0],
+    "Rinner" : 25.0,
 
-    "Router" : [75.0, 125.0, 175.0],
+    "Router" : 250.0,
 
     "Axes" : [2,0],
 
     "zAxis" : [1],
 
     "QuadPlotBool" : true,
+
+    "QuadPlotNumThreads" : 8,
 
     "boxsize" : 400.0,
 
