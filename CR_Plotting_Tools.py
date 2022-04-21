@@ -343,8 +343,8 @@ def mass_pdf_versus_plot(
                 continue
             finalxmin = numpy.round_(finalxmin, decimals = 2)
             finalxmax = numpy.round_(finalxmax, decimals = 2)
-            finalymin = numpy.round_(finalymin, decimals = 2)
-            finalymax = numpy.round_(finalymax, decimals = 2)
+            finalymin = math.floor(finalymin)
+            finalymax = math.ceil(finalymax)
 
             custom_xlim = (finalxmin, finalxmax)
             custom_ylim = (finalymin, finalymax)
