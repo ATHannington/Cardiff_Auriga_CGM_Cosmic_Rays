@@ -5,7 +5,7 @@
 
     "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","maxDiskRadius"],
 
-    "snapMin" : 100,
+    "snapMin" : 123,
 
     "snapMax" : 127,
 

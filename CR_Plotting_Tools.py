@@ -39,7 +39,7 @@ def medians_versus_plot(
     ysize = 6.0,
     opacityPercentiles = 0.25,
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
-    colourmapMain = "plasma",
+    colourmapMain = "tab10",
 ):
 
     savePath = f"./Plots/{halo}/Medians/"
@@ -79,7 +79,10 @@ def medians_versus_plot(
                     xData = simDict[xParam].copy()
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
-                    colour = cmap(float(ii) / float(Nkeys))
+                    if colourmapMain == "tab10":
+                        colour = cmap(float(ii) / 10.)
+                    else:
+                        colour = cmap(float(ii) / float(Nkeys))
 
                     lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
 
@@ -215,7 +218,7 @@ def mass_pdf_versus_plot(
     Nbins = 150,
     xsize = 6.0,
     ysize = 6.0,
-    colourmapMain = "plasma",
+    colourmapMain = "tab10",
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
 ):
 
@@ -262,7 +265,10 @@ def mass_pdf_versus_plot(
                     lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
-                    colour = cmap(float(ii) / float(Nkeys))
+                    if colourmapMain == "tab10":
+                        colour = cmap(float(ii) / 10.)
+                    else:
+                        colour = cmap(float(ii) / float(Nkeys))
 
                     if analysisParam in CRPARAMSHALO[selectKey]['logParameters']:
                         plotData = np.log10(plotData)
