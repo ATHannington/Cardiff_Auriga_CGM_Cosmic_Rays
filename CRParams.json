@@ -1,9 +1,9 @@
 {
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V1-0/",
 
-    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
+    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
-    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","maxDiskRadius"],
+    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","vol","maxDiskRadius"],
 
     "snapMin" : 123,
 
@@ -19,7 +19,7 @@
 
     "zAxis" : [1],
 
-    "QuadPlotBool" : true,
+    "QuadPlotBool" : false,
 
     "QuadPlotNumThreads" : 8,
 

@@ -121,132 +121,130 @@ snapRange = [
 
 if __name__ == "__main__":
     for halo,allSimsDict in CRSELECTEDHALOES.items():
-        # dataDict = {}
-        # CRPARAMSHALO = {}
-        # DataSavepathBase = CRPARAMSMASTER['savepath'] + f"{halo}/"
-        # # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        # # #   MAIN ANALYSIS
-        # # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        # for sim, simDict in allSimsDict.items():
-        #     CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
-        #     selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-        #     CRPARAMSHALO.update({selectKey : CRPARAMS})
-        #     if CRPARAMS['simfile'] is not None:
-        # #         # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        # #         # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        # #
-        # #         print("\n" + f"Starting MULTIPROCESSING type Analysis!")
-        # #         # Setup arguments combinations for parallel processing pool
-        # #         print("\n" + f"Sorting multi-core arguments!")
-        # #         manager = mp.Manager()
-        # #         args_list = manager.list()
-        # #         args_default =  [
-        # #             CRPARAMS,
-        # #             DataSavepathBase,
-        # #             FullDataPathSuffix,
-        # #             lazyLoadBool
-        # #         ]
-        # #
-        # #         args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
-        # #
-        # #         # Open multiprocesssing pool
-        # #
-        # #         print("\n" + f"Opening {n_processes} core Pool!")
-        # #         pool = mp.Pool(processes=n_processes)
-        # #
-        # #         # C ompute Snap analysis
-        # #         output_list = [
-        # #             pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
-        # #             for args in args_list
-        # #         ]
-        # #
-        # #         pool.close()
-        # #         pool.join()
-        # #         # Close multiprocesssing pool
-        # #         print(f"Closing core Pool!")
-        # #         print(f"Error checks")
-        # #         success = [result.successful() for result in output_list]
-        # #         assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
-        # #halo[j]
-        # #         print("No Errors!")
-        # #
-        # #         print("Gather the multiprocess outputs")
-        # #         out = {}
-        # #         for output in output_list:
-        # #
-        # #             tmpOut = output.get()
-        # #
-        # #             # as function gives out dictionary extract what want (or just save dict)
-        # #             out.update(tmpOut)
-        # #
-        # #         del output_list, pool
-        #
-        #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        # #
-        #         print("\n" + f"Starting SERIAL type Analysis!")
-        #         out = {}
-        #         for snapNumber in snapRange:
-        #             tmpOut = cr_cgm_analysis(
-        #                 snapNumber,
-        #                 CRPARAMS,
-        #                 DataSavepathBase,
-        #                 FullDataPathSuffix,
-        #                 lazyLoadBool
-        #                 )
-        #             out.update(tmpOut)
-        #
-        #         del tmpOut
-        #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        #
-        #         flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
-        #
-        #         del out
-        #
-        #         dataDict.update(flatDict)
+        dataDict = {}
+        CRPARAMSHALO = {}
+        DataSavepathBase = CRPARAMSMASTER['savepath'] + f"{halo}/"
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #   MAIN ANALYSIS
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        for sim, simDict in allSimsDict.items():
+            CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+            selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+            CRPARAMSHALO.update({selectKey : CRPARAMS})
+            if CRPARAMS['simfile'] is not None:
+                # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+                # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+                #
+                # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+                # # Setup arguments combinations for parallel processing pool
+                # print("\n" + f"Sorting multi-core arguments!")
+                # manager = mp.Manager()
+                # args_list = manager.list()
+                # args_default =  [
+                #     CRPARAMS,
+                #     DataSavepathBase,
+                #     FullDataPathSuffix,
+                #     lazyLoadBool
+                # ]
+                #
+                # args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
+                #
+                # # Open multiprocesssing pool
+                #
+                # print("\n" + f"Opening {n_processes} core Pool!")
+                # pool = mp.Pool(processes=n_processes)
+                #
+                # # C ompute Snap analysis
+                # output_list = [
+                #     pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
+                #     for args in args_list
+                # ]
+                #
+                # pool.close()
+                # pool.join()
+                # # Close multiprocesssing pool
+                # print(f"Closing core Pool!")
+                # print(f"Error checks")
+                # success = [result.successful() for result in output_list]
+                # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+                # print("No Errors!")
+                #
+                # print("Gather the multiprocess outputs")
+                # out = {}
+                # for output in output_list:
+                #
+                #     tmpOut = output.get()
+                #
+                #     # as function gives out dictionary extract what want (or just save dict)
+                #     out.update(tmpOut)
+                #
+                # del output_list, pool
+                #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+                
+                print("\n" + f"Starting SERIAL type Analysis!")
+                out = {}
+                for snapNumber in snapRange:
+                    tmpOut = cr_cgm_analysis(
+                        snapNumber,
+                        CRPARAMS,
+                        DataSavepathBase,
+                        FullDataPathSuffix,
+                        lazyLoadBool
+                        )
+                    out.update(tmpOut)
+
+                del tmpOut
+                #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+
+                flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
+
+                del out
+
+                dataDict.update(flatDict)
         #----------------------------------------------------------------------#
-        #       Calculate Radius xmin
+        #      Calculate Radius xmin
         #----------------------------------------------------------------------#
 
-        # xminList = []
-        # for sim, CRPARAMS in CRPARAMSHALO.items():
-        #     if CRPARAMS['simfile'] is not None:
-        #         print(f"{sim}")
-        #         print("Calculate Radius xmin...")
-        #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-        #         xminList.append(np.nanmedian(dataDict[selectKey]['maxDiskRadius']))
-        # xmin = np.nanmedian(np.array(xminList))
-        # xlimDict['R']['xmin'] = xmin
+        xminList = []
+        for sim, CRPARAMS in CRPARAMSHALO.items():
+            if CRPARAMS['simfile'] is not None:
+                print(f"{sim}")
+                print("Calculate Radius xmin...")
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+                xminList.append(np.nanmedian(dataDict[selectKey]['maxDiskRadius']))
+        xmin = np.nanmedian(np.array(xminList))
+        xlimDict['R']['xmin'] = xmin
         #----------------------------------------------------------------------#
-        #       Calculate statistics...
+        #      Calculate statistics...
         #----------------------------------------------------------------------#
 
-        # print("")
-        # print("Calculate Statistics!")
-        # print(f"{halo}")
-        # statsDict = {}
-        # for sim, CRPARAMS in CRPARAMSHALO.items():
-        #     if CRPARAMS['simfile'] is not None:
-        #         print(f"{sim}")
-        #         print("Calculate Statistics...")
-        #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-        #
-        #         dat = cr_calculate_statistics(
-        #             dataDict = dataDict[selectKey],
-        #             CRPARAMS = CRPARAMS,
-        #             xParam = xParam,
-        #             Nbins = Nbins,
-        #             xlimDict = xlimDict
-        #         )
-        #         statsDict.update({selectKey: dat})
-        # print("...done!")
-        # print("Statistics calculated!")
-        # ----------------------------------------------------------------------#
-        #   Plots...
-        # ----------------------------------------------------------------------#
-        #
-        # ----------------------------------------------------------------------#
-        #       medians_versus_plot...
-        # ----------------------------------------------------------------------#
+        print("")
+        print("Calculate Statistics!")
+        print(f"{halo}")
+        statsDict = {}
+        for sim, CRPARAMS in CRPARAMSHALO.items():
+            if CRPARAMS['simfile'] is not None:
+                print(f"{sim}")
+                print("Calculate Statistics...")
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+
+                dat = cr_calculate_statistics(
+                    dataDict = dataDict[selectKey],
+                    CRPARAMS = CRPARAMS,
+                    xParam = xParam,
+                    Nbins = Nbins,
+                    xlimDict = xlimDict
+                )
+                statsDict.update({selectKey: dat})
+        print("...done!")
+        print("Statistics calculated!")
+        #----------------------------------------------------------------------#
+        #  Plots...
+        #----------------------------------------------------------------------#
+
+        #----------------------------------------------------------------------#
+        #      medians_versus_plot...
+        #----------------------------------------------------------------------#
 
         print("")
         print(f"Medians vs {xParam} Plot!")

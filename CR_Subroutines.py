@@ -61,6 +61,7 @@ def cr_cgm_analysis(
         subfind=snap_subfind,
     )
 
+
     # Load Cell IDs - avoids having to turn lazy_load off...
     # But ensures 'id' is loaded into memory before halo_only_gas_select is called
     #  Else we wouldn't limit the IDs to the nearest Halo for that step as they wouldn't
@@ -313,7 +314,8 @@ def cr_calculate_statistics(
         dat = calculate_statistics(
             binnedData,
             TRACERSPARAMS=CRPARAMS,
-            saveParams=CRPARAMS['saveParams']
+            saveParams=CRPARAMS['saveParams'],
+            weightedStatsBool = True
         )
 
         # Fix values to arrays to remove concat error of 0D arrays
