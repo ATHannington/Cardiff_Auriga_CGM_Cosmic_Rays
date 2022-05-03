@@ -60,6 +60,8 @@ ylabel = {
     "P_kinetic": r"P$_{Kinetic}$ / k$_B$ (K cm$^{-3}$)",
     "P_tot": r"P$_{tot}$ = (P$_{thermal}$ + P$_{magnetic}$)/ k$_B$" +"\n" + r"(K cm$^{-3}$)",
     "Pthermal_Pmagnetic": r"P$_{thermal}$/P$_{magnetic}$",
+    "P_CR": r"P$_{CR}$",
+    "PCR_Pthermal": r"X$_{CR}$ = P$_{CR}$/P$_{Thermal}$",
     "tcool": r"Cooling Time (Gyr)",
     "theat": r"Heating Time (Gyr)",
     "tcross": r"Sound Crossing Cell Time (Gyr)",
@@ -82,6 +84,8 @@ xlimDict = {
     "vrad": {"xmin": -150.0, "xmax": 150.0},
     "gz": {"xmin": -1.5, "xmax": 0.5},
     "P_thermal": {"xmin": 0.5, "xmax": 3.5},
+    "P_CR": {"xmin": -1.5, "xmax": 5.5},
+    "PCR_Pthermal": {"xmin": -2.0, "xmax": 2.0},
     "P_magnetic": {"xmin": -2.0, "xmax": 4.5},
     "P_kinetic": {"xmin": 0.0, "xmax": 6.0},
     "P_tot": {"xmin": -1.0, "xmax": 7.0},
@@ -180,7 +184,7 @@ if __name__ == "__main__":
                 #
                 # del output_list, pool
                 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-                
+
                 print("\n" + f"Starting SERIAL type Analysis!")
                 out = {}
                 for snapNumber in snapRange:
