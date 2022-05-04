@@ -98,8 +98,12 @@ def medians_versus_plot(
                         for k, v in plotData.items():
                             plotData.update({k: np.log10(v)})
 
-                    ymin = np.nanmin(plotData[LO][np.isfinite(plotData[LO])])
-                    ymax = np.nanmax(plotData[UP][np.isfinite(plotData[UP])])
+                    try:
+                        ymin = np.nanmin(plotData[LO][np.isfinite(plotData[LO])])
+                        ymax = np.nanmax(plotData[UP][np.isfinite(plotData[UP])])
+                    except:
+                        print(f"Variable {analysisParam} not found. Skipping plot...")
+                        continue
                     yminlist.append(ymin)
                     ymaxlist.append(ymax)
 
@@ -259,9 +263,13 @@ def mass_pdf_versus_plot(
                     patchList = []
                     labelList = []
 
-                    plotData = simDict[analysisParam].copy()
-                    weightsData = simDict["mass"].copy()
-
+                    try:
+                        plotData = simDict[analysisParam].copy()
+                        weightsData = simDict["mass"].copy()
+                    except:
+                        print(f"Variable {analysisParam} not found. Skipping plot...")
+                        continue
+                        
                     lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
