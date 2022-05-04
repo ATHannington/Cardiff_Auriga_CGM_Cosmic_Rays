@@ -125,6 +125,8 @@ def cr_cgm_analysis(
         )
 
 
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Delete Dark Matter...")
+
     whereDM = np.where(snapGas.type == 1)[0]
     whereGas = np.where(snapGas.type == 0)[0]
 
@@ -149,6 +151,8 @@ def cr_cgm_analysis(
 
     for key in deleteKeys:
         del snapGas.data[key]
+
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM...")
 
     # select the CGM, acounting for variable disk extent
     whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
@@ -176,6 +180,7 @@ def cr_cgm_analysis(
     snapGas.data["Snap"] = np.array([snapNumber])
     snapGas.data['maxDiskRadius'] = np.array([maxDiskRadius])
 
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Trim SnapShot...")
 
     # Trim snapshot...
     keys = list(snapGas.data.keys())
@@ -183,6 +188,7 @@ def cr_cgm_analysis(
         if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
             del snapGas.data[key]
 
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary...")
     # Make normal dictionary form of snapGas
     inner = {}
     for key, value in snapGas.data.items():
@@ -278,6 +284,8 @@ def cr_calculate_statistics(
     },
     printpercent = 5.0):
 
+    exclusions = ["Lookback","Snap","maxDiskRadius"]
+
     print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS['logParameters']:
         xBins = np.logspace(start=xlimDict[xParam]['xmin'], stop=xlimDict[xParam]['xmax'], num=Nbins, base=10.0)
@@ -308,7 +316,7 @@ def cr_calculate_statistics(
             printcount += printpercent
         binnedData = {}
         for param, values in dataDict.items():
-            if param in CRPARAMS['saveParams']:
+            if (param in CRPARAMS['saveParams'] + CRPARAMS['saveEssentials'])&(param not in exclusions):
                 binnedData.update({param: values[whereData]})
 
         dat = calculate_statistics(
