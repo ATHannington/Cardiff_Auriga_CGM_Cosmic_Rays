@@ -1,0 +1,51 @@
+{
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V1-0/",
+
+    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","PCR_Pthermal","tcool","tff","tcool_tff"],
+
+    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","vol","maxDiskRadius"],
+
+    "snapMin" : 123,
+
+    "snapMax" : 127,
+
+    "percentiles" :  [15.87, 50.0, 84.13],
+
+    "Rinner" : 25.0,
+
+    "Router" : 250.0,
+
+    "Axes" : [2,0],
+
+    "zAxis" : [1],
+
+    "QuadPlotBool" : false,
+
+    "QuadPlotNumThreads" : 8,
+
+    "boxsize" : 400.0,
+
+    "boxlos" : 50.0,
+
+    "pixres" : 0.20,
+
+    "pixreslos" : 4.0,
+
+    "HaloID" : 0,
+
+    "DPI" : 150,
+
+    "xsize" : 4.0,
+
+    "ysize" : 4.0,
+
+    "colourmapMain" : "plasma",
+
+    "titleBool" : false,
+
+    "fontsize" : 13,
+
+    "fontsizeTitle" : 14,
+
+    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal" ,"tcool","theat","tcross","tff","tcool_tff","mass"]
+}

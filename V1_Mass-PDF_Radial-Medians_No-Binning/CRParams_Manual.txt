@@ -1,0 +1,54 @@
+###################
+CRParams.json Guide
+###################
+
+{
+    # Set path to save data
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V0-0/",
+    # Set saved parameters
+    "saveParams" : ["T","R","n_H","B","vrad","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic","tcool","theat","tff","tcool_tff"],
+    # Set other saved parameters that should NOT be changed! These are required to be tracked in order for the analysis to work
+    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos"],
+    # Set minimum snap (largest lookback time) to look at
+    "snapMin" : 100,
+    # Set Max snapshot to look at tracers from snapnum
+    "snapMax" : 127,
+    # Set Percentiles of parameter of interest
+    "percentiles" :  [0.13, 2.28 , 15.87, 50.0, 84.13, 97.72, 99.87],
+    # Inner Radius of selection kpc
+    "Rinner" : [25.0, 75.0, 125.0],
+    # Outer Radius of selection kpc
+    "Router" : [75.0, 125.0, 175.0],
+    # Axis for Plots 0 = x, 1 = y, 2 = z
+    "Axes" : [2,0],
+    # line of sight axis
+    "zAxis" : [1],
+    # Boolean for whether to plot QUAD plot
+    "QuadPlotBool" : true,
+    # Plots box size (+/- boxsize/2 kpc on each edge)
+    "boxsize" : 400.0,
+    # Plots Line of sight box size (+/- boxlos/2 kpc centred on galaxy centre)
+    "boxlos" : 50.0,
+    # Pixel Resolution in plane of Plot
+    "pixres" : 0.2,
+    # Pixel Resolution in LOS of plot
+    "pixreslos" : 4.0,
+    # Select SubHalo to select. Unbound in relevant FoF halo will also be selected
+    "haloID" : 0
+    # Set Global Plot DPI
+    "DPI" : 150,
+    # Set Global Plot figure x-axis size
+    "xsize" : 4.0,
+    # Set Global Plot figure y-axis size
+    "ysize" : 4.0,
+    # Set Global Plot colormap
+    "colourmapMain" : "plasma",
+    # Set Global Plot with or without titles boolean
+    "titleBool" : false,
+    # Set Global Plot fontsize
+    "fontsize" : 13,
+    # Set Global Plot fontsize for Titles
+    "fontsizeTitle" : 14,
+    # Set Global Plot parameters for which we take Log10
+    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic","tcool","theat","tcross","tff","tcool_tff","mass"]
+}

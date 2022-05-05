@@ -1,0 +1,24 @@
+{
+"halo_12" : {
+  "high_with_CRs" : {
+    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",
+    "resolution": "high",
+    "with_CRs" : true
+    },
+  "high_no_CRs" : {
+      "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc/output/",
+      "resolution": "high",
+      "with_CRs" : false
+      },
+  "standard_with_CRs" : {
+    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
+    "resolution": "standard",
+    "with_CRs" : true
+  },
+  "standard_no_CRs" : {
+    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
+    "resolution": "standard",
+    "with_CRs" : false
+    }
+  }
+}
