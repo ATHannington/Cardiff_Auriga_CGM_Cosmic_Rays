@@ -1,7 +1,7 @@
 {
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V1-0/",
 
-    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","PCR_Pthermal","tcool","tff","tcool_tff"],
+    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
     "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","vol","maxDiskRadius"],
 
@@ -47,5 +47,22 @@
 
     "fontsizeTitle" : 14,
 
-    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal" ,"tcool","theat","tcross","tff","tcool_tff","mass"]
+    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal" ,"tcool","theat","tcross","tff","tcool_tff","mass"],
+
+    "nonMassWeightDict" :
+      {
+      "n_H": "vol",
+      "ndens": "vol",
+      "dens": "vol",
+      "rho_rhomean": "vol",
+      "B": "vol",
+      "P_kinetic": "vol",
+      "P_thermal": "vol",
+      "P_magnetic": "vol",
+      "P_tot": "vol",
+      "Pthermal_Pmagnetic": "vol",
+      "P_CR" : "vol",
+      "PCR_Pthermal" : "vol"
+      }
+
 }

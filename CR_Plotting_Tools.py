@@ -64,16 +64,17 @@ def medians_versus_plot(
                 figsize=(xsize, ysize),
                 dpi=DPI,
             )
+            yminlist = []
+            ymaxlist = []
+            patchList = []
+            labelList = []
+
             Nkeys = len(list(statsDict.items()))
             for (ii, (selectKey, simDict)) in enumerate(statsDict.items()):
                 loadpath = CRPARAMSHALO[selectKey]['simfile']
                 if loadpath is not None :
                     print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
                     # Create a plot for each Temperature
-                    yminlist = []
-                    ymaxlist = []
-                    patchList = []
-                    labelList = []
 
                     plotData = simDict.copy()
                     xData = simDict[xParam].copy()
@@ -250,18 +251,18 @@ def mass_pdf_versus_plot(
                 figsize=(xsize, ysize),
                 dpi=DPI,
             )
+            xminlist = []
+            xmaxlist = []
+            yminlist = []
+            ymaxlist = []
+            patchList = []
+            labelList = []
             Nkeys = len(list(dataDict.items()))
             for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
                 loadpath = CRPARAMSHALO[selectKey]['simfile']
                 if loadpath is not None :
                     print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
                     # Create a plot for each Temperature
-                    xminlist = []
-                    xmaxlist = []
-                    yminlist = []
-                    ymaxlist = []
-                    patchList = []
-                    labelList = []
 
                     try:
                         plotData = simDict[analysisParam].copy()
@@ -269,7 +270,7 @@ def mass_pdf_versus_plot(
                     except:
                         print(f"Variable {analysisParam} not found. Skipping plot...")
                         continue
-                        
+
                     lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)

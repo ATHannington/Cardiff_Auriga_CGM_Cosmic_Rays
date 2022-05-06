@@ -15,6 +15,7 @@ import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
+from scipy.stats import binned_statistic_dd
 import h5py
 import json
 import copy
@@ -342,3 +343,61 @@ def cr_calculate_statistics(
 
     statsData.update({f"{xParam}": xData})
     return statsData
+
+# def cr_histogram_dd_summarise():
+#
+#
+#     ####
+#     # Firstly, make (N,D) array of data
+#     ####
+#     try:
+#         del dataArray
+#     except:
+#         pass
+#
+#     paramIndexDict = {}
+#     for k, dataDict in out.items():
+#         for ii,(key, value) in enumerate(dataDict.items()):
+#             # Fiddle with value shapes to accomodate for some being 2D (e.g. pos has x,y,z)
+#             if np.shape(np.shape(value))[0]==1:
+#                 value = value.reshape(-1,1)
+#             #
+#             try:
+#                 dataArray = np.concatenate((dataArray,value),axis=1)
+#             except:
+#                 dataArray = value
+#
+#             paramIndexDict.update({key : ii})
+#
+#     summarisedOut = {}
+#
+#     # Get base histogram, and reuse result (ret) to reuse bins through all stats
+#     ret = binned_statistic_dd(dataDict[~paramIndexDict['mass']], values = dataDict[paramIndexDict['mass']], binned_statistic_result=ret , statistic = "count")
+#
+#
+#     Hdd, edges, _ = ret
+#     summarisedOut.update({("count", None) : {"Hdd" : Hdd, "edges" : edges}})
+#
+#     Hdd, edges, _ = binned_statistic_dd(dataDict[~paramIndexDict['mass']], values = dataDict[paramIndexDict['mass']], binned_statistic_result=ret , statistic = "sum")
+#
+#     summarisedOut.update({("sum", "mass") : {"Hdd" : Hdd, "edges" : edges}})
+#
+#     otherWeights = np.unique(np.array(list(CRPARAMS["nonMassWeightDict"].values())))
+#
+#     for weight in otherWeights:
+#         Hdd, edges, _ = binned_statistic_dd(dataDict[~paramIndexDict[weight]], values = dataDict[paramIndexDict[weight]], binned_statistic_result=ret , statistic = "sum")
+#
+#         summarisedOut.update({("sum", weight) : {"Hdd" : Hdd, "edges" : edges}})
+#
+#     for percentile in TRACERSPARAMS["percentiles"]:
+#         Hdd, edges, _ = binned_statistic_dd(dataDict[~paramIndexDict['mass']], values = dataDict[paramIndexDict['mass']], binned_statistic_result=ret , statistic = lambda xx: np.nanpercentile(xx, percentile, axis=0))
+#
+#         summarisedOut.update({(percentile, "mass") : {"Hdd" : Hdd, "edges" : edges}})
+#
+#     for weight in otherWeights:
+#         for percentile in TRACERSPARAMS["percentiles"]:
+#             Hdd, edges, _ = binned_statistic_dd(dataDict[~paramIndexDict[weight]], values = dataDict[paramIndexDict[weight]] , binned_statistic_result=ret, statistic = lambda xx: np.nanpercentile(xx, percentile, axis=0))
+#
+#             summarisedOut.update({(percentile, weight) : {"Hdd" : Hdd, "edges" : edges}})
+#
+#     return summarisedOut,paramIndexDict

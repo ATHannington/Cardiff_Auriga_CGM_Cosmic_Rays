@@ -61,7 +61,7 @@ ylabel = {
     "P_tot": r"P$_{tot}$ = (P$_{thermal}$ + P$_{magnetic}$)/ k$_B$" +"\n" + r"(K cm$^{-3}$)",
     "Pthermal_Pmagnetic": r"P$_{thermal}$/P$_{magnetic}$",
     "P_CR": r"P$_{CR}$",
-    "PCR_Pthermal": r"X$_{CR}$ = P$_{CR}$/P$_{Thermal}$",
+    "PCR_Pthermal": r"(X$_{CR}$ = P$_{CR}$/P$_{Thermal}$)",
     "tcool": r"Cooling Time (Gyr)",
     "theat": r"Heating Time (Gyr)",
     "tcross": r"Sound Crossing Cell Time (Gyr)",
@@ -136,54 +136,54 @@ if __name__ == "__main__":
             selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
             CRPARAMSHALO.update({selectKey : CRPARAMS})
             if CRPARAMS['simfile'] is not None:
-                # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-                # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-                #
-                # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
-                # # Setup arguments combinations for parallel processing pool
-                # print("\n" + f"Sorting multi-core arguments!")
-                # manager = mp.Manager()
-                # args_list = manager.list()
-                # args_default =  [
-                #     CRPARAMS,
-                #     DataSavepathBase,
-                #     FullDataPathSuffix,
-                #     lazyLoadBool
-                # ]
-                #
-                # args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
-                #
-                # # Open multiprocesssing pool
-                #
-                # print("\n" + f"Opening {n_processes} core Pool!")
-                # pool = mp.Pool(processes=n_processes)
-                #
-                # # C ompute Snap analysis
-                # output_list = [
-                #     pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
-                #     for args in args_list
-                # ]
-                #
-                # pool.close()
-                # pool.join()
-                # # Close multiprocesssing pool
-                # print(f"Closing core Pool!")
-                # print(f"Error checks")
-                # success = [result.successful() for result in output_list]
-                # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
-                # print("No Errors!")
-                #
-                # print("Gather the multiprocess outputs")
-                # out = {}
-                # for output in output_list:
-                #
-                #     tmpOut = output.get()
-                #
-                #     # as function gives out dictionary extract what want (or just save dict)
-                #     out.update(tmpOut)
-                #
-                # del output_list, pool
-                #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #         #
+        #         # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+        #         # # Setup arguments combinations for parallel processing pool
+        #         # print("\n" + f"Sorting multi-core arguments!")
+        #         # manager = mp.Manager()
+        #         # args_list = manager.list()
+        #         # args_default =  [
+        #         #     CRPARAMS,
+        #         #     DataSavepathBase,
+        #         #     FullDataPathSuffix,
+        #         #     lazyLoadBool
+        #         # ]
+        #         #
+        #         # args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
+        #         #
+        #         # # Open multiprocesssing pool
+        #         #
+        #         # print("\n" + f"Opening {n_processes} core Pool!")
+        #         # pool = mp.Pool(processes=n_processes)
+        #         #
+        #         # # C ompute Snap analysis
+        #         # output_list = [
+        #         #     pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
+        #         #     for args in args_list
+        #         # ]
+        #         #
+        #         # pool.close()
+        #         # pool.join()
+        #         # # Close multiprocesssing pool
+        #         # print(f"Closing core Pool!")
+        #         # print(f"Error checks")
+        #         # success = [result.successful() for result in output_list]
+        #         # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+        #         # print("No Errors!")
+        #         #
+        #         # print("Gather the multiprocess outputs")
+        #         # out = {}
+        #         # for output in output_list:
+        #         #
+        #         #     tmpOut = output.get()
+        #         #
+        #         #     # as function gives out dictionary extract what want (or just save dict)
+        #         #     out.update(tmpOut)
+        #         #
+        #         # del output_list, pool
+        #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
                 print("\n" + f"Starting SERIAL type Analysis!")
                 out = {}
