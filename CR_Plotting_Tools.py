@@ -239,9 +239,10 @@ def mass_pdf_versus_plot(
 
     keys = list(CRPARAMSHALO.keys())
 
-    Rrange = np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMS["nRbins"])
-
     selectKey0 = keys[0]
+
+    Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
+
     for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
         if (analysisParam != "mass")&(analysisParam != "R"):
             print("")
@@ -386,7 +387,7 @@ def mass_pdf_versus_plot(
                 else:
                     plt.subplots_adjust(hspace=0.1,left=0.15)
 
-                opslaan = (savePath+f"CR_{halo}_{analysisParam}_{rinner}R{router}_PDF.pdf"
+                opslaan = (savePath+f"CR_{halo}_{analysisParam}_{rinner:2.1f}R{router:2.1f}_PDF.pdf"
                 )
                 plt.savefig(opslaan, dpi=DPI, transparent=False)
                 print(opslaan)
