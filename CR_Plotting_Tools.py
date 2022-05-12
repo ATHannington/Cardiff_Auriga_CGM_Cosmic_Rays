@@ -238,148 +238,158 @@ def mass_pdf_versus_plot(
     Nsnaps = float(len(snapRange))
 
     keys = list(CRPARAMSHALO.keys())
+
+    Rrange = np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMS["nRbins"])
+
     selectKey0 = keys[0]
     for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
-        if analysisParam != "mass":
+        if (analysisParam != "mass")&(analysisParam != "R"):
             print("")
             print(f"Starting {analysisParam} plots!")
-            fig, ax = plt.subplots(
-                nrows=1,
-                ncols=1,
-                sharex=True,
-                sharey=True,
-                figsize=(xsize, ysize),
-                dpi=DPI,
-            )
-            xminlist = []
-            xmaxlist = []
-            yminlist = []
-            ymaxlist = []
-            patchList = []
-            labelList = []
-            Nkeys = len(list(dataDict.items()))
-            for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
-                loadpath = CRPARAMSHALO[selectKey]['simfile']
-                if loadpath is not None :
-                    print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
-                    # Create a plot for each Temperature
+            for rinner, router in zip(Rrange[:-1],Rrange[1:]):
+                print(f"{rinner}<R<{router}!")
+                fig, ax = plt.subplots(
+                    nrows=1,
+                    ncols=1,
+                    sharex=True,
+                    sharey=True,
+                    figsize=(xsize, ysize),
+                    dpi=DPI,
+                )
+                xminlist = []
+                xmaxlist = []
+                yminlist = []
+                ymaxlist = []
+                patchList = []
+                labelList = []
+                Nkeys = len(list(dataDict.items()))
+                for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+                    loadpath = CRPARAMSHALO[selectKey]['simfile']
+                    if loadpath is not None :
+                        print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
+                        # Create a plot for each Temperature
 
-                    try:
-                        plotData = simDict[analysisParam].copy()
-                        weightsData = simDict["mass"].copy()
-                    except:
-                        print(f"Variable {analysisParam} not found. Skipping plot...")
-                        continue
+                        try:
+                            plotData = simDict[analysisParam].copy()
+                            weightsData = simDict["mass"].copy()
+                        except:
+                            print(f"Variable {analysisParam} not found. Skipping plot...")
+                            continue
 
-                    lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
+                        lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
+                        whereInRadius = np.where((simDict["R"]>=rinner)&(simDict["R"]<router))[0]
 
-                    cmap = matplotlib.cm.get_cmap(colourmapMain)
-                    if colourmapMain == "tab10":
-                        colour = cmap(float(ii) / 10.)
-                    else:
-                        colour = cmap(float(ii) / float(Nkeys))
+                        plotData = plotData[whereInRadius].copy()
+                        weightsData = weightsData[whereInRadius].copy()
 
-                    if analysisParam in CRPARAMSHALO[selectKey]['logParameters']:
-                        plotData = np.log10(plotData)
+                        cmap = matplotlib.cm.get_cmap(colourmapMain)
+                        if colourmapMain == "tab10":
+                            colour = cmap(float(ii) / 10.)
+                        else:
+                            colour = cmap(float(ii) / float(Nkeys))
 
-                    xmin = np.nanmin(plotData[np.isfinite(plotData)])
-                    xmax = np.nanmax(plotData[np.isfinite(plotData)])
-                    xminlist.append(xmin)
-                    xmaxlist.append(xmax)
+                        if analysisParam in CRPARAMSHALO[selectKey]['logParameters']:
+                            plotData = np.log10(plotData)
 
-                    if (
-                        (np.isinf(xmin) == True)
-                        or (np.isinf(xmax) == True)
-                        or (np.isnan(xmin) == True)
-                        or (np.isnan(xmax) == True)
-                    ):
-                        # print()
-                        print("Data All Inf/NaN! Skipping entry!")
-                        continue
+                        xmin = np.nanmin(plotData[np.isfinite(plotData)])
+                        xmax = np.nanmax(plotData[np.isfinite(plotData)])
+                        xminlist.append(xmin)
+                        xmaxlist.append(xmax)
 
-                    try:
-                        xBins = np.linspace(start=xlimDict[analysisParam]['xmin'], stop=xlimDict[analysisParam]['xmax'], num=Nbins)
-                    except:
-                        xBins = np.linspace(start=xmin, stop=xmax, num=Nbins)
-                    else:
-                        pass
+                        if (
+                            (np.isinf(xmin) == True)
+                            or (np.isinf(xmax) == True)
+                            or (np.isnan(xmin) == True)
+                            or (np.isnan(xmax) == True)
+                        ):
+                            # print()
+                            print("Data All Inf/NaN! Skipping entry!")
+                            continue
 
-                    currentAx = ax
+                        try:
+                            xBins = np.linspace(start=xlimDict[analysisParam]['xmin'], stop=xlimDict[analysisParam]['xmax'], num=Nbins)
+                        except:
+                            xBins = np.linspace(start=xmin, stop=xmax, num=Nbins)
+                        else:
+                            pass
 
-                    hist, bin_edges = np.histogram(plotData,bins=xBins, weights = weightsData)
+                        currentAx = ax
 
-                    hist = hist/Nsnaps
-                    hist = np.log10(hist)
+                        hist, bin_edges = np.histogram(plotData,bins=xBins, weights = weightsData)
 
-                    yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
-                    ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
+                        hist = hist/Nsnaps
+                        hist = np.log10(hist)
 
-                    xFromBins = np.array([(x1+x2)/2. for (x1,x2) in zip(bin_edges[:-1],bin_edges[1:])])
+                        yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
+                        ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
 
-                    currentAx.plot(xFromBins,hist,label=f"{CRPARAMSHALO[selectKey]['resolution']}: {CRPARAMSHALO[selectKey]['CR_indicator']}", color=colour, linestyle= lineStyle)
+                        xFromBins = np.array([(x1+x2)/2. for (x1,x2) in zip(bin_edges[:-1],bin_edges[1:])])
 
-                    currentAx.xaxis.set_minor_locator(AutoMinorLocator())
-                    currentAx.yaxis.set_minor_locator(AutoMinorLocator())
-                    currentAx.tick_params(axis="both",which="both",labelsize=fontsize)
+                        currentAx.plot(xFromBins,hist,label=f"{CRPARAMSHALO[selectKey]['resolution']}: {CRPARAMSHALO[selectKey]['CR_indicator']}", color=colour, linestyle= lineStyle)
 
-                    currentAx.set_ylabel(ylabel["mass"], fontsize=fontsize)
+                        currentAx.xaxis.set_minor_locator(AutoMinorLocator())
+                        currentAx.yaxis.set_minor_locator(AutoMinorLocator())
+                        currentAx.tick_params(axis="both",which="both",labelsize=fontsize)
 
-
-                    if titleBool is True:
-                        fig.suptitle(
-                            f"PDF of"+"\n"+f" mass vs {analysisParam}",
-                            fontsize=fontsizeTitle,
-                        )
-
-                # Only give 1 x-axis a label, as they sharex
+                        currentAx.set_ylabel(ylabel["mass"], fontsize=fontsize)
 
 
-            ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
+                        if titleBool is True:
+                            fig.suptitle(
+                                f"PDF of"+"\n"+f" mass vs {analysisParam}"+
+                                +"\n"+f"{rinner}<R<{router} kpc",
+                                fontsize=fontsizeTitle,
+                            )
 
-            try:
-                finalxmin = xlimDict[analysisParam]['xmin']
-                finalxmax = xlimDict[analysisParam]['xmax']
-            except:
-                finalxmin = np.nanmin(xminlist)
-                finalxmax = np.nanmax(xmaxlist)
-            else:
-                pass
+                    # Only give 1 x-axis a label, as they sharex
 
-            finalymin = np.nanmin(yminlist)
-            finalymax = np.nanmax(ymaxlist)
 
-            if (
-                (np.isinf(finalxmin) == True)
-                or (np.isinf(finalxmax) == True)
-                or (np.isnan(finalxmin) == True)
-                or (np.isnan(finalxmax) == True)
-            ):
-                print("Data All Inf/NaN! Skipping entry!")
-                continue
-            finalxmin = numpy.round_(finalxmin, decimals = 2)
-            finalxmax = numpy.round_(finalxmax, decimals = 2)
-            finalymin = math.floor(finalymin)
-            finalymax = math.ceil(finalymax)
+                ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
 
-            custom_xlim = (finalxmin, finalxmax)
-            custom_ylim = (finalymin, finalymax)
-            plt.setp(
-                ax,
-                xlim=custom_xlim,
-                ylim=custom_ylim
-            )
-            ax.legend(loc="upper right",fontsize=fontsize)
+                try:
+                    finalxmin = xlimDict[analysisParam]['xmin']
+                    finalxmax = xlimDict[analysisParam]['xmax']
+                except:
+                    finalxmin = np.nanmin(xminlist)
+                    finalxmax = np.nanmax(xmaxlist)
+                else:
+                    pass
 
-            # plt.tight_layout()
-            if titleBool is True:
-                plt.subplots_adjust(top=0.875, hspace=0.1,left=0.15)
-            else:
-                plt.subplots_adjust(hspace=0.1,left=0.15)
+                finalymin = np.nanmin(yminlist)
+                finalymax = np.nanmax(ymaxlist)
 
-            opslaan = (savePath+f"CR_{halo}_{analysisParam}_PDF.pdf"
-            )
-            plt.savefig(opslaan, dpi=DPI, transparent=False)
-            print(opslaan)
-            plt.close()
+                if (
+                    (np.isinf(finalxmin) == True)
+                    or (np.isinf(finalxmax) == True)
+                    or (np.isnan(finalxmin) == True)
+                    or (np.isnan(finalxmax) == True)
+                ):
+                    print("Data All Inf/NaN! Skipping entry!")
+                    continue
+                finalxmin = numpy.round_(finalxmin, decimals = 2)
+                finalxmax = numpy.round_(finalxmax, decimals = 2)
+                finalymin = math.floor(finalymin)
+                finalymax = math.ceil(finalymax)
+
+                custom_xlim = (finalxmin, finalxmax)
+                custom_ylim = (finalymin, finalymax)
+                plt.setp(
+                    ax,
+                    xlim=custom_xlim,
+                    ylim=custom_ylim
+                )
+                ax.legend(loc="upper right",fontsize=fontsize)
+
+                # plt.tight_layout()
+                if titleBool is True:
+                    plt.subplots_adjust(top=0.875, hspace=0.1,left=0.15)
+                else:
+                    plt.subplots_adjust(hspace=0.1,left=0.15)
+
+                opslaan = (savePath+f"CR_{halo}_{analysisParam}_{rinner}R{router}_PDF.pdf"
+                )
+                plt.savefig(opslaan, dpi=DPI, transparent=False)
+                print(opslaan)
+                plt.close()
 
     return

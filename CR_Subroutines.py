@@ -167,6 +167,16 @@ def cr_cgm_analysis(
     # Select only gas in High Res Zoom Region
     snapGas = high_res_only_gas_select(snapGas, snapNumber)
 
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the R_virial...")
+
+    Rvir = (snap_subfind.data['frc2']*1e3)[int(CRPARAMS['HaloID'])]
+    # select within the Virial radius
+    whereWithinVirial = np.where(snapGas.data["R"]<=Rvir)[0]
+
+    for key, value in snapGas.data.items():
+        if value is not None:
+            snapGas.data[key] = value.copy()[whereWithinVirial]
+
     # Redshift
     redshift = snapGas.redshift  # z
     aConst = 1.0 / (1.0 + redshift)  # [/]

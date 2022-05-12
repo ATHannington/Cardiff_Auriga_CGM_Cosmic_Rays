@@ -5,7 +5,7 @@
 
     "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","vol","maxDiskRadius"],
 
-    "snapMin" : 123,
+    "snapMin" : 100,
 
     "snapMax" : 127,
 
@@ -13,7 +13,9 @@
 
     "Rinner" : 25.0,
 
-    "Router" : 250.0,
+    "Router" : 175.0,
+
+    "nRbins" : 5,
 
     "Axes" : [2,0],
 
