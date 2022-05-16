@@ -126,6 +126,7 @@ snapRange = [
 if __name__ == "__main__":
     for halo,allSimsDict in CRSELECTEDHALOES.items():
         dataDict = {}
+        starsDict ={}
         CRPARAMSHALO = {}
         DataSavepathBase = CRPARAMSMASTER['savepath'] + f"{halo}/"
         # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
@@ -136,59 +137,60 @@ if __name__ == "__main__":
             selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
             CRPARAMSHALO.update({selectKey : CRPARAMS})
             if CRPARAMS['simfile'] is not None:
-        #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        #         #
-        #         # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
-        #         # # Setup arguments combinations for parallel processing pool
-        #         # print("\n" + f"Sorting multi-core arguments!")
-        #         # manager = mp.Manager()
-        #         # args_list = manager.list()
-        #         # args_default =  [
-        #         #     CRPARAMS,
-        #         #     DataSavepathBase,
-        #         #     FullDataPathSuffix,
-        #         #     lazyLoadBool
-        #         # ]
-        #         #
-        #         # args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
-        #         #
-        #         # # Open multiprocesssing pool
-        #         #
-        #         # print("\n" + f"Opening {n_processes} core Pool!")
-        #         # pool = mp.Pool(processes=n_processes)
-        #         #
-        #         # # C ompute Snap analysis
-        #         # output_list = [
-        #         #     pool.apply_async(cr_cgm_analysis, args=args, error_callback=err_catcher)
-        #         #     for args in args_list
-        #         # ]
-        #         #
-        #         # pool.close()
-        #         # pool.join()
-        #         # # Close multiprocesssing pool
-        #         # print(f"Closing core Pool!")
-        #         # print(f"Error checks")
-        #         # success = [result.successful() for result in output_list]
-        #         # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
-        #         # print("No Errors!")
-        #         #
-        #         # print("Gather the multiprocess outputs")
-        #         # out = {}
-        #         # for output in output_list:
-        #         #
-        #         #     tmpOut = output.get()
-        #         #
-        #         #     # as function gives out dictionary extract what want (or just save dict)
-        #         #     out.update(tmpOut)
-        #         #
-        #         # del output_list, pool
-        #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        # #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        # #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        # #         #
+        # #         # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+        # #         # # Setup arguments combinations for parallel processing pool
+        # #         # print("\n" + f"Sorting multi-core arguments!")
+        # #         # manager = mp.Manager()
+        # #         # args_list = manager.list()
+        # #         # args_default =  [
+        # #         #     CRPARAMS,
+        # #         #     DataSavepathBase,
+        # #         #     FullDataPathSuffix,
+        # #         #     lazyLoadBool
+        # #         #
+        # #         # ]
+        # #         #
+        # #         # args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
+        # #         #
+        # #         # # Open multiprocesssing pool
+        # #         #
+        # #         # print("\n" + f"Opening {n_processes} core Pool!")
+        # #         # pool = mp.Pool(processes=n_processes)
+        # #         #
+        # #         # # C ompute Snap analysis
+        # #         # output_list = [
+        # #         #     pool.apply_async(cr_analysis, args=args, error_callback=err_catcher)
+        # #         #     for args in args_list
+        # #         # ]
+        # #         #
+        # #         # pool.close()
+        # #         # pool.join()
+        # #         # # Close multiprocesssing pool
+        # #         # print(f"Closing core Pool!")
+        # #         # print(f"Error checks")
+        # #         # success = [result.successful() for result in output_list]
+        # #         # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+        # #         # print("No Errors!")
+        # #         #
+        # #         # print("Gather the multiprocess outputs")
+        # #         # out = {}
+        # #         # for output in output_list:
+        # #         #
+        # #         #     tmpOut = output.get()
+        # #         #
+        # #         #     # as function gives out dictionary extract what want (or just save dict)
+        # #         #     out.update(tmpOut)
+        # #         #
+        # #         # del output_list, pool
+        # #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
                 print("\n" + f"Starting SERIAL type Analysis!")
                 out = {}
                 for snapNumber in snapRange:
-                    tmpOut = cr_cgm_analysis(
+                    tmpOut = cr_analysis(
                         snapNumber,
                         CRPARAMS,
                         DataSavepathBase,
@@ -204,20 +206,26 @@ if __name__ == "__main__":
 
                 del out
 
-                dataDict.update(flatDict)
-        #----------------------------------------------------------------------#
-        #      Calculate Radius xmin
-        #----------------------------------------------------------------------#
+                for key, dict in flatDict.items():
+                    if key[-1] == "Stars":
+                        starsDict.update({key : dict})
+                    else:
+                        dataDict.update({key : dict})
 
-        xminList = []
+        # #----------------------------------------------------------------------#
+        # #      Calculate Radius xmin
+        # #----------------------------------------------------------------------#
+
         for sim, CRPARAMS in CRPARAMSHALO.items():
             if CRPARAMS['simfile'] is not None:
                 print(f"{sim}")
                 print("Calculate Radius xmin...")
                 selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-                xminList.append(np.nanmedian(dataDict[selectKey]['maxDiskRadius']))
-        xmin = np.nanmedian(np.array(xminList))
-        xlimDict['R']['xmin'] = xmin
+
+                dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
+
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+                starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
         #----------------------------------------------------------------------#
         #      Calculate statistics...
         #----------------------------------------------------------------------#
@@ -239,9 +247,8 @@ if __name__ == "__main__":
                     Nbins = Nbins,
                     xlimDict = xlimDict
                 )
+
                 statsDict.update({selectKey: dat})
-        print("...done!")
-        print("Statistics calculated!")
         #----------------------------------------------------------------------#
         #  Plots...
         #----------------------------------------------------------------------#
@@ -267,16 +274,78 @@ if __name__ == "__main__":
 
 
         print("")
-        print(f"Mass PDF vs Plot!")
+        print(f"Mass PDF Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        mass_pdf_versus_plot(
+        mass_pdf_versus_by_radius_plot(
             dataDict = dataDict,
             CRPARAMSHALO = CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
             xlimDict = xlimDict,
             snapRange = snapRange
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+        print("")
+        print(f"Mass vs Plot Gas!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        mass_versus_plot(
+            dataDict = dataDict,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            xParam = xParam,
+            xlimDict = xlimDict,
+            cumulativeBool = False
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        mass_versus_plot(
+            dataDict = dataDict,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            xParam = xParam,
+            xlimDict = xlimDict,
+            cumulativeBool = True
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+        print("")
+        print(f"Mass vs Plot Stars!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        mass_versus_plot(
+            dataDict = starsDict,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            xParam = xParam,
+            xlimDict = xlimDict,
+            cumulativeBool = False
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        mass_versus_plot(
+            dataDict = starsDict,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            xParam = xParam,
+            xlimDict = xlimDict,
+            cumulativeBool = True
         )
         matplotlib.rc_file_defaults()
         plt.close("all")

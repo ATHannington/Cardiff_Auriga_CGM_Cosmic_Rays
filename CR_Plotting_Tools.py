@@ -20,9 +20,6 @@ from random import sample
 import sys
 import logging
 
-fontsize = 13
-fontsizeTitle = 14
-
 def round_it(x, sig):
     return round(x, sig-int(math.floor(math.log10(abs(x))))-1)
 
@@ -50,9 +47,15 @@ def medians_versus_plot(
     else:
         pass
 
+
     keys = list(CRPARAMSHALO.keys())
     selectKey0 = keys[0]
-    for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
+
+    plotParams = CRPARAMSHALO[selectKey0]['saveParams']
+    fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+
+    for analysisParam in plotParams:
         if analysisParam != xParam:
             print("")
             print(f"Starting {analysisParam} plots!")
@@ -78,6 +81,8 @@ def medians_versus_plot(
 
                     plotData = simDict.copy()
                     xData = simDict[xParam].copy()
+
+                    xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
                     if colourmapMain == "tab10":
@@ -151,10 +156,17 @@ def medians_versus_plot(
 
 
                     if titleBool is True:
-                        fig.suptitle(
-                            f"Median and Percentiles of"+"\n"+f" {analysisParam} vs {xParam}",
-                            fontsize=fontsizeTitle,
-                        )
+                        if selectKey[-1] == "Stars":
+                            fig.suptitle(
+                                f"Median and Percentiles of"+"\n"+f" Stellar-{analysisParam} vs {xParam}",
+                                fontsize=fontsizeTitle,
+                            )
+
+                        else:
+                            fig.suptitle(
+                                f"Median and Percentiles of"+"\n"+f" {analysisParam} vs {xParam}",
+                                fontsize=fontsizeTitle,
+                            )
 
                 # Only give 1 x-axis a label, as they sharex
 
@@ -211,7 +223,7 @@ def medians_versus_plot(
     return
 
 
-def mass_pdf_versus_plot(
+def mass_pdf_versus_by_radius_plot(
     dataDict,
     CRPARAMSHALO,
     halo,
@@ -241,12 +253,19 @@ def mass_pdf_versus_plot(
 
     selectKey0 = keys[0]
 
-    Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
 
+    keys = list(CRPARAMSHALO.keys())
+
+    plotParams = CRPARAMSHALO[selectKey0]['saveParams']
+
+    fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
     for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
         if (analysisParam != "mass")&(analysisParam != "R"):
             print("")
             print(f"Starting {analysisParam} plots!")
+            xlimDict["R"]['xmin'] = dataDict[selectKey0]["maxDiskRadius"]
+            Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
             for rinner, router in zip(Rrange[:-1],Rrange[1:]):
                 print(f"{rinner}<R<{router}!")
                 fig, ax = plt.subplots(
@@ -265,6 +284,8 @@ def mass_pdf_versus_plot(
                 labelList = []
                 Nkeys = len(list(dataDict.items()))
                 for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+                    if selectKey[-1] == "Stars":
+                        continue
                     loadpath = CRPARAMSHALO[selectKey]['simfile']
                     if loadpath is not None :
                         print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
@@ -392,5 +413,209 @@ def mass_pdf_versus_plot(
                 plt.savefig(opslaan, dpi=DPI, transparent=False)
                 print(opslaan)
                 plt.close()
+
+    return
+
+def mass_versus_plot(
+    dataDict,
+    CRPARAMSHALO,
+    halo,
+    ylabel,
+    xlimDict,
+    xParam = "R",
+    titleBool=False,
+    cumulativeBool = False,
+    DPI=150,
+    xsize = 6.0,
+    ysize = 6.0,
+    opacityPercentiles = 0.25,
+    lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
+    colourmapMain = "tab10",
+):
+
+    savePath = f"./Plots/{halo}/Mass_Summary/"
+    try:
+        os.mkdir(savePath)
+    except:
+        pass
+    else:
+        pass
+
+    keys = list(CRPARAMSHALO.keys())
+    selectKeyOuter = keys[0]
+
+    if selectKeyOuter[-1] == "Stars":
+        selectKeyShort = selectKeyOuter[:-1]
+    else:
+        selectKeyShort = selectKeyOuter
+
+    fontsize = CRPARAMSHALO[selectKeyOuter]["fontsize"]
+    fontsizeTitle = CRPARAMSHALO[selectKeyOuter]["fontsizeTitle"]
+    for analysisParam in ["mass"]:
+        if analysisParam != xParam:
+            print("")
+            print(f"Starting {analysisParam} plots!")
+            fig, ax = plt.subplots(
+                nrows=1,
+                ncols=1,
+                sharex=True,
+                sharey=True,
+                figsize=(xsize, ysize),
+                dpi=DPI,
+            )
+            yminlist = []
+            ymaxlist = []
+            patchList = []
+            labelList = []
+
+            Nkeys = len(list(dataDict.items()))
+            for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+                if selectKey[-1] == "Stars":
+                    selectKeyShort = selectKey[:-1]
+                else:
+                    selectKeyShort = selectKey
+
+                loadpath = CRPARAMSHALO[selectKeyShort]['simfile']
+                if loadpath is not None :
+                    print(f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}")
+                    # Create a plot for each Temperature
+
+                    plotData = simDict[analysisParam].copy()
+                    xData = simDict[xParam].copy()
+
+                    ind_sorted = np.argsort(xData)
+
+                    # Sort the data
+                    xData = xData[ind_sorted]
+                    plotData = plotData[ind_sorted]
+                    if cumulativeBool is True:
+                        plotData = np.cumsum(plotData)
+
+                    xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+
+                    cmap = matplotlib.cm.get_cmap(colourmapMain)
+                    if colourmapMain == "tab10":
+                        colour = cmap(float(ii) / 10.)
+                    else:
+                        colour = cmap(float(ii) / float(Nkeys))
+
+                    lineStyle = lineStyleDict[CRPARAMSHALO[selectKeyShort]['CR_indicator']]
+
+                    if analysisParam in CRPARAMSHALO[selectKeyShort]['logParameters']:
+                        plotData = np.log10(plotData)
+
+                    try:
+                        ymin = np.nanmin(plotData[np.isfinite(plotData)])
+                        ymax = np.nanmax(plotData[np.isfinite(plotData)])
+                    except:
+                        print(f"Variable {analysisParam} not found. Skipping plot...")
+                        continue
+                    yminlist.append(ymin)
+                    ymaxlist.append(ymax)
+
+                    if (
+                        (np.isinf(ymin) == True)
+                        or (np.isinf(ymax) == True)
+                        or (np.isnan(ymin) == True)
+                        or (np.isnan(ymax) == True)
+                    ):
+                        # print()
+                        print("Data All Inf/NaN! Skipping entry!")
+                        continue
+
+                    currentAx = ax
+
+                    currentAx.plot(
+                        xData,
+                        plotData,
+                        label=f"{CRPARAMSHALO[selectKeyShort]['resolution']}: {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
+                        color=colour,
+                        lineStyle=lineStyle,
+                    )
+
+                    currentAx.xaxis.set_minor_locator(AutoMinorLocator())
+                    currentAx.yaxis.set_minor_locator(AutoMinorLocator())
+                    currentAx.tick_params(axis="both",which="both",labelsize=fontsize)
+
+                    currentAx.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
+
+                    if cumulativeBool is True:
+                        cumulativeString = "Cumulative "
+                    else:
+                        cumulativeString = ""
+
+                    if titleBool is True:
+                        if selectKey[-1] == "Stars":
+                            fig.suptitle(
+                                f"{cumulativeString}Stellar-{analysisParam} vs {xParam}",
+                                fontsize=fontsizeTitle,
+                            )
+
+                        else:
+                            fig.suptitle(
+                                f"{cumulativeString}{analysisParam} vs {xParam}",
+                                fontsize=fontsizeTitle,
+                            )
+
+                # Only give 1 x-axis a label, as they sharex
+
+
+            ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
+
+            try:
+                finalymin = min(np.nanmin(yminlist),xlimDict[analysisParam]['xmin'])
+                finalymax = max(np.nanmax(ymaxlist),xlimDict[analysisParam]['xmax'])
+            except:
+                finalymin = np.nanmin(yminlist)
+                finalymax = np.nanmax(ymaxlist)
+            else:
+                pass
+
+            if (
+                (np.isinf(finalymin) == True)
+                or (np.isinf(finalymax) == True)
+                or (np.isnan(finalymin) == True)
+                or (np.isnan(finalymax) == True)
+            ):
+                print("Data All Inf/NaN! Skipping entry!")
+                continue
+            finalymin = numpy.round_(finalymin, decimals = 2)
+            finalymax = numpy.round_(finalymax, decimals = 2)
+
+            custom_ylim = (finalymin, finalymax)
+
+            xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
+            custom_xlim = (min(xData),max(xData)*1.05)
+            if xParam == "R":
+                ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+                custom_xlim = (0,max(xData)*1.05)
+            ax.set_xticks(xticks)
+            ax.legend(loc="upper right",fontsize=fontsize)
+
+            plt.setp(
+                ax,
+                ylim=custom_ylim,
+                xlim=custom_xlim
+            )
+            # plt.tight_layout()
+            if titleBool is True:
+                plt.subplots_adjust(top=0.875, hspace=0.1,left=0.15)
+            else:
+                plt.subplots_adjust(hspace=0.1,left=0.15)
+
+            if cumulativeBool is True:
+                cumulativeString = "Cumulative-"
+            else:
+                cumulativeString = ""
+
+            if selectKey[-1] == "Stars":
+                opslaan = (savePath+f"CR_{halo}_{cumulativeString}Stellar-{analysisParam}-vs-{xParam}.pdf"
+            )
+            else:
+                opslaan = (savePath+f"CR_{halo}_{cumulativeString}{analysisParam}-vs-{xParam}.pdf"
+            )
+            plt.savefig(opslaan, dpi=DPI, transparent=False)
+            print(opslaan)
+            plt.close()
 
     return

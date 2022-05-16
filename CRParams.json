@@ -1,11 +1,13 @@
 {
-    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V1-0/",
+    "analysisType" : "cgm",
+
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V2-0/",
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
-    "saveEssentials" : ["halo","subhalo","Lookback","Snap","type","mass","pos","vol","maxDiskRadius"],
+    "saveEssentials" : ["halo","subhalo","Redshift","Lookback","Snap","type","mass","pos","vol","maxDiskRadius","Rvir","gima","age"],
 
-    "snapMin" : 100,
+    "snapMin" : 127,
 
     "snapMax" : 127,
 

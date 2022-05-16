@@ -21,14 +21,19 @@ import json
 import copy
 import os
 
-def cr_cgm_analysis(
+def cr_analysis(
     snapNumber,
     CRPARAMS,
     DataSavepathBase,
     FullDataPathSuffix=".h5",
     lazyLoadBool = True,
 ):
+    analysisType = CRPARAMS["analysisType"]
 
+    KnownAnalysisType = ["cgm","disk","all"]
+
+    if analysisType not in KnownAnalysisType:
+        raise Exception(f"ERROR! CRITICAL! Unknown analysis type: {analysisType}!"+"\n"+f"Availble analysis types: {KnownAnalysisType}")
     out = {}
 
     # Generate halo directory
@@ -62,18 +67,29 @@ def cr_cgm_analysis(
         subfind=snap_subfind,
     )
 
+    snapStars = gadget_readsnap(
+        snapNumber,
+        loadpath,
+        hdf5=True,
+        loadonlytype=[4],
+        lazy_load=lazyLoadBool,
+        subfind=snap_subfind,
+    )
 
-    # Load Cell IDs - avoids having to turn lazy_load off...
-    # But ensures 'id' is loaded into memory before halo_only_gas_select is called
-    #  Else we wouldn't limit the IDs to the nearest Halo for that step as they wouldn't
-    #   Be in memory so taking the subset would be skipped.
-
+    # Load Cell Other params - avoids having to turn lazy_load off...
     tmp = snapGas.data["id"]
     tmp = snapGas.data["sfr"]
     tmp = snapGas.data["hrgm"]
     tmp = snapGas.data["mass"]
     tmp = snapGas.data["pos"]
     tmp = snapGas.data["vol"]
+
+    tmp = snapStars.data["mass"]
+    tmp = snapStars.data["pos"]
+    tmp = snapStars.data["age"]
+    tmp = snapStars.data["gima"]
+    tmp = snapStars.data["gz"]
+
     del tmp
 
     print(
@@ -82,10 +98,15 @@ def cr_cgm_analysis(
 
 
     snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
+    snapStars.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
 
     # Centre the simulation on HaloID 0
     snapGas = set_centre(
         snap=snapGas, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
+    )
+
+    snapStars = set_centre(
+        snap=snapStars, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
     )
 
     # snapGas.select_halo(snap_subfind, do_rotation=False)
@@ -99,6 +120,9 @@ def cr_cgm_analysis(
     snapGas.vol *= 1e9  # [kpc^3]
     snapGas.mass *= 1e10  # [Msol]
     snapGas.hrgm *= 1e10  # [Msol]
+
+    snapStars.pos *= 1e3  # [kpc]
+    snapStars.mass *= 1e10  # [Msol]
 
     # Calculate New Parameters and Load into memory others we want to track
     snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber)
@@ -153,29 +177,73 @@ def cr_cgm_analysis(
     for key in deleteKeys:
         del snapGas.data[key]
 
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM...")
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars...")
 
-    # select the CGM, acounting for variable disk extent
-    whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
-    maxDiskRadius = np.nanpercentile(snapGas.data["R"][whereDiskSFR],97.72,axis=0)
-    whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"]>=maxDiskRadius) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
-
-    for key, value in snapGas.data.items():
+    whereStars = np.where(snapStars.data["age"]>=0.)[0]
+    for key, value in snapStars.data.items():
         if value is not None:
-            snapGas.data[key] = value.copy()[whereCGM]
+            snapStars.data[key] = value.copy()[whereStars]
+
+
+    if analysisType == "cgm":
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM...")
+
+        # select the CGM, acounting for variable disk extent
+        whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
+        maxDiskRadius = np.nanpercentile(snapGas.data["R"][whereDiskSFR],97.72,axis=0)
+        whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"]>=maxDiskRadius) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
+
+        whereCGMstars =  np.where((snapStars.data["R"]>=maxDiskRadius) & (snapStars.data["R"] <= CRPARAMS['Router'])) [0]
+
+        for key, value in snapGas.data.items():
+            if value is not None:
+                snapGas.data[key] = value.copy()[whereCGM]
+
+        for key, value in snapStars.data.items():
+            if value is not None:
+                snapStars.data[key] = value.copy()[whereCGMstars]
+
+    elif analysisType == "disk":
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the disk...")
+
+        # select the CGM, acounting for variable disk extent
+        whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
+        maxDiskRadius = np.nanpercentile(snapGas.data["R"][whereDiskSFR],97.72,axis=0)
+        whereDisk = np.where((snapGas.data["R"]<=maxDiskRadius) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
+
+        whereDiskstars =  np.where((snapStars.data["R"]>=maxDiskRadius) & (snapStars.data["R"] <= CRPARAMS['Router'])) [0]
+
+        for key, value in snapGas.data.items():
+            if value is not None:
+                snapGas.data[key] = value.copy()[whereDisk]
+
+        for key, value in snapStars.data.items():
+            if value is not None:
+                snapStars.data[key] = value.copy()[whereDiskstars]
+
+    elif analysisType == "all":
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the all of halo...")
+        maxDiskRadius = 0.0
 
     # Select only gas in High Res Zoom Region
     snapGas = high_res_only_gas_select(snapGas, snapNumber)
 
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the R_virial...")
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select within R_virial...")
 
     Rvir = (snap_subfind.data['frc2']*1e3)[int(CRPARAMS['HaloID'])]
+
     # select within the Virial radius
     whereWithinVirial = np.where(snapGas.data["R"]<=Rvir)[0]
+
+    whereWithinVirialStars = np.where(snapStars.data["R"]<=Rvir)[0]
 
     for key, value in snapGas.data.items():
         if value is not None:
             snapGas.data[key] = value.copy()[whereWithinVirial]
+
+    for key, value in snapStars.data.items():
+        if value is not None:
+            snapStars.data[key] = value.copy()[whereWithinVirialStars]
 
     # Redshift
     redshift = snapGas.redshift  # z
@@ -187,9 +255,17 @@ def cr_cgm_analysis(
         0
     ]  # [Gyrs]
 
+    snapGas.data["Redshift"] = np.array([redshift])
     snapGas.data["Lookback"] = np.array([lookback])
     snapGas.data["Snap"] = np.array([snapNumber])
     snapGas.data['maxDiskRadius'] = np.array([maxDiskRadius])
+    snapGas.data['Rvir'] = np.array([Rvir])
+
+    snapStars.data["Redshift"] = np.array([redshift])
+    snapStars.data["Lookback"] = np.array([lookback])
+    snapStars.data["Snap"] = np.array([snapNumber])
+    snapStars.data['maxDiskRadius'] = np.array([maxDiskRadius])
+    snapStars.data['Rvir'] = np.array([Rvir])
 
     print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Trim SnapShot...")
 
@@ -198,6 +274,14 @@ def cr_cgm_analysis(
     for key in keys:
         if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
             del snapGas.data[key]
+
+    keys = list(snapStars.data.keys())
+    for key in keys:
+        if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
+            del snapStars.data[key]
+            
+    #This is None so delete...
+    del snapStars.data["vol"]
 
     print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary...")
     # Make normal dictionary form of snapGas
@@ -208,8 +292,18 @@ def cr_cgm_analysis(
 
     del snapGas
 
+    innerStars = {}
+    for key, value in snapStars.data.items():
+        if key in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
+            innerStars.update({key : copy.deepcopy(value)})
+
+    del snapStars
     # Add to final output
-    out.update({(f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}") : inner})
+    out.update({
+    (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}") : inner})
+
+    out.update({
+    (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}","Stars") : innerStars})
 
     print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process...")
     return out
@@ -229,6 +323,8 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
 
     print("Flattening with respect to time...")
     flatData = {}
+
+    print("Gas...")
     tmp = {}
     newKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
     selectKey0 = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapRange[0])}")
@@ -251,19 +347,32 @@ def flatten_wrt_time(dataDict,CRPARAMS,snapRange):
         )
         tmp.update({subkey: outvals})
     flatData.update({newKey : tmp})
-    print("...done!")
 
+    print("Stars...")
+    tmp = {}
+    newKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+    selectKey0 = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapRange[0])}","Stars")
 
+    keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
 
-    # print("")
-    # print("***DEBUG!***")
-    # print("flatData.keys()")
-    # print(flatData.keys())
-    # print("flatData[newKey].keys()")
-    # print(flatData[newKey].keys())
+    for ii,subkey in enumerate(keys):
+        print(f"{float(ii)/float(len(keys)):3.1%}")
+        concatenateList = []
+        for snapNumber in snapRange:
+            selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}","Stars")
+            concatenateList.append(dataDict[selectKey][subkey].copy())
 
+            del dataDict[selectKey][subkey]
+            # # Fix values to arrays to remove concat error of 0D arrays
+            # for k, val in dataDict.items():
+            #     dataDict[k] = np.array([val]).flatten()
+        outvals = np.concatenate(
+            (concatenateList), axis=0
+        )
+        tmp.update({subkey: outvals})
+    flatData.update({newKey : tmp})
 
-
+    print("...flattening done!")
     return flatData
 
 def cr_calculate_statistics(
@@ -295,7 +404,7 @@ def cr_calculate_statistics(
     },
     printpercent = 5.0):
 
-    exclusions = ["Lookback","Snap","maxDiskRadius"]
+    exclusions = ["Redshift","Lookback","Snap","maxDiskRadius","Rvir"]
 
     print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS['logParameters']:
@@ -350,6 +459,8 @@ def cr_calculate_statistics(
             else:
                 statsData.update({subkey: dat[subkey]})
 
+    for param in exclusions:
+        statsData.update({param : copy.deepcopy(dataDict[param])})
 
     statsData.update({f"{xParam}": xData})
     return statsData
