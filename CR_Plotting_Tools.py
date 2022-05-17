@@ -29,6 +29,7 @@ def medians_versus_plot(
     halo,
     ylabel,
     xlimDict,
+    yParam = None,
     xParam = "R",
     titleBool=False,
     DPI=150,
@@ -39,21 +40,30 @@ def medians_versus_plot(
     colourmapMain = "tab10",
 ):
 
-    savePath = f"./Plots/{halo}/Medians/"
-    try:
-        os.mkdir(savePath)
-    except:
-        pass
-    else:
-        pass
-
-
     keys = list(CRPARAMSHALO.keys())
     selectKey0 = keys[0]
 
-    plotParams = CRPARAMSHALO[selectKey0]['saveParams']
+
+    savePath = f"./Plots/{halo}/{CRPARAMSHALO[selectKey0]['analysisType']}/Medians/"
+    tmp = "./"
+    for savePathChunk in savePath.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+
+
+    if yParam is None:
+        plotParams = CRPARAMSHALO[selectKey0]['saveParams']
+    else:
+        plotParams = [yParam]
+
     fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
     fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+
 
     for analysisParam in plotParams:
         if analysisParam != xParam:
@@ -74,15 +84,29 @@ def medians_versus_plot(
 
             Nkeys = len(list(statsDict.items()))
             for (ii, (selectKey, simDict)) in enumerate(statsDict.items()):
-                loadpath = CRPARAMSHALO[selectKey]['simfile']
+                if selectKey[-1] == "Stars":
+                    selectKeyShort = selectKey[:-1]
+                else:
+                    selectKeyShort = selectKey
+
+                loadpath = CRPARAMSHALO[selectKeyShort]['simfile']
                 if loadpath is not None :
-                    print(f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}")
+                    print(f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}")
                     # Create a plot for each Temperature
 
                     plotData = simDict.copy()
                     xData = simDict[xParam].copy()
 
-                    xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+                    if CRPARAMSHALO[selectKeyShort]['analysisType'] == 'cgm':
+                        xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Router']
+
+                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'disk':
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] = simDict["maxDiskRadius"]
+                    else:
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKeyShort]['Router']
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
                     if colourmapMain == "tab10":
@@ -90,17 +114,17 @@ def medians_versus_plot(
                     else:
                         colour = cmap(float(ii) / float(Nkeys))
 
-                    lineStyle = lineStyleDict[CRPARAMSHALO[selectKey]['CR_indicator']]
+                    lineStyle = lineStyleDict[CRPARAMSHALO[selectKeyShort]['CR_indicator']]
 
                     loadPercentilesTypes = [
                         analysisParam + "_" + str(percentile) + "%"
-                        for percentile in CRPARAMSHALO[selectKey]["percentiles"]
+                        for percentile in CRPARAMSHALO[selectKeyShort]["percentiles"]
                     ]
-                    LO = analysisParam + "_" + str(min(CRPARAMSHALO[selectKey]["percentiles"])) + "%"
-                    UP = analysisParam + "_" + str(max(CRPARAMSHALO[selectKey]["percentiles"])) + "%"
+                    LO = analysisParam + "_" + str(min(CRPARAMSHALO[selectKeyShort]["percentiles"])) + "%"
+                    UP = analysisParam + "_" + str(max(CRPARAMSHALO[selectKeyShort]["percentiles"])) + "%"
                     median = analysisParam + "_" + "50.00%"
 
-                    if analysisParam in CRPARAMSHALO[selectKey]['logParameters']:
+                    if analysisParam in CRPARAMSHALO[selectKeyShort]['logParameters']:
                         for k, v in plotData.items():
                             plotData.update({k: np.log10(v)})
 
@@ -143,7 +167,7 @@ def medians_versus_plot(
                     currentAx.plot(
                         xData,
                         plotData[median],
-                        label=f"{CRPARAMSHALO[selectKey]['resolution']}: {CRPARAMSHALO[selectKey]['CR_indicator']}",
+                        label=f"{CRPARAMSHALO[selectKeyShort]['resolution']}: {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
                         color=colour,
                         lineStyle=lineStyle,
                     )
@@ -190,16 +214,17 @@ def medians_versus_plot(
             ):
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
-            finalymin = numpy.round_(finalymin, decimals = 2)
-            finalymax = numpy.round_(finalymax, decimals = 2)
 
             custom_ylim = (finalymin, finalymax)
 
             xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
             custom_xlim = (min(xData),max(xData)*1.05)
             if xParam == "R":
-                ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
-                custom_xlim = (0,max(xData)*1.05)
+                if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
+                    ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+                    custom_xlim = (0,max(xData)*1.05)
+                else:
+                    custom_xlim = (0,max(xData)*1.05)
             ax.set_xticks(xticks)
             ax.legend(loc="upper right",fontsize=fontsize)
 
@@ -214,8 +239,12 @@ def medians_versus_plot(
             else:
                 plt.subplots_adjust(hspace=0.1,left=0.15)
 
-            opslaan = (savePath+f"CR_{halo}_{analysisParam}_Medians.pdf"
+            if selectKey[-1] == "Stars":
+                opslaan = (savePath+f"CR_{halo}_Stellar-{analysisParam}_Medians.pdf"
             )
+            else:
+                opslaan = (savePath+f"CR_{halo}_{analysisParam}_Medians.pdf"
+                )
             plt.savefig(opslaan, dpi=DPI, transparent=False)
             print(opslaan)
             plt.close()
@@ -231,6 +260,7 @@ def mass_pdf_versus_by_radius_plot(
     xlimDict,
     snapRange,
     titleBool=False,
+    densityBool = True,
     DPI=150,
     Nbins = 150,
     xsize = 6.0,
@@ -238,20 +268,22 @@ def mass_pdf_versus_by_radius_plot(
     colourmapMain = "tab10",
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
 ):
+    keys = list(CRPARAMSHALO.keys())
+    selectKey0 = keys[0]
 
-    savePath = f"./Plots/{halo}/PDFs/"
-    try:
-        os.mkdir(savePath)
-    except:
-        pass
-    else:
-        pass
+
+    savePath = f"./Plots/{halo}/{CRPARAMSHALO[selectKey0]['analysisType']}/PDFs/"
+    tmp = "./"
+    for savePathChunk in savePath.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
 
     Nsnaps = float(len(snapRange))
-
-    keys = list(CRPARAMSHALO.keys())
-
-    selectKey0 = keys[0]
 
 
     keys = list(CRPARAMSHALO.keys())
@@ -264,7 +296,19 @@ def mass_pdf_versus_by_radius_plot(
         if (analysisParam != "mass")&(analysisParam != "R"):
             print("")
             print(f"Starting {analysisParam} plots!")
-            xlimDict["R"]['xmin'] = dataDict[selectKey0]["maxDiskRadius"]
+
+            if CRPARAMSHALO[selectKey0]['analysisType'] == 'cgm':
+                xlimDict["R"]['xmin'] = dataDict[selectKey0]["maxDiskRadius"]
+                xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Router']
+
+            elif CRPARAMSHALO[selectKey0]['analysisType'] == 'disk':
+                xlimDict["R"]['xmin'] = 0.0
+                xlimDict["R"]['xmax'] = dataDict[selectKey0]["maxDiskRadius"]
+            else:
+                xlimDict["R"]['xmin'] = 0.0
+                xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKey0]['Router']
+
+            # xlimDict["R"]['xmin'] = dataDict[selectKey0]["maxDiskRadius"]
             Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
             for rinner, router in zip(Rrange[:-1],Rrange[1:]):
                 print(f"{rinner}<R<{router}!")
@@ -337,10 +381,11 @@ def mass_pdf_versus_by_radius_plot(
 
                         currentAx = ax
 
-                        hist, bin_edges = np.histogram(plotData,bins=xBins, weights = weightsData)
+                        hist, bin_edges = np.histogram(plotData,bins=xBins, weights = weightsData, density = densityBool)
 
                         hist = hist/Nsnaps
-                        hist = np.log10(hist)
+                        if densityBool is False:
+                            hist = np.log10(hist)
 
                         yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
                         ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
@@ -353,8 +398,10 @@ def mass_pdf_versus_by_radius_plot(
                         currentAx.yaxis.set_minor_locator(AutoMinorLocator())
                         currentAx.tick_params(axis="both",which="both",labelsize=fontsize)
 
-                        currentAx.set_ylabel(ylabel["mass"], fontsize=fontsize)
-
+                        if densityBool is False:
+                            currentAx.set_ylabel(ylabel["mass"], fontsize=fontsize)
+                        else:
+                            currentAx.set_ylabel("PDF", fontsize=fontsize)
 
                         if titleBool is True:
                             fig.suptitle(
@@ -369,16 +416,20 @@ def mass_pdf_versus_by_radius_plot(
                 ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
 
                 try:
-                    finalxmin = xlimDict[analysisParam]['xmin']
-                    finalxmax = xlimDict[analysisParam]['xmax']
+                    finalxmin = min(np.nanmin(xminlist),xlimDict[analysisParam]['xmin'])
+                    finalxmax = max(np.nanmax(xmaxlist),xlimDict[analysisParam]['xmax'])
                 except:
                     finalxmin = np.nanmin(xminlist)
                     finalxmax = np.nanmax(xmaxlist)
                 else:
                     pass
 
-                finalymin = np.nanmin(yminlist)
-                finalymax = np.nanmax(ymaxlist)
+                if densityBool is False:
+                    finalymin = np.nanmin(yminlist)
+                    finalymax = np.nanmax(ymaxlist)
+                else:
+                    finalymin = 0.0
+                    finalymax = np.nanmax(ymaxlist)
 
                 if (
                     (np.isinf(finalxmin) == True)
@@ -388,10 +439,6 @@ def mass_pdf_versus_by_radius_plot(
                 ):
                     print("Data All Inf/NaN! Skipping entry!")
                     continue
-                finalxmin = numpy.round_(finalxmin, decimals = 2)
-                finalxmax = numpy.round_(finalxmax, decimals = 2)
-                finalymin = math.floor(finalymin)
-                finalymax = math.ceil(finalymax)
 
                 custom_xlim = (finalxmin, finalxmax)
                 custom_ylim = (finalymin, finalymax)
@@ -416,7 +463,7 @@ def mass_pdf_versus_by_radius_plot(
 
     return
 
-def mass_versus_plot(
+def cumulative_mass_versus_plot(
     dataDict,
     CRPARAMSHALO,
     halo,
@@ -424,7 +471,6 @@ def mass_versus_plot(
     xlimDict,
     xParam = "R",
     titleBool=False,
-    cumulativeBool = False,
     DPI=150,
     xsize = 6.0,
     ysize = 6.0,
@@ -432,16 +478,22 @@ def mass_versus_plot(
     lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
     colourmapMain = "tab10",
 ):
-
-    savePath = f"./Plots/{halo}/Mass_Summary/"
-    try:
-        os.mkdir(savePath)
-    except:
-        pass
-    else:
-        pass
-
     keys = list(CRPARAMSHALO.keys())
+    selectKey0 = keys[0]
+
+
+    savePath = f"./Plots/{halo}/{CRPARAMSHALO[selectKey0]['analysisType']}/Mass_Summary/"
+
+    tmp = "./"
+    for savePathChunk in savePath.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+
     selectKeyOuter = keys[0]
 
     if selectKeyOuter[-1] == "Stars":
@@ -488,10 +540,19 @@ def mass_versus_plot(
                     # Sort the data
                     xData = xData[ind_sorted]
                     plotData = plotData[ind_sorted]
-                    if cumulativeBool is True:
-                        plotData = np.cumsum(plotData)
+                    plotData = np.cumsum(plotData)
 
-                    xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+                    # xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+                    if CRPARAMSHALO[selectKeyShort]['analysisType'] == 'cgm':
+                        xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Router']
+
+                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'disk':
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] = simDict["maxDiskRadius"]
+                    else:
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKeyShort]['Router']
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
                     if colourmapMain == "tab10":
@@ -539,21 +600,17 @@ def mass_versus_plot(
 
                     currentAx.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
 
-                    if cumulativeBool is True:
-                        cumulativeString = "Cumulative "
-                    else:
-                        cumulativeString = ""
 
                     if titleBool is True:
                         if selectKey[-1] == "Stars":
                             fig.suptitle(
-                                f"{cumulativeString}Stellar-{analysisParam} vs {xParam}",
+                                f"Cumulative Stellar-{analysisParam} vs {xParam}",
                                 fontsize=fontsizeTitle,
                             )
 
                         else:
                             fig.suptitle(
-                                f"{cumulativeString}{analysisParam} vs {xParam}",
+                                f"Cumulative {analysisParam} vs {xParam}",
                                 fontsize=fontsizeTitle,
                             )
 
@@ -579,16 +636,17 @@ def mass_versus_plot(
             ):
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
-            finalymin = numpy.round_(finalymin, decimals = 2)
-            finalymax = numpy.round_(finalymax, decimals = 2)
 
             custom_ylim = (finalymin, finalymax)
 
             xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
             custom_xlim = (min(xData),max(xData)*1.05)
             if xParam == "R":
-                ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
-                custom_xlim = (0,max(xData)*1.05)
+                if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
+                    ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+                    custom_xlim = (0,max(xData)*1.05)
+                else:
+                    custom_xlim = (0,max(xData)*1.05)
             ax.set_xticks(xticks)
             ax.legend(loc="upper right",fontsize=fontsize)
 
@@ -603,16 +661,12 @@ def mass_versus_plot(
             else:
                 plt.subplots_adjust(hspace=0.1,left=0.15)
 
-            if cumulativeBool is True:
-                cumulativeString = "Cumulative-"
-            else:
-                cumulativeString = ""
 
             if selectKey[-1] == "Stars":
-                opslaan = (savePath+f"CR_{halo}_{cumulativeString}Stellar-{analysisParam}-vs-{xParam}.pdf"
+                opslaan = (savePath+f"CR_{halo}_Cumulative-Stellar-{analysisParam}-vs-{xParam}.pdf"
             )
             else:
-                opslaan = (savePath+f"CR_{halo}_{cumulativeString}{analysisParam}-vs-{xParam}.pdf"
+                opslaan = (savePath+f"CR_{halo}_Cumulative-{analysisParam}-vs-{xParam}.pdf"
             )
             plt.savefig(opslaan, dpi=DPI, transparent=False)
             print(opslaan)

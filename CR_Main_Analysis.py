@@ -21,6 +21,7 @@ from random import sample
 import multiprocessing as mp
 import sys
 import logging
+import copy
 
 CRPARAMSPATHMASTER = "CRParams.json"
 CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, 'r'))
@@ -225,7 +226,7 @@ if __name__ == "__main__":
                 dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
 
                 selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
-                starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
+        #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
         #----------------------------------------------------------------------#
         #      Calculate statistics...
         #----------------------------------------------------------------------#
@@ -234,21 +235,39 @@ if __name__ == "__main__":
         print("Calculate Statistics!")
         print(f"{halo}")
         statsDict = {}
+        statsDictStars = {}
         for sim, CRPARAMS in CRPARAMSHALO.items():
             if CRPARAMS['simfile'] is not None:
                 print(f"{sim}")
                 print("Calculate Statistics...")
+                print("Gas...")
                 selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+
+                tmpCRPARAMS = copy.deepcopy(CRPARAMS)
+                tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
 
                 dat = cr_calculate_statistics(
                     dataDict = dataDict[selectKey],
-                    CRPARAMS = CRPARAMS,
+                    CRPARAMS = tmpCRPARAMS,
                     xParam = xParam,
                     Nbins = Nbins,
                     xlimDict = xlimDict
                 )
 
                 statsDict.update({selectKey: dat})
+
+                print("Stars...")
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+
+                dat = cr_calculate_statistics(
+                    dataDict = starsDict[selectKey],
+                    CRPARAMS = tmpCRPARAMS,
+                    xParam = xParam,
+                    Nbins = Nbins,
+                    xlimDict = xlimDict
+                )
+
+                statsDictStars.update({selectKey: dat})
         #----------------------------------------------------------------------#
         #  Plots...
         #----------------------------------------------------------------------#
@@ -272,6 +291,35 @@ if __name__ == "__main__":
         matplotlib.rc_file_defaults()
         plt.close("all")
 
+        print("")
+        print(f"Medians of Mass vs {xParam} Plot!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        medians_versus_plot(
+            statsDict = statsDict,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            yParam = "mass",
+            xParam = xParam,
+            xlimDict = xlimDict
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        medians_versus_plot(
+            statsDict = statsDictStars,
+            CRPARAMSHALO =  CRPARAMSHALO,
+            halo = halo,
+            ylabel = ylabel,
+            yParam = "mass",
+            xParam = xParam,
+            xlimDict = xlimDict
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
 
         print("")
         print(f"Mass PDF Plot!")
@@ -290,31 +338,16 @@ if __name__ == "__main__":
 
         print("")
         print(f"Mass vs Plot Gas!")
+
         matplotlib.rc_file_defaults()
         plt.close("all")
-        mass_versus_plot(
+        cumulative_mass_versus_plot(
             dataDict = dataDict,
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
             xParam = xParam,
             xlimDict = xlimDict,
-            cumulativeBool = False
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-
-
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        mass_versus_plot(
-            dataDict = dataDict,
-            CRPARAMSHALO =  CRPARAMSHALO,
-            halo = halo,
-            ylabel = ylabel,
-            xParam = xParam,
-            xlimDict = xlimDict,
-            cumulativeBool = True
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -323,29 +356,13 @@ if __name__ == "__main__":
         print(f"Mass vs Plot Stars!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        mass_versus_plot(
+        cumulative_mass_versus_plot(
             dataDict = starsDict,
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
             xParam = xParam,
-            xlimDict = xlimDict,
-            cumulativeBool = False
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-
-
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        mass_versus_plot(
-            dataDict = starsDict,
-            CRPARAMSHALO =  CRPARAMSHALO,
-            halo = halo,
-            ylabel = ylabel,
-            xParam = xParam,
-            xlimDict = xlimDict,
-            cumulativeBool = True
+            xlimDict = xlimDict
         )
         matplotlib.rc_file_defaults()
         plt.close("all")

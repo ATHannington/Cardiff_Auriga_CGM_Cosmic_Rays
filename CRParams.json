@@ -7,9 +7,9 @@
 
     "saveEssentials" : ["halo","subhalo","Redshift","Lookback","Snap","type","mass","pos","vol","maxDiskRadius","Rvir","gima","age"],
 
-    "snapMin" : 127,
+    "snapMin" : 100,
 
-    "snapMax" : 127,
+    "snapMax" : 104,
 
     "percentiles" :  [15.87, 50.0, 84.13],
 

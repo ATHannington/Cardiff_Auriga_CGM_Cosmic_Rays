@@ -36,13 +36,19 @@ def cr_analysis(
         raise Exception(f"ERROR! CRITICAL! Unknown analysis type: {analysisType}!"+"\n"+f"Availble analysis types: {KnownAnalysisType}")
     out = {}
 
+
     # Generate halo directory
-    try:
-        os.mkdir(DataSavepathBase)
-    except:
-        pass
-    else:
-        pass
+    tmp = "/"
+    for savePathChunk in DataSavepathBase.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+
+
 
     DataSavepath = DataSavepathBase + f"Data_CR_{CRPARAMS['resolution']}_{CRPARAMS['CR_indicator']}"
 
@@ -279,7 +285,7 @@ def cr_analysis(
     for key in keys:
         if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
             del snapStars.data[key]
-            
+
     #This is None so delete...
     del snapStars.data["vol"]
 
