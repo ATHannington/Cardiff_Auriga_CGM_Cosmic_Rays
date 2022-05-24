@@ -21,7 +21,10 @@ import sys
 import logging
 
 def round_it(x, sig):
-    return round(x, sig-int(math.floor(math.log10(abs(x))))-1)
+    if x!=0:
+        return round(x, sig-int(math.floor(math.log10(abs(x))))-1)
+    else:
+        return 0.0
 
 def medians_versus_plot(
     statsDict,
@@ -217,21 +220,21 @@ def medians_versus_plot(
 
             custom_ylim = (finalymin, finalymax)
 
-            xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
-            custom_xlim = (min(xData),max(xData)*1.05)
+            # xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
+            # custom_xlim = (min(xData),max(xData)*1.05)
             # if xParam == "R":
             #     if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
             #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
             #         custom_xlim = (0,max(xData)*1.05)
             #     else:
             #         custom_xlim = (0,max(xData)*1.05)
-            ax.set_xticks(xticks)
+            # ax.set_xticks(xticks)
             ax.legend(loc="upper right",fontsize=fontsize)
 
             plt.setp(
                 ax,
-                ylim=custom_ylim,
-                xlim=custom_xlim
+                ylim=custom_ylim
+                # ,xlim=custom_xlim
             )
             # plt.tight_layout()
             if titleBool is True:
@@ -292,6 +295,45 @@ def mass_pdf_versus_by_radius_plot(
 
     fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
     fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+
+
+    if CRPARAMSHALO[selectKey0]['analysisType'] == 'cgm':
+        xlimDict["R"]['xmin'] = 0.0
+        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Router']
+
+    elif CRPARAMSHALO[selectKey0]['analysisType'] == 'ism':
+        xlimDict["R"]['xmin'] = 0.0
+        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Rinner']
+    else:
+        xlimDict["R"]['xmin'] = 0.0
+        xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKey0]['Router']
+
+    Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
+
+
+    massSumDict = {}
+    for rinner, router in zip(Rrange[:-1],Rrange[1:]):
+        Nkeys = len(list(dataDict.items()))
+        tmp =[]
+        for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+            if selectKey[-1] == "Stars":
+                continue
+            loadpath = CRPARAMSHALO[selectKey]['simfile']
+            if loadpath is not None :
+                # Create a plot for each Temperature
+
+                try:
+                    weightsData = simDict["mass"].copy()
+                except:
+                    print(f"Variable {analysisParam} not found. Skipping plot...")
+                    continue
+
+                whereInRadius = np.where((simDict["R"]>=rinner)&(simDict["R"]<router))[0]
+
+                weightsData = weightsData[whereInRadius].copy()
+                tmp.append(np.sum(weightsData))
+        massSumDict.update({f"{rinner}R{router}" : np.array(tmp)})
+
     for analysisParam in CRPARAMSHALO[selectKey0]['saveParams']:
         if (analysisParam != "mass")&(analysisParam != "R"):
             print("")
@@ -383,8 +425,11 @@ def mass_pdf_versus_by_radius_plot(
                         hist, bin_edges = np.histogram(plotData,bins=xBins, weights = weightsData, density = densityBool)
 
                         hist = hist/Nsnaps
+                        massSum = massSumDict[f"{rinner}R{router}"]
                         if densityBool is False:
                             hist = np.log10(hist)
+                        else:
+                            hist = hist * massSum[ii]/np.nanmax(massSum)
 
                         yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
                         ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
@@ -638,21 +683,21 @@ def cumulative_mass_versus_plot(
 
             custom_ylim = (finalymin, finalymax)
 
-            xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
-            custom_xlim = (min(xData),max(xData)*1.05)
+            # xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
+            # custom_xlim = (min(xData),max(xData)*1.05)
             # if xParam == "R":
             #     if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
             #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
             #         custom_xlim = (0,max(xData)*1.05)
             #     else:
             #         custom_xlim = (0,max(xData)*1.05)
-            ax.set_xticks(xticks)
+            # ax.set_xticks(xticks)
             ax.legend(loc="upper right",fontsize=fontsize)
 
             plt.setp(
                 ax,
-                ylim=custom_ylim,
-                xlim=custom_xlim
+                ylim=custom_ylim
+                # ,xlim=custom_xlim
             )
             # plt.tight_layout()
             if titleBool is True:
