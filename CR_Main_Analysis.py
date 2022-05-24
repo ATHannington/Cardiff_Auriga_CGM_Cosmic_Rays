@@ -213,20 +213,20 @@ if __name__ == "__main__":
                     else:
                         dataDict.update({key : dict})
 
-        # #----------------------------------------------------------------------#
-        # #      Calculate Radius xmin
-        # #----------------------------------------------------------------------#
-
-        for sim, CRPARAMS in CRPARAMSHALO.items():
-            if CRPARAMS['simfile'] is not None:
-                print(f"{sim}")
-                print("Calculate Radius xmin...")
-                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-
-                dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
-
-                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
-        #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
+        # # #----------------------------------------------------------------------#
+        # # #      Calculate Radius xmin
+        # # #----------------------------------------------------------------------#
+        #
+        # # for sim, CRPARAMS in CRPARAMSHALO.items():
+        # #     if CRPARAMS['simfile'] is not None:
+        # #         print(f"{sim}")
+        # #         print("Calculate Radius xmin...")
+        # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+        # #
+        # #         dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
+        # #
+        # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+        # # #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
         #----------------------------------------------------------------------#
         #      Calculate statistics...
         #----------------------------------------------------------------------#
@@ -285,36 +285,6 @@ if __name__ == "__main__":
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
-            xParam = xParam,
-            xlimDict = xlimDict
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-
-        print("")
-        print(f"Medians of Mass vs {xParam} Plot!")
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        medians_versus_plot(
-            statsDict = statsDict,
-            CRPARAMSHALO =  CRPARAMSHALO,
-            halo = halo,
-            ylabel = ylabel,
-            yParam = "mass",
-            xParam = xParam,
-            xlimDict = xlimDict
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        medians_versus_plot(
-            statsDict = statsDictStars,
-            CRPARAMSHALO =  CRPARAMSHALO,
-            halo = halo,
-            ylabel = ylabel,
-            yParam = "mass",
             xParam = xParam,
             xlimDict = xlimDict
         )
