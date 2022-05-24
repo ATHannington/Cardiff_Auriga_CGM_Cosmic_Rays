@@ -1478,6 +1478,11 @@ def halo_id_finder(snapGas, snap_subfind, snapNumber, OnlyHalo=None):
             # Find the cumulative sum (and thus index ranges) of the subhaloes for THIS FoFhalo ONLY!
             cslty = np.cumsum(snap_subfind.data["slty"][nshLO:nshUP, tp], axis=0)
 
+            # Skip where subfind data goes beyond what we have in memory
+            maxWhereType = np.nanmax(whereType[0])
+            if (lowest>maxWhereType)|(cslty>maxWhereType)|(csflty>maxWhereType):
+                continue
+
             # Start the data selection from end of previous FoFHalo and continue lower bound to last slty entry
             lower = np.append(np.array(lowest), cslty + lowest)
             # Start upper bound from first slty entry (+ offset) to end on cumulative flty for "ubound" material
@@ -1497,6 +1502,10 @@ def halo_id_finder(snapGas, snap_subfind, snapNumber, OnlyHalo=None):
             #  a subhalo number
             #       In the case where only 1 index is returned we opt to assign this single gas cell its own subhalo number
             for (lo, up) in zip(lower[:-1], upper[:-1]):
+                            # Skip where subfind data goes beyond what we have in memory
+
+                if (lo>maxWhereType)|(up>maxWhereType):
+                    continue
                 # print(f"lo {lo} : up {up} --> subhalo {subhalo}")
 
                 if lo == up:
