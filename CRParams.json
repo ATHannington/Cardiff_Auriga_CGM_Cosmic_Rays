@@ -5,7 +5,7 @@
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
-    "saveEssentials" : ["halo","subhalo","Redshift","Lookback","Snap","type","mass","pos","vol","maxDiskRadius","Rvir","gima","age"],
+    "saveEssentials" : ["halo","subhalo","Redshift","Lookback","Snap","type","mass","pos","vol","Rvir","gima","age"],
 
     "snapMin" : 100,
 

@@ -30,7 +30,7 @@ def cr_analysis(
 ):
     analysisType = CRPARAMS["analysisType"]
 
-    KnownAnalysisType = ["cgm","disk","all"]
+    KnownAnalysisType = ["cgm","ism","all"]
 
     if analysisType not in KnownAnalysisType:
         raise Exception(f"ERROR! CRITICAL! Unknown analysis type: {analysisType}!"+"\n"+f"Availble analysis types: {KnownAnalysisType}")
@@ -194,12 +194,12 @@ def cr_analysis(
     if analysisType == "cgm":
         print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM...")
 
-        # select the CGM, acounting for variable disk extent
-        whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
-        maxDiskRadius = np.nanpercentile(snapGas.data["R"][whereDiskSFR],97.72,axis=0)
-        whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"]>=maxDiskRadius) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
+        # select the CGM, acounting for variable ISM extent
+        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
+        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
+        whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
 
-        whereCGMstars =  np.where((snapStars.data["R"]>=maxDiskRadius) & (snapStars.data["R"] <= CRPARAMS['Router'])) [0]
+        whereCGMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router'])) [0]
 
         for key, value in snapGas.data.items():
             if value is not None:
@@ -209,28 +209,27 @@ def cr_analysis(
             if value is not None:
                 snapStars.data[key] = value.copy()[whereCGMstars]
 
-    elif analysisType == "disk":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the disk...")
+    elif analysisType == "ism":
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the ISM...")
 
-        # select the CGM, acounting for variable disk extent
-        whereDiskSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
-        maxDiskRadius = np.nanpercentile(snapGas.data["R"][whereDiskSFR],97.72,axis=0)
-        whereDisk = np.where((snapGas.data["R"]<=maxDiskRadius) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
+        # select the CGM, acounting for variable ISM extent
+        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
+        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
+        whereISM = np.where((snapGas.data["sfr"] > 0.0)&(snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
 
-        whereDiskstars =  np.where((snapStars.data["R"]>=maxDiskRadius) & (snapStars.data["R"] <= CRPARAMS['Router'])) [0]
+        whereISMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router'])) [0]
 
         for key, value in snapGas.data.items():
             if value is not None:
-                snapGas.data[key] = value.copy()[whereDisk]
+                snapGas.data[key] = value.copy()[whereISM]
 
         for key, value in snapStars.data.items():
             if value is not None:
-                snapStars.data[key] = value.copy()[whereDiskstars]
+                snapStars.data[key] = value.copy()[whereISMstars]
 
     elif analysisType == "all":
         print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the all of halo...")
-        maxDiskRadius = 0.0
-
+        pass
     # Select only gas in High Res Zoom Region
     snapGas = high_res_only_gas_select(snapGas, snapNumber)
 
@@ -264,13 +263,11 @@ def cr_analysis(
     snapGas.data["Redshift"] = np.array([redshift])
     snapGas.data["Lookback"] = np.array([lookback])
     snapGas.data["Snap"] = np.array([snapNumber])
-    snapGas.data['maxDiskRadius'] = np.array([maxDiskRadius])
     snapGas.data['Rvir'] = np.array([Rvir])
 
     snapStars.data["Redshift"] = np.array([redshift])
     snapStars.data["Lookback"] = np.array([lookback])
     snapStars.data["Snap"] = np.array([snapNumber])
-    snapStars.data['maxDiskRadius'] = np.array([maxDiskRadius])
     snapStars.data['Rvir'] = np.array([Rvir])
 
     print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Trim SnapShot...")
@@ -410,7 +407,7 @@ def cr_calculate_statistics(
     },
     printpercent = 5.0):
 
-    exclusions = ["Redshift","Lookback","Snap","maxDiskRadius","Rvir"]
+    exclusions = ["Redshift","Lookback","Snap","Rvir"]
 
     print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS['logParameters']:

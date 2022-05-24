@@ -98,12 +98,12 @@ def medians_versus_plot(
                     xData = simDict[xParam].copy()
 
                     if CRPARAMSHALO[selectKeyShort]['analysisType'] == 'cgm':
-                        xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+                        xlimDict["R"]['xmin'] = 0.0
                         xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Router']
 
-                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'disk':
+                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'ism':
                         xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] = simDict["maxDiskRadius"]
+                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Rinner']
                     else:
                         xlimDict["R"]['xmin'] = 0.0
                         xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKeyShort]['Router']
@@ -219,12 +219,12 @@ def medians_versus_plot(
 
             xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
             custom_xlim = (min(xData),max(xData)*1.05)
-            if xParam == "R":
-                if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
-                    ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
-                    custom_xlim = (0,max(xData)*1.05)
-                else:
-                    custom_xlim = (0,max(xData)*1.05)
+            # if xParam == "R":
+            #     if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
+            #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+            #         custom_xlim = (0,max(xData)*1.05)
+            #     else:
+            #         custom_xlim = (0,max(xData)*1.05)
             ax.set_xticks(xticks)
             ax.legend(loc="upper right",fontsize=fontsize)
 
@@ -298,17 +298,16 @@ def mass_pdf_versus_by_radius_plot(
             print(f"Starting {analysisParam} plots!")
 
             if CRPARAMSHALO[selectKey0]['analysisType'] == 'cgm':
-                xlimDict["R"]['xmin'] = dataDict[selectKey0]["maxDiskRadius"]
+                xlimDict["R"]['xmin'] = 0.0
                 xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Router']
 
-            elif CRPARAMSHALO[selectKey0]['analysisType'] == 'disk':
+            elif CRPARAMSHALO[selectKey0]['analysisType'] == 'ism':
                 xlimDict["R"]['xmin'] = 0.0
-                xlimDict["R"]['xmax'] = dataDict[selectKey0]["maxDiskRadius"]
+                xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Rinner']
             else:
                 xlimDict["R"]['xmin'] = 0.0
                 xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKey0]['Router']
 
-            # xlimDict["R"]['xmin'] = dataDict[selectKey0]["maxDiskRadius"]
             Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
             for rinner, router in zip(Rrange[:-1],Rrange[1:]):
                 print(f"{rinner}<R<{router}!")
@@ -542,14 +541,14 @@ def cumulative_mass_versus_plot(
                     plotData = plotData[ind_sorted]
                     plotData = np.cumsum(plotData)
 
-                    # xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+
                     if CRPARAMSHALO[selectKeyShort]['analysisType'] == 'cgm':
-                        xlimDict["R"]['xmin'] = simDict["maxDiskRadius"]
+                        xlimDict["R"]['xmin'] = 0.0
                         xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Router']
 
-                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'disk':
+                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'ism':
                         xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] = simDict["maxDiskRadius"]
+                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['rinner']
                     else:
                         xlimDict["R"]['xmin'] = 0.0
                         xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKeyShort]['Router']
@@ -641,12 +640,12 @@ def cumulative_mass_versus_plot(
 
             xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
             custom_xlim = (min(xData),max(xData)*1.05)
-            if xParam == "R":
-                if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
-                    ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
-                    custom_xlim = (0,max(xData)*1.05)
-                else:
-                    custom_xlim = (0,max(xData)*1.05)
+            # if xParam == "R":
+            #     if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
+            #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+            #         custom_xlim = (0,max(xData)*1.05)
+            #     else:
+            #         custom_xlim = (0,max(xData)*1.05)
             ax.set_xticks(xticks)
             ax.legend(loc="upper right",fontsize=fontsize)
 
