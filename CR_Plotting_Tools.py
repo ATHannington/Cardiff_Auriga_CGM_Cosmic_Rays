@@ -98,18 +98,7 @@ def medians_versus_plot(
                     # Create a plot for each Temperature
 
                     plotData = simDict.copy()
-                    xData = simDict[xParam].copy()
-
-                    if CRPARAMSHALO[selectKeyShort]['analysisType'] == 'cgm':
-                        xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Router']
-
-                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'ism':
-                        xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Rinner']
-                    else:
-                        xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKeyShort]['Router']
+                    xData = np.array(simDict[xParam].copy())
 
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
                     if colourmapMain == "tab10":
@@ -200,14 +189,17 @@ def medians_versus_plot(
 
             ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
 
-            try:
-                finalymin = min(np.nanmin(yminlist),xlimDict[analysisParam]['xmin'])
-                finalymax = max(np.nanmax(ymaxlist),xlimDict[analysisParam]['xmax'])
-            except:
-                finalymin = np.nanmin(yminlist)
-                finalymax = np.nanmax(ymaxlist)
-            else:
-                pass
+            # try:
+            #     finalymin = min(np.nanmin(yminlist),xlimDict[analysisParam]['xmin'])
+            #     finalymax = max(np.nanmax(ymaxlist),xlimDict[analysisParam]['xmax'])
+            # except:
+            #     finalymin = np.nanmin(yminlist)
+            #     finalymax = np.nanmax(ymaxlist)
+            # else:
+            #     pass
+
+            finalymin = np.nanmin(yminlist)
+            finalymax = np.nanmax(ymaxlist)
 
             if (
                 (np.isinf(finalymin) == True)
@@ -229,7 +221,7 @@ def medians_versus_plot(
             #     else:
             #         custom_xlim = (0,max(xData)*1.05)
             # ax.set_xticks(xticks)
-            ax.legend(loc="upper right",fontsize=fontsize)
+            ax.legend(loc="best",fontsize=fontsize)
 
             plt.setp(
                 ax,
@@ -297,17 +289,6 @@ def mass_pdf_versus_by_radius_plot(
     fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
 
 
-    if CRPARAMSHALO[selectKey0]['analysisType'] == 'cgm':
-        xlimDict["R"]['xmin'] = 0.0
-        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Router']
-
-    elif CRPARAMSHALO[selectKey0]['analysisType'] == 'ism':
-        xlimDict["R"]['xmin'] = 0.0
-        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Rinner']
-    else:
-        xlimDict["R"]['xmin'] = 0.0
-        xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKey0]['Router']
-
     Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
 
 
@@ -338,17 +319,6 @@ def mass_pdf_versus_by_radius_plot(
         if (analysisParam != "mass")&(analysisParam != "R"):
             print("")
             print(f"Starting {analysisParam} plots!")
-
-            if CRPARAMSHALO[selectKey0]['analysisType'] == 'cgm':
-                xlimDict["R"]['xmin'] = 0.0
-                xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Router']
-
-            elif CRPARAMSHALO[selectKey0]['analysisType'] == 'ism':
-                xlimDict["R"]['xmin'] = 0.0
-                xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKey0]['Rinner']
-            else:
-                xlimDict["R"]['xmin'] = 0.0
-                xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKey0]['Router']
 
             Rrange = np.around(np.linspace(start=xlimDict["R"]["xmin"],stop=xlimDict["R"]["xmax"], num=CRPARAMSHALO[selectKey0]["nRbins"]),decimals=1)
             for rinner, router in zip(Rrange[:-1],Rrange[1:]):
@@ -426,10 +396,16 @@ def mass_pdf_versus_by_radius_plot(
 
                         hist = hist/Nsnaps
                         massSum = massSumDict[f"{rinner}R{router}"]
-                        if densityBool is False:
+                        if densityBool is True:
+                            hist = hist * massSum[ii]/np.nanmax(massSum)
+                        elif analysisParam in CRPARAMSHALO['logParameters']:
                             hist = np.log10(hist)
                         else:
-                            hist = hist * massSum[ii]/np.nanmax(massSum)
+                            pass
+
+                        if np.all(np.isfinite(hist)) == False :
+                            print("Hist All Inf/NaN! Skipping entry!")
+                            continue
 
                         yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
                         ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
@@ -460,30 +436,34 @@ def mass_pdf_versus_by_radius_plot(
                 ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
 
                 try:
-                    finalxmin = min(np.nanmin(xminlist),xlimDict[analysisParam]['xmin'])
-                    finalxmax = max(np.nanmax(xmaxlist),xlimDict[analysisParam]['xmax'])
+                    finalxmin = max(np.nanmin(xminlist),xlimDict[analysisParam]['xmin'])
+                    finalxmax = min(np.nanmax(xmaxlist),xlimDict[analysisParam]['xmax'])
                 except:
                     finalxmin = np.nanmin(xminlist)
                     finalxmax = np.nanmax(xmaxlist)
                 else:
                     pass
 
-                if densityBool is False:
-                    finalymin = np.nanmin(yminlist)
-                    finalymax = np.nanmax(ymaxlist)
-                else:
-                    finalymin = 0.0
-                    finalymax = np.nanmax(ymaxlist)
-
                 if (
-                    (np.isinf(finalxmin) == True)
-                    or (np.isinf(finalxmax) == True)
-                    or (np.isnan(finalxmin) == True)
+                    (np.isinf(finalxmax) == True)
+                    or (np.isinf(finalxmin) == True)
                     or (np.isnan(finalxmax) == True)
+                    or (np.isnan(finalxmin) == True)
                 ):
                     print("Data All Inf/NaN! Skipping entry!")
                     continue
 
+                try:
+                    if densityBool is False:
+                        finalymin = np.nanmin(yminlist)
+                        finalymax = np.nanmax(ymaxlist)
+                    else:
+                        finalymin = 0.0
+                        finalymax = np.nanmax(ymaxlist)
+                except:
+                    print("Data All Inf/NaN! Skipping entry!")
+                    continue
+                    
                 custom_xlim = (finalxmin, finalxmax)
                 custom_ylim = (finalymin, finalymax)
                 plt.setp(
@@ -491,7 +471,7 @@ def mass_pdf_versus_by_radius_plot(
                     xlim=custom_xlim,
                     ylim=custom_ylim
                 )
-                ax.legend(loc="upper right",fontsize=fontsize)
+                ax.legend(loc="best",fontsize=fontsize)
 
                 # plt.tight_layout()
                 if titleBool is True:
@@ -586,18 +566,6 @@ def cumulative_mass_versus_plot(
                     plotData = plotData[ind_sorted]
                     plotData = np.cumsum(plotData)
 
-
-                    if CRPARAMSHALO[selectKeyShort]['analysisType'] == 'cgm':
-                        xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['Router']
-
-                    elif CRPARAMSHALO[selectKeyShort]['analysisType'] == 'ism':
-                        xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] = CRPARAMSHALO[selectKeyShort]['rinner']
-                    else:
-                        xlimDict["R"]['xmin'] = 0.0
-                        xlimDict["R"]['xmax'] =  CRPARAMSHALO[selectKeyShort]['Router']
-
                     cmap = matplotlib.cm.get_cmap(colourmapMain)
                     if colourmapMain == "tab10":
                         colour = cmap(float(ii) / 10.)
@@ -663,15 +631,16 @@ def cumulative_mass_versus_plot(
 
             ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
 
-            try:
-                finalymin = min(np.nanmin(yminlist),xlimDict[analysisParam]['xmin'])
-                finalymax = max(np.nanmax(ymaxlist),xlimDict[analysisParam]['xmax'])
-            except:
-                finalymin = np.nanmin(yminlist)
-                finalymax = np.nanmax(ymaxlist)
-            else:
-                pass
-
+            # try:
+            #     finalymin = min(np.nanmin(yminlist),xlimDict[analysisParam]['xmin'])
+            #     finalymax = max(np.nanmax(ymaxlist),xlimDict[analysisParam]['xmax'])
+            # except:
+            #     finalymin = np.nanmin(yminlist)
+            #     finalymax = np.nanmax(ymaxlist)
+            # else:
+            #     pass
+            finalymin = np.nanmin(yminlist)
+            finalymax = np.nanmax(ymaxlist)
             if (
                 (np.isinf(finalymin) == True)
                 or (np.isinf(finalymax) == True)
@@ -692,7 +661,7 @@ def cumulative_mass_versus_plot(
             #     else:
             #         custom_xlim = (0,max(xData)*1.05)
             # ax.set_xticks(xticks)
-            ax.legend(loc="upper right",fontsize=fontsize)
+            ax.legend(loc="best",fontsize=fontsize)
 
             plt.setp(
                 ax,

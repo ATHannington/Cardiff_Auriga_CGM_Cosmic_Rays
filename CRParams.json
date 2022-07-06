@@ -1,7 +1,7 @@
 {
-    "analysisType" : "cgm",
+    "analysisType" : "ism",
 
-    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V2-0/",
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V3-0/",
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","tcool","tff","tcool_tff"],
 
@@ -55,6 +55,7 @@
 
     "nonMassWeightDict" :
       {
+      "mass" : "vol",
       "n_H": "vol",
       "ndens": "vol",
       "dens": "vol",

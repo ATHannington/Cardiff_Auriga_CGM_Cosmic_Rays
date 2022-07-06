@@ -212,21 +212,44 @@ if __name__ == "__main__":
                         starsDict.update({key : dict})
                     else:
                         dataDict.update({key : dict})
+        print()
+        print("!!!!!!")
+        print("starsDict.keys()",starsDict.keys())
+        print("dataDict.keys()",dataDict.keys())
+        print("!!!!!!")
+        print()
+        print()
+        print("!!!!!!")
+        print("starsDict.keys()",starsDict.keys())
+        print("dataDict.keys()",dataDict.keys())
+        print("!!!!!!")
+        print()
+        print()
+        print("!!!!!!")
+        print("starsDict.keys()",starsDict.keys())
+        print("dataDict.keys()",dataDict.keys())
+        print("!!!!!!")
+        print()
+        print()
+        print("!!!!!!")
+        print("starsDict.keys()",starsDict.keys())
+        print("dataDict.keys()",dataDict.keys())
+        print("!!!!!!")
+        print()
+        # #----------------------------------------------------------------------#
+        # #      Calculate Radius xmin
+        # #----------------------------------------------------------------------#
 
-        # # #----------------------------------------------------------------------#
-        # # #      Calculate Radius xmin
-        # # #----------------------------------------------------------------------#
+        # for sim, CRPARAMS in CRPARAMSHALO.items():
+        #     if CRPARAMS['simfile'] is not None:
+        #         print(f"{sim}")
+        #         print("Calculate Radius xmin...")
+        #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
         #
-        # # for sim, CRPARAMS in CRPARAMSHALO.items():
-        # #     if CRPARAMS['simfile'] is not None:
-        # #         print(f"{sim}")
-        # #         print("Calculate Radius xmin...")
-        # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-        # #
-        # #         dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
-        # #
-        # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
-        # # #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
+        #         dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
+        #
+        #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+        # #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
         #----------------------------------------------------------------------#
         #      Calculate statistics...
         #----------------------------------------------------------------------#
@@ -238,6 +261,8 @@ if __name__ == "__main__":
         statsDictStars = {}
         for sim, CRPARAMS in CRPARAMSHALO.items():
             if CRPARAMS['simfile'] is not None:
+
+
                 print(f"{sim}")
                 print("Calculate Statistics...")
                 print("Gas...")
@@ -245,6 +270,17 @@ if __name__ == "__main__":
 
                 tmpCRPARAMS = copy.deepcopy(CRPARAMS)
                 tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
+
+                if tmpCRPARAMS['analysisType'] == 'cgm':
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
+
+                elif tmpCRPARAMS['analysisType'] == 'ism':
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Rinner']
+                else:
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] =  tmpCRPARAMS['Router']
 
                 dat = cr_calculate_statistics(
                     dataDict = dataDict[selectKey],
@@ -327,7 +363,7 @@ if __name__ == "__main__":
         matplotlib.rc_file_defaults()
         plt.close("all")
         cumulative_mass_versus_plot(
-            dataDict = starsDict,
+            # dataDict = starsDict,
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
