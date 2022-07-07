@@ -1165,6 +1165,10 @@ def set_centre(snap, snap_subfind, HaloID, snapNumber):
 
 
 # ------------------------------------------------------------------------------#
+
+def _multi_inner_product(x,y):
+    return np.array([np.inner(xx,yy) for (xx, yy) in zip(x,y)])
+
 def calculate_tracked_parameters(
     snapGas,
     elements,
@@ -1355,15 +1359,17 @@ def calculate_tracked_parameters(
         #cm s^-1
         snapGas.data["valf"] = snapGas.data["bfld"][whereGas] * (bfactor/1e6)/ np.sqrt(4.0*pi*snapGas.data["dens"][whereGas,np.newaxis])
 
-        #Gas Alfven Heating [erg [cm^2 g s^-2] s^-1]
-        snapGas.data["GAH"] = np.abs(np.linalg.norm(snapGas.data["valf"][whereGas]*snapGas.data['Grad_P_CR'][whereGas]*c.KB,axis=1))*snapGas.data["vol"]*(c.parsec*1e3)**3
+
+    #   Gas Alfven Heating [erg [cm^2 g s^-2] s^-1]
+        v_multi_inner_product = np.vectorize(_multi_inner_product,signature="(m,n),(m,n)->(m)")
+
+        snapGas.data["GAH"] = np.abs(v_multi_inner_product(snapGas.data["valf"][whereGas],snapGas.data['Grad_P_CR'][whereGas]*c.KB))*snapGas.data["vol"]*(c.parsec*1e3)**3
 
     except:
-
+        print("gah fail")
         pass
 
     return snapGas
-
 
 # ------------------------------------------------------------------------------#
 def halo_only_gas_select(snapGas, snap_subfind, Halo=0, snapNumber=None):
