@@ -63,6 +63,7 @@ ylabel = {
     "Pthermal_Pmagnetic": r"P$_{thermal}$/P$_{magnetic}$",
     "P_CR": r"P$_{CR}$",
     "PCR_Pthermal": r"(X$_{CR}$ = P$_{CR}$/P$_{Thermal}$)",
+    "GAH" : r"Alfven Gas Heating (erg s$^{-1}$)",
     "tcool": r"Cooling Time (Gyr)",
     "theat": r"Heating Time (Gyr)",
     "tcross": r"Sound Crossing Cell Time (Gyr)",
@@ -191,7 +192,7 @@ if __name__ == "__main__":
                 print("\n" + f"Starting SERIAL type Analysis!")
                 out = {}
                 for snapNumber in snapRange:
-                    tmpOut = cr_analysis(
+                    tmpOut = cr_analysis_radial(
                         snapNumber,
                         CRPARAMS,
                         DataSavepathBase,
@@ -212,30 +213,7 @@ if __name__ == "__main__":
                         starsDict.update({key : dict})
                     else:
                         dataDict.update({key : dict})
-        print()
-        print("!!!!!!")
-        print("starsDict.keys()",starsDict.keys())
-        print("dataDict.keys()",dataDict.keys())
-        print("!!!!!!")
-        print()
-        print()
-        print("!!!!!!")
-        print("starsDict.keys()",starsDict.keys())
-        print("dataDict.keys()",dataDict.keys())
-        print("!!!!!!")
-        print()
-        print()
-        print("!!!!!!")
-        print("starsDict.keys()",starsDict.keys())
-        print("dataDict.keys()",dataDict.keys())
-        print("!!!!!!")
-        print()
-        print()
-        print("!!!!!!")
-        print("starsDict.keys()",starsDict.keys())
-        print("dataDict.keys()",dataDict.keys())
-        print("!!!!!!")
-        print()
+
         # #----------------------------------------------------------------------#
         # #      Calculate Radius xmin
         # #----------------------------------------------------------------------#
@@ -363,7 +341,7 @@ if __name__ == "__main__":
         matplotlib.rc_file_defaults()
         plt.close("all")
         cumulative_mass_versus_plot(
-            # dataDict = starsDict,
+            dataDict = starsDict,
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,

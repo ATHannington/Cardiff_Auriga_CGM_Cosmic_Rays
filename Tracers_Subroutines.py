@@ -1345,12 +1345,23 @@ def calculate_tracked_parameters(
     try:
         snapGas.data['P_CR'] = (snapGas.cren[whereGas] * 1e10 * snapGas.data["ndens"]) / ((((4./3. - 1.)**-1)* c.KB)/(meanweight * c.amu))
         snapGas.data["PCR_Pthermal"] = snapGas.data['P_CR']/snapGas.data['P_thermal']
+
+        # P [kg m^-1 s^-2]
+        # kb [kg m^2 s^-2]
+        # P / kb = m^-3
+        # Grad (P / kb) [m^-4]
+        snapGas.data['Grad_P_CR'] =np.gradient(np.array([snapGas.data['P_CR'][whereGas],snapGas.data['P_CR'][whereGas],snapGas.data['P_CR'][whereGas]]).T,axis=0)
+
+        #cm s^-1
+        snapGas.data["valf"] = snapGas.data["bfld"][whereGas] * (bfactor/1e6)/ np.sqrt(4.0*pi*snapGas.data["dens"][whereGas,np.newaxis])
+
+        #Gas Alfven Heating [erg [cm^2 g s^-2] s^-1]
+        snapGas.data["GAH"] = np.abs(np.linalg.norm(snapGas.data["valf"][whereGas]*snapGas.data['Grad_P_CR'][whereGas]*c.KB,axis=1))*snapGas.data["vol"]*(c.parsec*1e3)**3
+
     except:
-        # snapGas.data["P_CR"] = np.array([np.nan])
-        # snapGas.data["PCR_Pthermal"] = np.array([np.nan])
+
         pass
-    # print(np.unique(snapGas.type))
-    # stop1340
+
     return snapGas
 
 
