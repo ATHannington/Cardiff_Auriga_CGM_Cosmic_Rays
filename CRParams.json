@@ -3,7 +3,7 @@
 
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V3-0/",
 
-    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","GAH","tcool","tff","tcool_tff"],
+    "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","gah","Grad_T","Grad_n_H","Grad_bfld","Grad_P_CR","tcool","tff","tcool_tff"],
 
     "saveEssentials" : ["halo","subhalo","Redshift","Lookback","Snap","type","mass","pos","vol","Rvir","gima","age"],
 
@@ -51,7 +51,7 @@
 
     "fontsizeTitle" : 14,
 
-    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal","GAH","tcool","theat","tcross","tff","tcool_tff","mass"],
+    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal","gah","Grad_T","Grad_n_H","Grad_bfld","Grad_P_CR","tcool","theat","tcross","tff","tcool_tff","mass"],
 
     "nonMassWeightDict" :
       {
@@ -68,7 +68,10 @@
       "Pthermal_Pmagnetic": "vol",
       "P_CR" : "vol",
       "PCR_Pthermal" : "vol",
-      "GAH" : "vol"
+      "gah" : "vol",
+      "Grad_n_H" : "vol",
+      "Grad_bfld" : "vol",
+      "Grad_P_CR" : "vol"
       }
 
 }

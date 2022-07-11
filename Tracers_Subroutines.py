@@ -1342,10 +1342,21 @@ def calculate_tracked_parameters(
     )
     del tmp
 
+    snapGas.data["Grad_T"] = np.abs(np.gradient(snapGas.data['T'][whereGas],axis=0))
+    snapGas.data["Grad_n_H"] = np.abs(np.gradient(snapGas.data['n_H'][whereGas],axis=0))
+    snapGas.data["Grad_bfld"] = np.abs(np.gradient(snapGas.data['bfld'][whereGas],axis=0))
+
+
     # Cosmic Ray Pressure
     # gamm_c = 4./3.
     # P_CR / kb= (gamm_c - 1)^-1 n T
     #
+    # # 3./2. N KB
+    # Tfac = ((3.0 / 2.0) * c.KB) / (meanweight * c.amu)
+    #
+    #
+    # # Temperature = U / (3/2 * N KB) [K]
+    # snapGas.data["T"] = (snapGas.u[whereGas] * 1e10) / (Tfac)  # K
     try:
         snapGas.data['P_CR'] = (snapGas.cren[whereGas] * 1e10 * snapGas.data["ndens"]) / ((((4./3. - 1.)**-1)* c.KB)/(meanweight * c.amu))
         snapGas.data["PCR_Pthermal"] = snapGas.data['P_CR']/snapGas.data['P_thermal']
@@ -1363,10 +1374,9 @@ def calculate_tracked_parameters(
     #   Gas Alfven Heating [erg [cm^2 g s^-2] s^-1]
         v_multi_inner_product = np.vectorize(_multi_inner_product,signature="(m,n),(m,n)->(m)")
 
-        snapGas.data["GAH"] = np.abs(v_multi_inner_product(snapGas.data["valf"][whereGas],snapGas.data['Grad_P_CR'][whereGas]*c.KB))*snapGas.data["vol"]*(c.parsec*1e3)**3
+        snapGas.data["gah"] = np.abs(v_multi_inner_product(snapGas.data["valf"][whereGas],snapGas.data['Grad_P_CR'][whereGas]*c.KB)*snapGas.data["vol"]*(c.parsec*1e3)**3)
 
     except:
-        print("gah fail")
         pass
 
     return snapGas
