@@ -19,6 +19,10 @@
 
     "nRbins" : 5,
 
+    "xParam" : "R",
+
+    "NxParamBins" : 100,
+
     "Axes" : [2,0],
 
     "zAxis" : [1],

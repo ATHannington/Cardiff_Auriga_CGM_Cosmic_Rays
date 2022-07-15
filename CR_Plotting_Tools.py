@@ -39,7 +39,7 @@ def medians_versus_plot(
     xsize = 6.0,
     ysize = 6.0,
     opacityPercentiles = 0.25,
-    lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
+    lineStyleDict = {"with_CRs": "-.", "no_CRs": "solid"},
     colourmapMain = "tab10",
 ):
 
@@ -261,7 +261,7 @@ def mass_pdf_versus_by_radius_plot(
     xsize = 6.0,
     ysize = 6.0,
     colourmapMain = "tab10",
-    lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
+    lineStyleDict = {"with_CRs": "-.", "no_CRs": "solid"},
 ):
     keys = list(CRPARAMSHALO.keys())
     selectKey0 = keys[0]
@@ -396,12 +396,10 @@ def mass_pdf_versus_by_radius_plot(
 
                         hist = hist/Nsnaps
                         massSum = massSumDict[f"{rinner}R{router}"]
-                        if densityBool is True:
-                            hist = hist * massSum[ii]/np.nanmax(massSum)
-                        elif analysisParam in CRPARAMSHALO['logParameters']:
-                            hist = np.log10(hist)
-                        else:
-                            pass
+                        # if densityBool is True:
+                        #     hist = hist * massSum[ii]/np.nanmax(massSum)
+                        # else:
+                        #     pass
 
                         if np.all(np.isfinite(hist)) == False :
                             print("Hist All Inf/NaN! Skipping entry!")
@@ -463,7 +461,7 @@ def mass_pdf_versus_by_radius_plot(
                 except:
                     print("Data All Inf/NaN! Skipping entry!")
                     continue
-                    
+
                 custom_xlim = (finalxmin, finalxmax)
                 custom_ylim = (finalymin, finalymax)
                 plt.setp(
@@ -499,12 +497,13 @@ def cumulative_mass_versus_plot(
     xsize = 6.0,
     ysize = 6.0,
     opacityPercentiles = 0.25,
-    lineStyleDict = {"with_CRs": "solid", "no_CRs": "-."},
+    lineStyleDict = {"with_CRs": "-.", "no_CRs": "solid"},
     colourmapMain = "tab10",
 ):
     keys = list(CRPARAMSHALO.keys())
     selectKey0 = keys[0]
 
+    analysisParamList = ["mass","gz"]
 
     savePath = f"./Plots/{halo}/{CRPARAMSHALO[selectKey0]['analysisType']}/Mass_Summary/"
 
@@ -527,7 +526,7 @@ def cumulative_mass_versus_plot(
 
     fontsize = CRPARAMSHALO[selectKeyOuter]["fontsize"]
     fontsizeTitle = CRPARAMSHALO[selectKeyOuter]["fontsizeTitle"]
-    for analysisParam in ["mass"]:
+    for analysisParam in analysisParamList:
         if analysisParam != xParam:
             print("")
             print(f"Starting {analysisParam} plots!")
@@ -548,6 +547,9 @@ def cumulative_mass_versus_plot(
             for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
                 if selectKey[-1] == "Stars":
                     selectKeyShort = selectKey[:-1]
+                    if analysisParam != "mass":
+                        print(f"No {selectKey[-1]} {analysisParam}! Skipping!")
+                        continue
                 else:
                     selectKeyShort = selectKey
 
@@ -628,6 +630,8 @@ def cumulative_mass_versus_plot(
 
                 # Only give 1 x-axis a label, as they sharex
 
+            if (selectKey[-1] == "Stars") & (analysisParam != "mass"):
+                continue
 
             ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
 
@@ -650,7 +654,7 @@ def cumulative_mass_versus_plot(
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
 
-            custom_ylim = (finalymin, finalymax)
+            custom_ylim = (math.floor(finalymin), math.ceil(finalymax))
 
             # xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
             # custom_xlim = (min(xData),max(xData)*1.05)

@@ -39,10 +39,6 @@ lazyLoadBool = True
 # Number of cores to run on:
 n_processes = 2
 
-xParam = "R"
-
-Nbins = 150
-
 FullDataPathSuffix = f".h5"
 
 CRSELECTEDHALOESPATH = "CRSelectedHaloes.json"
@@ -212,7 +208,8 @@ if __name__ == "__main__":
                 flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
 
                 del out
-
+                for key, dict in flatDict.items():
+                    flatDict[key]["dmdt"]
                 for key, dict in flatDict.items():
                     if key[-1] == "Stars":
                         starsDict.update({key : dict})
@@ -268,8 +265,8 @@ if __name__ == "__main__":
                 dat = cr_calculate_statistics(
                     dataDict = dataDict[selectKey],
                     CRPARAMS = tmpCRPARAMS,
-                    xParam = xParam,
-                    Nbins = Nbins,
+                    xParam = CRPARAMSMASTER["xParam"],
+                    Nbins = CRPARAMSMASTER["NxParamBins"],
                     xlimDict = xlimDict
                 )
 
@@ -281,8 +278,8 @@ if __name__ == "__main__":
                 dat = cr_calculate_statistics(
                     dataDict = starsDict[selectKey],
                     CRPARAMS = tmpCRPARAMS,
-                    xParam = xParam,
-                    Nbins = Nbins,
+                    xParam = CRPARAMSMASTER["xParam"],
+                    Nbins = CRPARAMSMASTER["NxParamBins"],
                     xlimDict = xlimDict
                 )
 
@@ -304,7 +301,7 @@ if __name__ == "__main__":
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
-            xParam = xParam,
+            xParam = CRPARAMSMASTER["xParam"],
             xlimDict = xlimDict
         )
         matplotlib.rc_file_defaults()
@@ -320,7 +317,8 @@ if __name__ == "__main__":
             halo = halo,
             ylabel = ylabel,
             xlimDict = xlimDict,
-            snapRange = snapRange
+            snapRange = snapRange,
+            densityBool = True
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -335,7 +333,7 @@ if __name__ == "__main__":
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
-            xParam = xParam,
+            xParam = CRPARAMSMASTER["xParam"],
             xlimDict = xlimDict,
         )
         matplotlib.rc_file_defaults()
@@ -350,7 +348,7 @@ if __name__ == "__main__":
             CRPARAMSHALO =  CRPARAMSHALO,
             halo = halo,
             ylabel = ylabel,
-            xParam = xParam,
+            xParam = CRPARAMSMASTER["xParam"],
             xlimDict = xlimDict
         )
         matplotlib.rc_file_defaults()

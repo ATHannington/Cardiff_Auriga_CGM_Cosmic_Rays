@@ -72,7 +72,28 @@ def cr_analysis_radial(
         lazy_load=lazyLoadBool,
         subfind=snap_subfind,
     )
-
+# # load in the subfind group files
+# snap_subfind = load_subfind(100, dir="/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/")
+#
+# # load in the gas particles mass and position only for HaloID 0.
+# #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
+# #       gas and stars (type 0 and 4) MUST be loaded first!!
+# snapGas = gadget_readsnap(
+#     100,
+#     "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
+#     hdf5=True,
+#     loadonlytype=[0, 1],
+#     lazy_load=True,
+#     subfind=snap_subfind,
+# )
+# snapStars = gadget_readsnap(
+#     100,
+#     "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
+#     hdf5=True,
+#     loadonlytype=[4],
+#     lazy_load=True,
+#     subfind=snap_subfind,
+# )
     snapStars = gadget_readsnap(
         snapNumber,
         loadpath,
@@ -132,7 +153,7 @@ def cr_analysis_radial(
 
     # Calculate New Parameters and Load into memory others we want to track
     snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber)
-
+# snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
     if (
         (CRPARAMS["QuadPlotBool"] is True)
     ):
