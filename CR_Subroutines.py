@@ -152,7 +152,7 @@ def cr_analysis_radial(
     snapStars.mass *= 1e10  # [Msol]
 
     # Calculate New Parameters and Load into memory others we want to track
-    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber)
+    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber,paramsOfInterest = CRPARAMS["saveParams"])
 # snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
     if (
         (CRPARAMS["QuadPlotBool"] is True)
@@ -443,7 +443,7 @@ def cr_analysis_cylindrical(
     snapStars.mass *= 1e10  # [Msol]
 
     # Calculate New Parameters and Load into memory others we want to track
-    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber)
+    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber,paramsOfInterest = CRPARAMS["saveParams"])
 
     if (
         (CRPARAMS["QuadPlotBool"] is True)
