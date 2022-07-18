@@ -125,12 +125,18 @@ def cr_analysis_radial(
 
 
     snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
+# snapGas.calc_sf_indizes(snap_subfind, halolist=[0])
+
     snapStars.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
 
     # Centre the simulation on HaloID 0
     snapGas = set_centre(
         snap=snapGas, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
     )
+# # Centre the simulation on HaloID 0
+# snapGas = set_centre(
+#     snap=snapGas, snap_subfind=snap_subfind, HaloID=0, snapNumber=100
+# )
 
     snapStars = set_centre(
         snap=snapStars, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
@@ -249,7 +255,7 @@ def cr_analysis_radial(
                 snapStars.data[key] = value.copy()[whereISMstars]
 
     elif analysisType == "all":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the all of halo...")
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select all of the halo...")
         pass
     # Select only gas in High Res Zoom Region
     snapGas = high_res_only_gas_select(snapGas, snapNumber)
@@ -331,298 +337,6 @@ def cr_analysis_radial(
 
     print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process...")
     return out
-
-
-def cr_analysis_cylindrical(
-    snapNumber,
-    CRPARAMS,
-    DataSavepathBase,
-    FullDataPathSuffix=".h5",
-    lazyLoadBool = True,
-):
-    analysisType = CRPARAMS["analysisType"]
-
-    KnownAnalysisType = ["cgm","ism","all"]
-
-    if analysisType not in KnownAnalysisType:
-        raise Exception(f"ERROR! CRITICAL! Unknown analysis type: {analysisType}!"+"\n"+f"Availble analysis types: {KnownAnalysisType}")
-    out = {}
-
-
-    # Generate halo directory
-    tmp = "/"
-    for savePathChunk in DataSavepathBase.split("/")[1:-1]:
-        tmp += savePathChunk + "/"
-        try:
-            os.mkdir(tmp)
-        except:
-            pass
-        else:
-            pass
-
-
-
-    DataSavepath = DataSavepathBase + f"Data_CR_{CRPARAMS['resolution']}_{CRPARAMS['CR_indicator']}"
-
-
-    print("")
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}")
-
-    loadpath = CRPARAMS['simfile']
-
-    # load in the subfind group files
-    snap_subfind = load_subfind(snapNumber, dir=loadpath)
-
-    # load in the gas particles mass and position only for HaloID 0.
-    #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
-    #       gas and stars (type 0 and 4) MUST be loaded first!!
-    snapGas = gadget_readsnap(
-        snapNumber,
-        loadpath,
-        hdf5=True,
-        loadonlytype=[0, 1],
-        lazy_load=lazyLoadBool,
-        subfind=snap_subfind,
-    )
-
-    snapStars = gadget_readsnap(
-        snapNumber,
-        loadpath,
-        hdf5=True,
-        loadonlytype=[4],
-        lazy_load=lazyLoadBool,
-        subfind=snap_subfind,
-    )
-
-    # Load Cell Other params - avoids having to turn lazy_load off...
-    tmp = snapGas.data["id"]
-    tmp = snapGas.data["sfr"]
-    tmp = snapGas.data["hrgm"]
-    tmp = snapGas.data["mass"]
-    tmp = snapGas.data["pos"]
-    tmp = snapGas.data["vol"]
-
-    tmp = snapStars.data["mass"]
-    tmp = snapStars.data["pos"]
-    tmp = snapStars.data["age"]
-    tmp = snapStars.data["gima"]
-    tmp = snapStars.data["gz"]
-
-    del tmp
-
-    print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
-    )
-
-
-    snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
-    snapStars.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS['HaloID']])
-
-    # Centre the simulation on HaloID 0
-    snapGas = set_centre(
-        snap=snapGas, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
-    )
-
-    snapStars = set_centre(
-        snap=snapStars, snap_subfind=snap_subfind, HaloID=CRPARAMS['HaloID'], snapNumber=snapNumber
-    )
-
-    # snapGas.select_halo(snap_subfind, do_rotation=False)
-    # --------------------------#
-    ##    Units Conversion    ##
-    # --------------------------#
-
-    # Convert Units
-    ## Make this a seperate function at some point??
-    snapGas.pos *= 1e3  # [kpc]
-    snapGas.vol *= 1e9  # [kpc^3]
-    snapGas.mass *= 1e10  # [Msol]
-    snapGas.hrgm *= 1e10  # [Msol]
-
-    snapStars.pos *= 1e3  # [kpc]
-    snapStars.mass *= 1e10  # [Msol]
-
-    # Calculate New Parameters and Load into memory others we want to track
-    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber,paramsOfInterest = CRPARAMS["saveParams"])
-
-    if (
-        (CRPARAMS["QuadPlotBool"] is True)
-    ):
-        plot_projections(
-            snapGas,
-            snapNumber=snapNumber,
-            targetT=None,
-            rin=None,
-            rout=None,
-            TRACERSPARAMS=CRPARAMS,
-            DataSavepath=DataSavepath,
-            FullDataPathSuffix=None,
-            titleBool = False,
-            Axes=CRPARAMS["Axes"],
-            zAxis=CRPARAMS["zAxis"],
-            boxsize=CRPARAMS["boxsize"],
-            boxlos=CRPARAMS["boxlos"],
-            pixres=CRPARAMS["pixres"],
-            pixreslos=CRPARAMS["pixreslos"],
-            numThreads = CRPARAMS["QuadPlotNumThreads"]
-        )
-
-
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Delete Dark Matter...")
-
-    whereDM = np.where(snapGas.type == 1)[0]
-    whereGas = np.where(snapGas.type == 0)[0]
-
-    NDM = len(whereDM)
-    NGas = len(whereGas)
-    deleteKeys = []
-    for key, value in snapGas.data.items():
-        if value is not None:
-            # print("")
-            # print(key)
-            # print(np.shape(value))
-            if np.shape(value)[0] == (NGas + NDM) :
-                # print("Gas")
-                snapGas.data[key] = value.copy()[whereGas]
-            elif np.shape(value)[0] == (NDM):
-                # print("DM")
-                deleteKeys.append(key)
-            else:
-                # print("Gas or Stars")
-                pass
-            # print(np.shape(snapGas.data[key]))
-
-    for key in deleteKeys:
-        del snapGas.data[key]
-
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars...")
-
-    whereStars = np.where(snapStars.data["age"]>=0.)[0]
-    for key, value in snapStars.data.items():
-        if value is not None:
-            snapStars.data[key] = value.copy()[whereStars]
-
-
-    if analysisType == "cgm":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM...")
-
-        # select the CGM, acounting for variable ISM extent
-        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
-        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-        whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
-
-        whereCGMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router'])) [0]
-
-        for key, value in snapGas.data.items():
-            if value is not None:
-                snapGas.data[key] = value.copy()[whereCGM]
-
-        for key, value in snapStars.data.items():
-            if value is not None:
-                snapStars.data[key] = value.copy()[whereCGMstars]
-
-    elif analysisType == "ism":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the ISM...")
-
-        # select the CGM, acounting for variable ISM extent
-        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
-        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-        whereISM = np.where((snapGas.data["sfr"] > 0.0)&(snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
-
-        whereISMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router'])) [0]
-
-        for key, value in snapGas.data.items():
-            if value is not None:
-                snapGas.data[key] = value.copy()[whereISM]
-
-        for key, value in snapStars.data.items():
-            if value is not None:
-                snapStars.data[key] = value.copy()[whereISMstars]
-
-    elif analysisType == "all":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the all of halo...")
-        pass
-    # Select only gas in High Res Zoom Region
-    snapGas = high_res_only_gas_select(snapGas, snapNumber)
-
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select within R_virial...")
-
-    Rvir = (snap_subfind.data['frc2']*1e3)[int(CRPARAMS['HaloID'])]
-
-    # select within the Virial radius
-    whereWithinVirial = np.where(snapGas.data["R"]<=Rvir)[0]
-
-    whereWithinVirialStars = np.where(snapStars.data["R"]<=Rvir)[0]
-
-    for key, value in snapGas.data.items():
-        if value is not None:
-            snapGas.data[key] = value.copy()[whereWithinVirial]
-
-    for key, value in snapStars.data.items():
-        if value is not None:
-            snapStars.data[key] = value.copy()[whereWithinVirialStars]
-
-    # Redshift
-    redshift = snapGas.redshift  # z
-    aConst = 1.0 / (1.0 + redshift)  # [/]
-
-    # Get lookback time in Gyrs
-    # [0] to remove from numpy array for purposes of plot title
-    lookback = snapGas.cosmology_get_lookback_time_from_a(np.array([aConst]))[
-        0
-    ]  # [Gyrs]
-
-    snapGas.data["Redshift"] = np.array([redshift])
-    snapGas.data["Lookback"] = np.array([lookback])
-    snapGas.data["Snap"] = np.array([snapNumber])
-    snapGas.data['Rvir'] = np.array([Rvir])
-
-    snapStars.data["Redshift"] = np.array([redshift])
-    snapStars.data["Lookback"] = np.array([lookback])
-    snapStars.data["Snap"] = np.array([snapNumber])
-    snapStars.data['Rvir'] = np.array([Rvir])
-
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Trim SnapShot...")
-
-    # Trim snapshot...
-    keys = list(snapGas.data.keys())
-    for key in keys:
-        if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
-            del snapGas.data[key]
-
-    keys = list(snapStars.data.keys())
-    for key in keys:
-        if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
-            del snapStars.data[key]
-
-    #This is None so delete...
-    del snapStars.data["vol"]
-
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary...")
-    # Make normal dictionary form of snapGas
-    inner = {}
-    for key, value in snapGas.data.items():
-        if key in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
-            inner.update({key : copy.deepcopy(value)})
-
-    del snapGas
-
-    innerStars = {}
-    for key, value in snapStars.data.items():
-        if key in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
-            innerStars.update({key : copy.deepcopy(value)})
-
-    del snapStars
-    # Add to final output
-    out.update({
-    (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}") : inner})
-
-    out.update({
-    (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}",f"{int(snapNumber)}","Stars") : innerStars})
-
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process...")
-    return out
-
 
 
 
