@@ -72,6 +72,7 @@ def cr_analysis_radial(
         lazy_load=lazyLoadBool,
         subfind=snap_subfind,
     )
+
 # # load in the subfind group files
 # snap_subfind = load_subfind(100, dir="/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/")
 #
@@ -158,7 +159,7 @@ def cr_analysis_radial(
     snapStars.mass *= 1e10  # [Msol]
 
     # Calculate New Parameters and Load into memory others we want to track
-    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber,paramsOfInterest = CRPARAMS["saveParams"])
+    snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,snapNumber,paramsOfInterest = CRPARAMS["saveParams"], gridRes=CRPARAMS["gridRes"], numthreads=CRPARAMS["numThreads"])
 # snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
     if (
         (CRPARAMS["QuadPlotBool"] is True)
@@ -179,7 +180,7 @@ def cr_analysis_radial(
             boxlos=CRPARAMS["boxlos"],
             pixres=CRPARAMS["pixres"],
             pixreslos=CRPARAMS["pixreslos"],
-            numThreads = CRPARAMS["QuadPlotNumThreads"]
+            numThreads = CRPARAMS["numThreads"]
         )
 
 

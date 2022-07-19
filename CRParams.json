@@ -29,7 +29,9 @@
 
     "QuadPlotBool" : false,
 
-    "QuadPlotNumThreads" : 8,
+    "gridRes": 512,
+
+    "numThreads" : 8,
 
     "boxsize" : 400.0,
 
