@@ -21,12 +21,13 @@ import json
 import copy
 import os
 
+DEBUG = False
+
 def cr_analysis_radial(
     snapNumber,
     CRPARAMS,
     DataSavepathBase,
-    FullDataPathSuffix=".h5",
-    lazyLoadBool = True,
+    FullDataPathSuffix=".h5"
 ):
     analysisType = CRPARAMS["analysisType"]
 
@@ -69,7 +70,7 @@ def cr_analysis_radial(
         loadpath,
         hdf5=True,
         loadonlytype=[0, 1],
-        lazy_load=lazyLoadBool,
+        lazy_load=False,
         subfind=snap_subfind,
     )
 
@@ -100,7 +101,7 @@ def cr_analysis_radial(
         loadpath,
         hdf5=True,
         loadonlytype=[4],
-        lazy_load=lazyLoadBool,
+        lazy_load=False,
         subfind=snap_subfind,
     )
 
@@ -158,7 +159,173 @@ def cr_analysis_radial(
     snapStars.pos *= 1e3  # [kpc]
     snapStars.mass *= 1e10  # [Msol]
 
-    rmax = max(CRPARAMS['Router'])
+    snapGas.data["R"] = np.linalg.norm(snapGas.data["pos"], axis=1)
+    snapStars.data["R"] = np.linalg.norm(snapStars.data["pos"], axis=1)
+
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars...")
+
+    whereStars = np.where(snapStars.data["age"]>=0.)[0]
+    for key, value in snapStars.data.items():
+        if value is not None:
+            snapStars.data[key] = value.copy()[whereStars]
+
+    gasTypes = np.unique(snapGas.type)
+    starTypes = np.unique(snapStars.type)
+
+    if analysisType == "cgm":
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM...")
+        for tp in gasTypes:
+            try:
+                whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"] <= CRPARAMS['Router']) & (snapGas.data["type"] == tp)) [0]
+
+                if (whereCGM.shape[0]>0):
+                    for key, value in snapGas.data.items():
+                        if value is not None:
+                            snapGas.data[key] = value[whereCGM]
+                else:
+                    if DEBUG: print(f"[@analysisType == cgm ; Gas]: type {tp} ; shape where {np.shape(whereCGM)}")
+                    pass
+            except Exception as e:
+                if DEBUG: print(f"[@analysisType == cgm ; GAS]: DEBUG! Exception: {str(e)}")
+                pass
+
+        # select the CGM, acounting for variable ISM extent
+        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
+        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
+
+        for tp in starTypes:
+            try:
+                whereCGMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router']) & (snapStars.data["type"] == tp)) [0]
+
+                if (whereCGMstars.shape[0]>0):
+                    for key, value in snapStars.data.items():
+                        if value is not None:
+                            snapStars.data[key] = value[whereCGMstars]
+                else:
+                    if DEBUG: print(f"[@analysisType == cgm ; STARS]: type {tp} ; shape where {np.shape(whereCGMstars)}")
+                    pass
+            except Exception as e:
+                if DEBUG: print(f"[@analysisType == cgm ; STARS]: DEBUG! Exception: {str(e)}")
+                pass
+
+    elif analysisType == "ism":
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the ISM...")
+
+        for tp in gasTypes:
+            try:
+                whereISM = np.where( (snapGas.data["sfr"] > 0.0) & (snapGas.data["R"] <= CRPARAMS['Rinner']) & (snapGas.data["type"] == tp) )[0]
+
+                if (whereISM.shape[0]>0):
+                    for key, value in snapGas.data.items():
+                        if value is not None:
+                            snapGas.data[key] = value[whereISM]
+                else:
+                    if DEBUG: print(f"[@analysisType == ism ; GAS]: type {tp} ; shape where {np.shape(whereISM)}")
+                    pass
+            except Exception as e:
+                if DEBUG: print(f"[@analysisType == ism ; GAS]: DEBUG! Exception: {str(e)}")
+                pass
+
+        # select the CGM, acounting for variable ISM extent
+        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
+        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
+
+        for tp in starTypes:
+            try:
+                whereISMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Rinner']) & (snapStars.data["type"] == tp)) [0]
+
+                if (whereISMstars.shape[0]>0):
+                    for key, value in snapStars.data.items():
+                        if value is not None:
+                            snapStars.data[key] = value[whereISMstars]
+                else:
+                    if DEBUG: print(f"[@analysisType == ism ; STARS]: type {tp} ; shape where {np.shape(whereISMstars)}")
+                    pass
+            except Exception as e:
+                if DEBUG: print(f"[@analysisType == ism ; STARS]: DEBUG! Exception: {str(e)}")
+                pass
+
+
+    elif analysisType == "all":
+
+        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select all of the halo...")
+
+        for tp in gasTypes:
+            try:
+                whereAll = np.where((snapGas.data["R"] <= CRPARAMS['Router']) & (snapGas.data["type"] == tp) ) [0]
+
+                if (whereAll.shape[0]>0):
+                    for key, value in snapGas.data.items():
+                        if value is not None:
+                            snapGas.data[key] = value[whereAll]
+                else:
+                    if DEBUG: print(f"[@analysisType == all ; GAS]: type {tp} ; shape where {np.shape(whereAll)}")
+                    pass
+            except Exception as e:
+                if DEBUG: print(f"[@analysisType == all ; GAS]: DEBUG! Exception: {str(e)}")
+                pass
+
+        # select the CGM, acounting for variable ISM extent
+        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
+        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
+
+        for tp in starTypes:
+            try:
+                whereAllstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router']) & (snapStars.data["type"] == tp)) [0]
+
+                if (whereAllstars.shape[0]>0):
+                    for key, value in snapStars.data.items():
+                        if value is not None:
+                            snapStars.data[key] = value[whereAllstars]
+                else:
+                    if DEBUG: print(f"[@analysisType == all ; STARS]: type {tp} ; shape where {np.shape(whereAllstars)}")
+                    pass
+            except Exception as e:
+                if DEBUG: print(f"[@analysisType == all ; STARS]: DEBUG! Exception: {str(e)}")
+                pass
+
+
+    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select within R_virial...")
+
+    Rvir = (snap_subfind.data['frc2']*1e3)[int(CRPARAMS['HaloID'])]
+
+    whereWithinVirialStars = np.where(snapStars.data["R"]<=Rvir)[0]
+
+    for tp in gasTypes:
+        try:
+            whereWithinVirial = np.where((snapGas.data["R"]<=Rvir) & (snapGas.data["type"] == tp) ) [0]
+
+            if (whereWithinVirial.shape[0]>0):
+                for key, value in snapGas.data.items():
+                    if value is not None:
+                        snapGas.data[key] = value[whereWithinVirial]
+            else:
+                if DEBUG: print(f"[@RVir ; GAS]: type {tp} ; shape where {np.shape(whereWithinVirial)}")
+                pass
+        except Exception as e:
+            if DEBUG: print(f"[@RVir ; GAS]: DEBUG! Exception: {str(e)}")
+            pass
+
+    # select the CGM, acounting for variable ISM extent
+    # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
+    # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
+
+    for tp in starTypes:
+        try:
+            whereWithinVirialStars = np.where( (snapStars.data["R"]<=Rvir) & (snapStars.data["type"] == tp)) [0]
+
+            if (whereWithinVirialStars.shape[0]>0):
+                for key, value in snapStars.data.items():
+                    if value is not None:
+                        snapStars.data[key] = value[whereWithinVirialStars]
+            else:
+                if DEBUG: print(f"[@RVir ; STARS]: type {tp} ; shape where {np.shape(whereWithinVirialStars)}")
+                pass
+        except Exception as e:
+            if DEBUG: print(f"[@Rvir ; STARS]: DEBUG! Exception: {str(e)}")
+            pass
+
+    rmax = np.max(CRPARAMS['Router'])
     boxmax = 1.5*rmax
     box = [boxmax,boxmax,boxmax]
 
@@ -215,72 +382,8 @@ def cr_analysis_radial(
     for key in deleteKeys:
         del snapGas.data[key]
 
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars...")
-
-    whereStars = np.where(snapStars.data["age"]>=0.)[0]
-    for key, value in snapStars.data.items():
-        if value is not None:
-            snapStars.data[key] = value.copy()[whereStars]
-
-
-    if analysisType == "cgm":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM...")
-
-        # select the CGM, acounting for variable ISM extent
-        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
-        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-        whereCGM = np.where((snapGas.data["sfr"]<= 0.0) & (snapGas.data["R"] <= CRPARAMS['Router'])) [0]
-
-        whereCGMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router'])) [0]
-
-        for key, value in snapGas.data.items():
-            if value is not None:
-                snapGas.data[key] = value.copy()[whereCGM]
-
-        for key, value in snapStars.data.items():
-            if value is not None:
-                snapStars.data[key] = value.copy()[whereCGMstars]
-
-    elif analysisType == "ism":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the ISM...")
-
-        # select the CGM, acounting for variable ISM extent
-        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0) & (snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
-        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-        whereISM = np.where((snapGas.data["sfr"] > 0.0)&(snapGas.data["R"] <= CRPARAMS['Rinner'])) [0]
-
-        whereISMstars =  np.where((snapStars.data["R"] <= CRPARAMS['Router'])) [0]
-
-        for key, value in snapGas.data.items():
-            if value is not None:
-                snapGas.data[key] = value.copy()[whereISM]
-
-        for key, value in snapStars.data.items():
-            if value is not None:
-                snapStars.data[key] = value.copy()[whereISMstars]
-
-    elif analysisType == "all":
-        print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select all of the halo...")
-        pass
     # Select only gas in High Res Zoom Region
     snapGas = high_res_only_gas_select(snapGas, snapNumber)
-
-    print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select within R_virial...")
-
-    Rvir = (snap_subfind.data['frc2']*1e3)[int(CRPARAMS['HaloID'])]
-
-    # select within the Virial radius
-    whereWithinVirial = np.where(snapGas.data["R"]<=Rvir)[0]
-
-    whereWithinVirialStars = np.where(snapStars.data["R"]<=Rvir)[0]
-
-    for key, value in snapGas.data.items():
-        if value is not None:
-            snapGas.data[key] = value.copy()[whereWithinVirial]
-
-    for key, value in snapStars.data.items():
-        if value is not None:
-            snapStars.data[key] = value.copy()[whereWithinVirialStars]
 
     # Redshift
     redshift = snapGas.redshift  # z
@@ -315,8 +418,13 @@ def cr_analysis_radial(
         if key not in CRPARAMS['saveParams']+CRPARAMS['saveEssentials']:
             del snapStars.data[key]
 
-    #This is None so delete...
-    del snapStars.data["vol"]
+    for key, value in snapGas.data.items():
+        if value is None:
+            del snapGas.data[key]
+
+    for key, value in snapStars.data.items():
+        if value is None:
+            del snapStars.data[key]
 
     print(f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary...")
     # Make normal dictionary form of snapGas

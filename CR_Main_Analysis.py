@@ -34,8 +34,6 @@ CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, 'r'))
 #   Full: full FullDict data
 FullDataPathSuffix = f".h5"
 
-lazyLoadBool = True
-
 # Number of cores to run on:
 n_processes = 2
 
@@ -152,7 +150,7 @@ if __name__ == "__main__":
         # #         #     CRPARAMS,
         # #         #     DataSavepathBase,
         # #         #     FullDataPathSuffix,
-        # #         #     lazyLoadBool
+        # #         #
         # #         #
         # #         # ]
         # #         #
@@ -197,8 +195,7 @@ if __name__ == "__main__":
                         snapNumber,
                         CRPARAMS,
                         DataSavepathBase,
-                        FullDataPathSuffix,
-                        lazyLoadBool
+                        FullDataPathSuffix
                         )
                     out.update(tmpOut)
 
@@ -208,8 +205,6 @@ if __name__ == "__main__":
                 flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
 
                 del out
-                for key, dict in flatDict.items():
-                    flatDict[key]["dmdt"]
                 for key, dict in flatDict.items():
                     if key[-1] == "Stars":
                         starsDict.update({key : dict})
