@@ -22,6 +22,7 @@ import math
 import random
 from itertools import combinations, chain
 import copy
+
 # ==============================================================================#
 #       MAIN ANALYSIS CODE - IN FUNC FOR MULTIPROCESSING
 # ==============================================================================#
@@ -41,7 +42,7 @@ def snap_analysis(
     DataSavepath,
     FullDataPathSuffix,
     MiniDataPathSuffix,
-    rotation_matrix = None,
+    rotation_matrix=None,
     lazyLoadBool=True,
 ):
     print("")
@@ -98,7 +99,9 @@ def snap_analysis(
         rotation_matrix = snapGas.select_halo(snap_subfind, do_rotation=True)
     else:
         snapGas.select_halo(snap_subfind, do_rotation=False)
-        snapGas.rotateto(rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2])
+        snapGas.rotateto(
+            rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2]
+        )
 
     # --------------------------#
     ##    Units Conversion    ##
@@ -111,9 +114,9 @@ def snap_analysis(
     snapGas.mass *= 1e10  # [Msol]
     snapGas.hrgm *= 1e10  # [Msol]
 
-    rmax = np.max(TRACERSPARAMS['Router'])
-    boxmax = 1.5*rmax
-    box = [boxmax,boxmax,boxmax]
+    rmax = np.max(TRACERSPARAMS["Router"])
+    boxmax = 1.5 * rmax
+    box = [boxmax, boxmax, boxmax]
     # Calculate New Parameters and Load into memory others we want to track
     snapGas = calculate_tracked_parameters(
         snapGas,
@@ -124,8 +127,8 @@ def snap_analysis(
         Zsolar,
         omegabaryon0,
         snapNumber,
-        paramsOfInterest = saveParams,
-        box = box
+        paramsOfInterest=saveParams,
+        box=box,
     )
 
     # ==================#
@@ -153,7 +156,7 @@ def snap_analysis(
             if np.shape(value)[0] == (NDM + NGas + NStars):
                 # print("All")
                 snapGas.data[key] = value.copy()[whereStarsGas]
-            elif np.shape(value)[0] == (NGas + NDM) :
+            elif np.shape(value)[0] == (NGas + NDM):
                 # print("Gas")
                 snapGas.data[key] = value.copy()[whereGas]
             elif np.shape(value)[0] == (NStars + NDM):
@@ -193,7 +196,7 @@ def snap_analysis(
     snapGas = pad_non_entries(snapGas, snapNumber)
 
     if TRACERSPARAMS["QuadPlotBool"]:
-        TRACERSPARAMS["saveParams"] = copy.copy(TRACERSPARAMS["saveParamsOriginal"] )
+        TRACERSPARAMS["saveParams"] = copy.copy(TRACERSPARAMS["saveParamsOriginal"])
 
     ###
     ##  Selection   ##
@@ -236,7 +239,6 @@ def snap_analysis(
                 + f"[@{snapNumber} @{rin}R{rout} @T{targetT}]: Saving Tracers data as: "
                 + savePath
             )
-
 
             hdf5_save(savePath, out)
             #
@@ -302,7 +304,7 @@ def snap_analysis(
         "CellsCFT": CellsCFTFinal,
         "CellIDsCFT": CellIDsCFTFinal,
         "ParentsCFT": ParentsCFTFinal,
-        "rotation_matrix" : rotation_matrix
+        "rotation_matrix": rotation_matrix,
     }
 
 
@@ -400,9 +402,9 @@ def tracer_selection_snap_analysis(
     snapGas.mass *= 1e10  # [Msol]
     snapGas.hrgm *= 1e10  # [Msol]
 
-    rmax = np.max(TRACERSPARAMS['Router'])
-    boxmax = 1.5*rmax
-    box = [boxmax,boxmax,boxmax]
+    rmax = np.max(TRACERSPARAMS["Router"])
+    boxmax = 1.5 * rmax
+    box = [boxmax, boxmax, boxmax]
     # Calculate New Parameters and Load into memory others we want to track
     snapGas = calculate_tracked_parameters(
         snapGas,
@@ -413,8 +415,8 @@ def tracer_selection_snap_analysis(
         Zsolar,
         omegabaryon0,
         snapNumber,
-        paramsOfInterest = saveParams,
-        box = box
+        paramsOfInterest=saveParams,
+        box=box,
     )
 
     whereStarsGas = np.where(np.isin(snapGas.type, [0, 4]) == True)[0]
@@ -437,7 +439,7 @@ def tracer_selection_snap_analysis(
             if np.shape(value)[0] == (NDM + NGas + NStars):
                 # print("All")
                 snapGas.data[key] = value.copy()[whereStarsGas]
-            elif np.shape(value)[0] == (NGas + NDM) :
+            elif np.shape(value)[0] == (NGas + NDM):
                 # print("Gas")
                 snapGas.data[key] = value.copy()[whereGas]
             elif np.shape(value)[0] == (NStars + NDM):
@@ -473,7 +475,7 @@ def tracer_selection_snap_analysis(
     snapGas = pad_non_entries(snapGas, snapNumber)
 
     if TRACERSPARAMS["QuadPlotBool"]:
-        TRACERSPARAMS["saveParams"] = copy.copy(TRACERSPARAMS["saveParamsOriginal"] )
+        TRACERSPARAMS["saveParams"] = copy.copy(TRACERSPARAMS["saveParamsOriginal"])
 
     if TFCbool == True:
         # --------------------------------------------------------------------------#
@@ -530,7 +532,15 @@ def tracer_selection_snap_analysis(
         #     print(f"[@{int(snapNumber)} @T{targetT}]: *** TRACER SUBSET OF {SUBSET} TAKEN! ***")
         #     TracersTFC = TracersTFC[:SUBSET]
 
-    return TracersTFC, CellsTFC, CellIDsTFC, ParentsTFC, snapGas, snapTracers, rotation_matrix
+    return (
+        TracersTFC,
+        CellsTFC,
+        CellIDsTFC,
+        ParentsTFC,
+        snapGas,
+        snapTracers,
+        rotation_matrix,
+    )
 
 
 # ------------------------------------------------------------------------------#
@@ -1163,13 +1173,13 @@ def set_centre(snap, snap_subfind, HaloID, snapNumber):
     print(f"[@{snapNumber}]: Centering!")
 
     # subfind has calculated its centre of mass for you
-    HaloCentre = snap_subfind.data["fpos"][HaloID, :] #[Mpc]
+    HaloCentre = snap_subfind.data["fpos"][HaloID, :]  # [Mpc]
     # use the subfind COM to centre the coordinates on the galaxy
-    snap.data["pos"] = snap.data["pos"] - np.array(HaloCentre) #[Mpc]
+    snap.data["pos"] = snap.data["pos"] - np.array(HaloCentre)  # [Mpc]
 
-    snap.data["R"] = np.linalg.norm(snap.data["pos"], axis=1) #[Mpc]
+    snap.data["R"] = np.linalg.norm(snap.data["pos"], axis=1)  # [Mpc]
 
-    snap.center = np.array([0.,0.,0.])
+    snap.center = np.array([0.0, 0.0, 0.0])
 
     try:
         whereGas = np.where(snap.type == 0)
@@ -1185,25 +1195,44 @@ def set_centre(snap, snap_subfind, HaloID, snapNumber):
 
 # ------------------------------------------------------------------------------
 #
-def _map_cart_grid_to_cells(pos_array,xx,yy,zz):
+def _map_cart_grid_to_cells(pos_array, xx, yy, zz):
     nn = xx.shape[0]
-    return np.array([np.ravel_multi_index([np.argmin(np.abs(xx-pos[0])),np.argmin(np.abs(yy-pos[1])),np.argmin(np.abs(zz-pos[2]))],(nn,nn,nn)) for pos in pos_array]).flatten()
+    return np.array(
+        [
+            np.ravel_multi_index(
+                [
+                    np.argmin(np.abs(xx - pos[0])),
+                    np.argmin(np.abs(yy - pos[1])),
+                    np.argmin(np.abs(zz - pos[2])),
+                ],
+                (nn, nn, nn),
+            )
+            for pos in pos_array
+        ]
+    ).flatten()
 
-def _multi_inner_product(x,y):
-    return np.array([np.inner(xx,yy) for (xx, yy) in zip(x,y)])
 
-def _wrapper_map_cart_grid_to_cells(pos_array,boxsize,intres,center):
+def _multi_inner_product(x, y):
+    return np.array([np.inner(xx, yy) for (xx, yy) in zip(x, y)])
+
+
+def _wrapper_map_cart_grid_to_cells(pos_array, boxsize, intres, center):
     import copy
-    v_map_cart_grid_to_cells = np.vectorize(_map_cart_grid_to_cells,signature="(m,3),(n),(n),(n)->(m)")
 
-    halfbox = copy.copy(boxsize)/2.
-    coord_spacings = np.linspace(-1.*halfbox,halfbox,intres)
+    v_map_cart_grid_to_cells = np.vectorize(
+        _map_cart_grid_to_cells, signature="(m,3),(n),(n),(n)->(m)"
+    )
+
+    halfbox = copy.copy(boxsize) / 2.0
+    coord_spacings = np.linspace(-1.0 * halfbox, halfbox, intres)
     xx = coord_spacings + center[0]
     yy = coord_spacings + center[1]
     zz = coord_spacings + center[2]
-    out = v_map_cart_grid_to_cells(pos_array,xx,yy,zz)
+    out = v_map_cart_grid_to_cells(pos_array, xx, yy, zz)
 
     return out
+
+
 def calculate_tracked_parameters(
     snapGas,
     elements,
@@ -1213,11 +1242,11 @@ def calculate_tracked_parameters(
     Zsolar,
     omegabaryon0,
     snapNumber,
-    paramsOfInterest = [],
-    mapping = None,
+    paramsOfInterest=[],
+    mapping=None,
     gridRes=512,
     numthreads=2,
-    box = None,
+    box=None,
 ):
     """
     Calculate the physical properties of all cells, or gas only where necessary
@@ -1254,23 +1283,51 @@ def calculate_tracked_parameters(
     gasX = snapGas.gmet[whereGas, 0]
 
     # Temperature = U / (3/2 * N KB) [K]
-    if np.any(np.isin(np.array(["T","P_tot","P_thermal","Pthermal_Pmagnetic","PCR_Pthermal","Tdens"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(
+            np.array(
+                [
+                    "T",
+                    "P_tot",
+                    "P_thermal",
+                    "Pthermal_Pmagnetic",
+                    "PCR_Pthermal",
+                    "Tdens",
+                ]
+            ),
+            np.array(paramsOfInterest),
+        )
+    ) | (len(paramsOfInterest) == 0):
         snapGas.data["T"] = (snapGas.u[whereGas] * 1e10) / (Tfac)  # K
 
-    if np.any(np.isin(np.array(["n_H","Grad_n_H","tcool","theat","tcool_tff"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(
+            np.array(["n_H", "Grad_n_H", "tcool", "theat", "tcool_tff"]),
+            np.array(paramsOfInterest),
+        )
+    ) | (len(paramsOfInterest) == 0):
         snapGas.data["n_H"] = snapGas.data["dens"][whereGas] / c.amu * gasX  # cm^-3
 
-    if np.any(np.isin(np.array(["rho_rhomean","Tdens"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(np.array(["rho_rhomean", "Tdens"]), np.array(paramsOfInterest))
+    ) | (len(paramsOfInterest) == 0):
         snapGas.data["rho_rhomean"] = snapGas.data["dens"][whereGas] / (
             rhomean * omegabaryon0 / snapGas.omega0
         )  # rho / <rho>
 
-    if np.any(np.isin(np.array(["Tdens"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["Tdens"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         snapGas.data["Tdens"] = (
             snapGas.data["T"][whereGas] * snapGas.data["rho_rhomean"][whereGas]
         )
 
-    if np.any(np.isin(np.array(["B","P_magnetic","Pthermal_Pmagnetic","P_tot"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(
+            np.array(["B", "P_magnetic", "Pthermal_Pmagnetic", "P_tot"]),
+            np.array(paramsOfInterest),
+        )
+    ) | (len(paramsOfInterest) == 0):
         bfactor = (
             1e6
             * (np.sqrt(1e10 * c.msol) / np.sqrt(c.parsec * 1e6))
@@ -1282,13 +1339,17 @@ def calculate_tracked_parameters(
             (snapGas.data["bfld"][whereGas] * bfactor), axis=1
         )
 
-    if np.any(np.isin(np.array(["R","vrad","tff","tcool_tff"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(np.array(["R", "vrad", "tff", "tcool_tff"]), np.array(paramsOfInterest))
+    ) | (len(paramsOfInterest) == 0):
         # Radius [kpc]
         snapGas.data["R"] = np.linalg.norm(snapGas.data["pos"], axis=1)
 
     KpcTokm = 1e3 * c.parsec * 1e-5
 
-    if np.any(np.isin(np.array(["vrad"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["vrad"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         # Radial Velocity [km s^-1]
         snapGas.data["vrad"] = (
             snapGas.pos[whereGas] * KpcTokm * snapGas.vel[whereGas]
@@ -1298,7 +1359,9 @@ def calculate_tracked_parameters(
     # Cooling time [Gyrs]
     GyrToSeconds = 365.25 * 24.0 * 60.0 * 60.0 * 1e9
 
-    if np.any(np.isin(np.array(["tcool","tcool_tff","theat"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(np.array(["tcool", "tcool_tff", "theat"]), np.array(paramsOfInterest))
+    ) | (len(paramsOfInterest) == 0):
         snapGas.data["tcool"] = (
             snapGas.data["u"][whereGas] * 1e10 * snapGas.data["dens"][whereGas]
         ) / (
@@ -1321,45 +1384,71 @@ def calculate_tracked_parameters(
         snapGas.data["theat"][zeroChangeGas] = np.nan
 
     # Load in metallicity
-    if np.any(np.isin(np.array(["gz"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["gz"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         snapGas.data["gz"] = snapGas.data["gz"][whereGas] / Zsolar
     # Load in Metals
     tmp = snapGas.data["gmet"]
     # Load in Star Formation Rate
     tmp = snapGas.data["sfr"]
 
-    if np.any(np.isin(np.array(["L"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["L"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         # Specific Angular Momentum [kpc km s^-1]
         snapGas.data["L"] = np.sqrt(
             (
-                np.cross(snapGas.data["pos"][whereGas], snapGas.data["vel"][whereGas]) ** 2.0
+                np.cross(snapGas.data["pos"][whereGas], snapGas.data["vel"][whereGas])
+                ** 2.0
             ).sum(axis=1)
         )
 
-    if np.any(np.isin(np.array(["ndens","P_thermal","P_CR","PCR_Pthermal"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(
+            np.array(["ndens", "P_thermal", "P_CR", "PCR_Pthermal"]),
+            np.array(paramsOfInterest),
+        )
+    ) | (len(paramsOfInterest) == 0):
         snapGas.data["ndens"] = snapGas.data["dens"][whereGas] / (meanweight * c.amu)
 
-    if np.any(np.isin(np.array(["P_thermal","Pthermal_Pmagnetic","P_tot"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(
+            np.array(["P_thermal", "Pthermal_Pmagnetic", "P_tot"]),
+            np.array(paramsOfInterest),
+        )
+    ) | (len(paramsOfInterest) == 0):
         # Thermal Pressure : P/k_B = n T [ # K cm^-3]
         snapGas.data["P_thermal"] = snapGas.data["ndens"] * snapGas.T
 
-    if np.any(np.isin(np.array(["P_magnetic","Pthermal_Pmagnetic","P_tot"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(
+        np.isin(
+            np.array(["P_magnetic", "Pthermal_Pmagnetic", "P_tot"]),
+            np.array(paramsOfInterest),
+        )
+    ) | (len(paramsOfInterest) == 0):
         # Magnetic Pressure [P/k_B K cm^-3]
         snapGas.data["P_magnetic"] = ((snapGas.data["B"][whereGas] * 1e-6) ** 2) / (
             8.0 * pi * c.KB
         )
 
-    if np.any(np.isin(np.array(["P_tot"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["P_tot"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         snapGas.data["P_tot"] = (
             snapGas.data["P_thermal"][whereGas] + snapGas.data["P_magnetic"][whereGas]
         )
 
-    if np.any(np.isin(np.array(["Pthermal_Pmagnetic"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["Pthermal_Pmagnetic"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         snapGas.data["Pthermal_Pmagnetic"] = (
             snapGas.data["P_thermal"][whereGas] / snapGas.data["P_magnetic"][whereGas]
         )
 
-    if np.any(np.isin(np.array(["P_kinetic"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["P_kinetic"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         # Kinetic "Pressure" [P/k_B K cm^-3]
         snapGas.data["P_kinetic"] = (
             (snapGas.rho[whereGas] / (c.parsec * 1e6) ** 3)
@@ -1369,13 +1458,18 @@ def calculate_tracked_parameters(
             * (np.linalg.norm(snapGas.data["vel"][whereGas] * 1e5, axis=1)) ** 2
         )
 
-    if np.any(np.isin(np.array(["csound","tcross"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["csound", "tcross"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         # Sound Speed [(erg K^-1 K ??? g^-1)^1/2 = (g cm^2 s^-2 g^-1)^(1/2) = km s^-1]
         snapGas.data["csound"] = np.sqrt(
-            ((5.0 / 3.0) * c.KB * snapGas.data["T"][whereGas]) / (meanweight * c.amu * 1e5)
+            ((5.0 / 3.0) * c.KB * snapGas.data["T"][whereGas])
+            / (meanweight * c.amu * 1e5)
         )
 
-    if np.any(np.isin(np.array(["tcross"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["tcross"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         # [cm kpc^-1 kpc cm^-1 s^1 = s / GyrToSeconds = Gyr]
         snapGas.data["tcross"] = (
             (KpcTokm * 1e3 / GyrToSeconds)
@@ -1383,7 +1477,9 @@ def calculate_tracked_parameters(
             / snapGas.data["csound"][whereGas]
         )
 
-    if np.any(np.isin(np.array(["tff","tcool_tff"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["tff", "tcool_tff"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         rsort = np.argsort(snapGas.data["R"])
         runsort = np.argsort(rsort)
 
@@ -1400,19 +1496,51 @@ def calculate_tracked_parameters(
         # whereNOTGas = np.where(snapGas.data["type"] != 0)[0]
         # snapGas.data["tff"][whereNOTGas] = np.nan
 
-    if np.any(np.isin(np.array(["tcool_tff"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+    if np.any(np.isin(np.array(["tcool_tff"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
         # Cooling time over free fall time
         snapGas.data["tcool_tff"] = (
             snapGas.data["tcool"][whereGas] / snapGas.data["tff"][whereGas]
         )
         del tmp
 
-    if np.any(np.isin(np.array(["Grad_T"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
-        snapGas, mapping = calculate_gradient_of_parameter(snapGas,"T",mapping=mapping,normed=True, box=box ,res=gridRes, numthreads=numthreads)
-    if np.any(np.isin(np.array(["Grad_n_H"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
-        snapGas, mapping = calculate_gradient_of_parameter(snapGas,"n_H",mapping=mapping,normed=True, box=box ,res=gridRes, numthreads=numthreads)
-    if np.any(np.isin(np.array(["Grad_bfld"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
-        snapGas, mapping = calculate_gradient_of_parameter(snapGas,"bfld",mapping=mapping,normed=True, box=box ,res=gridRes, numthreads=numthreads)
+    if np.any(np.isin(np.array(["Grad_T"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
+        snapGas, mapping = calculate_gradient_of_parameter(
+            snapGas,
+            "T",
+            mapping=mapping,
+            normed=True,
+            box=box,
+            res=gridRes,
+            numthreads=numthreads,
+        )
+    if np.any(np.isin(np.array(["Grad_n_H"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
+        snapGas, mapping = calculate_gradient_of_parameter(
+            snapGas,
+            "n_H",
+            mapping=mapping,
+            normed=True,
+            box=box,
+            res=gridRes,
+            numthreads=numthreads,
+        )
+    if np.any(np.isin(np.array(["Grad_bfld"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
+        snapGas, mapping = calculate_gradient_of_parameter(
+            snapGas,
+            "bfld",
+            mapping=mapping,
+            normed=True,
+            box=box,
+            res=gridRes,
+            numthreads=numthreads,
+        )
         snapGas.data["Grad_bfld"] = np.linalg.norm(snapGas.data["Grad_bfld"], axis=1)
     # Cosmic Ray Pressure
     # gamm_c = 4./3.
@@ -1425,57 +1553,113 @@ def calculate_tracked_parameters(
     # # Temperature = U / (3/2 * N KB) [K]
     # snapGas.data["T"] = (snapGas.u[whereGas] * 1e10) / (Tfac)  # K
     try:
-        if np.any(np.isin(np.array(["P_CR","PCR_Pthermal","Grad_P_CR","gah"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
-            snapGas.data['P_CR'] = (snapGas.cren[whereGas] * 1e10 * snapGas.data["ndens"]) / ((((4./3. - 1.)**-1)* c.KB)/(meanweight * c.amu))
+        if np.any(
+            np.isin(
+                np.array(["P_CR", "PCR_Pthermal", "Grad_P_CR", "gah"]),
+                np.array(paramsOfInterest),
+            )
+        ) | (len(paramsOfInterest) == 0):
+            snapGas.data["P_CR"] = (
+                snapGas.cren[whereGas] * 1e10 * snapGas.data["ndens"]
+            ) / ((((4.0 / 3.0 - 1.0) ** -1) * c.KB) / (meanweight * c.amu))
     except Exception as e:
         print(f"[@calculate_tracked_parameters]: P_CR {str(e)}")
     try:
-        if np.any(np.isin(np.array(["PCR_Pthermal"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
-            snapGas.data["PCR_Pthermal"] = snapGas.data['P_CR']/snapGas.data['P_thermal']
+        if np.any(np.isin(np.array(["PCR_Pthermal"]), np.array(paramsOfInterest))) | (
+            len(paramsOfInterest) == 0
+        ):
+            snapGas.data["PCR_Pthermal"] = (
+                snapGas.data["P_CR"] / snapGas.data["P_thermal"]
+            )
 
     except Exception as e:
         print(f"[@calculate_tracked_parameters]: PCR_Pthermal {str(e)}")
 
     try:
-        if np.any(np.isin(np.array(["Grad_P_CR","gah"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
+        if np.any(
+            np.isin(np.array(["Grad_P_CR", "gah"]), np.array(paramsOfInterest))
+        ) | (len(paramsOfInterest) == 0):
             # P [kg m^-1 s^-2]
             # kb [kg m^2 s^-2]
             # P / kb = m^-3
             # Grad (P / kb) [m^-4]
-            snapGas, mapping = calculate_gradient_of_parameter(snapGas,"P_CR",mapping=mapping,normed=False , box=box ,res=gridRes, numthreads=numthreads)
+            snapGas, mapping = calculate_gradient_of_parameter(
+                snapGas,
+                "P_CR",
+                mapping=mapping,
+                normed=False,
+                box=box,
+                res=gridRes,
+                numthreads=numthreads,
+            )
     except Exception as e:
         print(f"[@calculate_tracked_parameters]: Grad_P_CR {str(e)}")
 
     try:
-        if np.any(np.isin(np.array(["gah"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
-            #cm s^-1
-            snapGas.data["valf"] = snapGas.data["bfld"][whereGas] * (bfactor/1e6)/ np.sqrt(4.0*pi*snapGas.data["dens"][whereGas,np.newaxis])
+        if np.any(np.isin(np.array(["gah"]), np.array(paramsOfInterest))) | (
+            len(paramsOfInterest) == 0
+        ):
+            # cm s^-1
+            snapGas.data["valf"] = (
+                snapGas.data["bfld"][whereGas]
+                * (bfactor / 1e6)
+                / np.sqrt(4.0 * pi * snapGas.data["dens"][whereGas, np.newaxis])
+            )
 
+            #   Gas Alfven Heating [erg [cm^2 g s^-2] s^-1]
+            v_multi_inner_product = np.vectorize(
+                _multi_inner_product, signature="(m,n),(m,n)->(m)"
+            )
 
-        #   Gas Alfven Heating [erg [cm^2 g s^-2] s^-1]
-            v_multi_inner_product = np.vectorize(_multi_inner_product,signature="(m,n),(m,n)->(m)")
-
-            snapGas.data["gah"] = np.abs(v_multi_inner_product(snapGas.data["valf"][whereGas],snapGas.data['Grad_P_CR'][whereGas]*c.KB)*snapGas.data["vol"]*(c.parsec*1e3)**3)
+            snapGas.data["gah"] = np.abs(
+                v_multi_inner_product(
+                    snapGas.data["valf"][whereGas],
+                    snapGas.data["Grad_P_CR"][whereGas] * c.KB,
+                )
+                * snapGas.data["vol"]
+                * (c.parsec * 1e3) ** 3
+            )
     except Exception as e:
         print(f"[@calculate_tracked_parameters]: gah {str(e)}")
 
     try:
-        if np.any(np.isin(np.array(["P_CR","PCR_Pthermal","Grad_P_CR","gah"]), np.array(paramsOfInterest))) | (len(paramsOfInterest) == 0):
-                snapGas.data['Grad_P_CR'] = np.linalg.norm(snapGas.data['Grad_P_CR'],axis=1)
+        if np.any(
+            np.isin(
+                np.array(["P_CR", "PCR_Pthermal", "Grad_P_CR", "gah"]),
+                np.array(paramsOfInterest),
+            )
+        ) | (len(paramsOfInterest) == 0):
+            snapGas.data["Grad_P_CR"] = np.linalg.norm(
+                snapGas.data["Grad_P_CR"], axis=1
+            )
     except Exception as e:
         print(f"[@calculate_tracked_parameters]: Norm Grad_P_CR {str(e)}")
 
     return snapGas
 
+
 def err_catcher(arg):
     raise Exception(f"Child Process died and gave error: {arg}")
     return
 
-def calculate_gradient_of_parameter(snap, arg, mapping=None, normed=False, ptype = 0, center=False, box=False, res=512, use_only_cells=None,numthreads=8, nneighbours=10):
+
+def calculate_gradient_of_parameter(
+    snap,
+    arg,
+    mapping=None,
+    normed=False,
+    ptype=0,
+    center=False,
+    box=False,
+    res=512,
+    use_only_cells=None,
+    numthreads=8,
+    nneighbours=10,
+):
     """
-        Calculate the (norm of the) gradient of parameters argv for
-        particle snap.type==type
-        Adapted from mapOnCartGrid in gadget_snap.py in Arepo_snap-utils
+    Calculate the (norm of the) gradient of parameters argv for
+    particle snap.type==type
+    Adapted from mapOnCartGrid in gadget_snap.py in Arepo_snap-utils
     """
     import pylab
     import calcGrid
@@ -1491,110 +1675,159 @@ def calculate_gradient_of_parameter(snap, arg, mapping=None, normed=False, ptype
 
     intres = copy.copy(res)
     if (box is False) | (box is None):
-        boxsize = snap.boxsize*1e3
-    elif np.all(box==box[0]):
+        boxsize = snap.boxsize * 1e3
+    elif np.all(box == box[0]):
         boxsize = copy.copy(np.max(box))
     else:
-        raise Exception(f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE!" + "\n" + "Box not False, None, or all elements equal." + "\n" + "function @calculate_gradient_of_parameter not adapted for non-cube boxes." + "\n" + "All box sides must be equal, or snap.boxsize [kpc] will be used.")
+        raise Exception(
+            f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE!"
+            + "\n"
+            + "Box not False, None, or all elements equal."
+            + "\n"
+            + "function @calculate_gradient_of_parameter not adapted for non-cube boxes."
+            + "\n"
+            + "All box sides must be equal, or snap.boxsize [kpc] will be used."
+        )
 
     if use_only_cells is None:
         use_only_cells = np.where(snap.type == ptype)[0]
 
-    if type( center ) == list:
-        center = pylab.array( center )
-    elif type( center ) != np.ndarray:
+    if type(center) == list:
+        center = pylab.array(center)
+    elif type(center) != np.ndarray:
         center = snap.center
 
-    if type( box ) == list:
-        box = pylab.array( box )
-    elif type( box ) != np.ndarray:
-        box = np.array( [boxsize,boxsize,boxsize] )
+    if type(box) == list:
+        box = pylab.array(box)
+    elif type(box) != np.ndarray:
+        box = np.array([boxsize, boxsize, boxsize])
 
-    if type( res ) == list:
-        res = pylab.array( res )
-    elif type( res ) != np.ndarray:
-        res = np.array( [res]*3 )
+    if type(res) == list:
+        res = pylab.array(res)
+    elif type(res) != np.ndarray:
+        res = np.array([res] * 3)
 
-    boxsize *= 2.
-    box *= 2.
-    halfbox = copy.copy(boxsize)/2.
-    spacing = halfbox/float(intres)
+    boxsize *= 2.0
+    box *= 2.0
+    halfbox = copy.copy(boxsize) / 2.0
+    spacing = halfbox / float(intres)
 
-    pos = snap.pos[use_only_cells,:].astype( 'float64' ).copy()
-    px = np.abs( pos[:,0] - center[0] )
-    py = np.abs( pos[:,1] - center[1] )
-    pz = np.abs( pos[:,2] - center[2] )
+    pos = snap.pos[use_only_cells, :].astype("float64").copy()
+    px = np.abs(pos[:, 0] - center[0])
+    py = np.abs(pos[:, 1] - center[1])
+    pz = np.abs(pos[:, 2] - center[2])
 
-    pp, = np.where( (px < 0.5*box[0]) & (py < 0.5*box[1]) & (pz < 0.5*box[2]) )
-    print("Selected %d of %d particles." % (pp.size,snap.npart))
+    (pp,) = np.where((px < 0.5 * box[0]) & (py < 0.5 * box[1]) & (pz < 0.5 * box[2]))
+    print("Selected %d of %d particles." % (pp.size, snap.npart))
 
     posdata = pos[pp]
-    valdata = snap.data[arg][use_only_cells][pp].astype('float64')
-    massdata = snap.mass[use_only_cells][pp].astype('float64')
+    valdata = snap.data[arg][use_only_cells][pp].astype("float64")
+    massdata = snap.mass[use_only_cells][pp].astype("float64")
 
     # vol *= 1e9  # [kpc^3]
     # mass *= 1e10  # [Msol]
-    rhodata =  snap.rho[use_only_cells][pp].astype("float64")*(1e10/1e9)
+    rhodata = snap.rho[use_only_cells][pp].astype("float64") * (1e10 / 1e9)
 
     tree = pysph.makeTree(posdata)
 
-    hsmlScalar, _, _ = tree.calcHsml(center,posdata, massdata, nneighbours)
+    hsmlScalar, _, _ = tree.calcHsml(center, posdata, massdata, nneighbours)
 
-    hsml = np.full(massdata.shape,fill_value=hsmlScalar).astype('float64')
+    hsml = np.full(massdata.shape, fill_value=hsmlScalar).astype("float64")
 
     if valdata.ndim == 1:
         print("Calc Grid!")
-        grid = calcGrid.calcGrid(posdata,hsml, massdata, rhodata, valdata.astype('float64'), nx=res[0], ny=res[1], nz=res[2], boxx=box[0], boxy=box[1], boxz=box[2],centerx=center[0], centery=center[1], centerz=center[2], numthreads=numthreads, verbose=True)
+        grid = calcGrid.calcGrid(
+            posdata,
+            hsml,
+            massdata,
+            rhodata,
+            valdata.astype("float64"),
+            nx=res[0],
+            ny=res[1],
+            nz=res[2],
+            boxx=box[0],
+            boxy=box[1],
+            boxz=box[2],
+            centerx=center[0],
+            centery=center[1],
+            centerz=center[2],
+            numthreads=numthreads,
+            verbose=True,
+        )
 
         grid = np.transpose(grid)
         key = "Grad_" + arg
         print(f"Compute {key}!")
-        snap.data[key] = np.array(np.gradient(grid,spacing)).reshape(-1,3)
+        snap.data[key] = np.array(np.gradient(grid, spacing)).reshape(-1, 3)
         if normed:
-            snap.data[key] = np.linalg.norm(snap.data[key],axis=-1).flatten()
+            snap.data[key] = np.linalg.norm(snap.data[key], axis=-1).flatten()
 
     elif valdata.ndim == 2:
-        if (valdata.shape[0] == 3):
+        if valdata.shape[0] == 3:
             snap.data[arg] = snap.data[arg].T
             transposeBool = True
-        elif (valdata.shape[1] == 3):
+        elif valdata.shape[1] == 3:
             transposeBool = False
         else:
             print(
-                f"[@calculate_gradient_of_parameter]: WARNING! 2nd Dim of Dimensionality of arg={arg} not 3 (x,y,z)."+"\n"+f"Shape {np.shape(snap.data[arg][whereGas])} cannot be handled!" +"\n"+
-                f"Grad_{arg} will not be calculated!"
-                )
+                f"[@calculate_gradient_of_parameter]: WARNING! 2nd Dim of Dimensionality of arg={arg} not 3 (x,y,z)."
+                + "\n"
+                + f"Shape {np.shape(snap.data[arg][whereGas])} cannot be handled!"
+                + "\n"
+                + f"Grad_{arg} will not be calculated!"
+            )
         # We are going to generate ndim 3D grids and stack them together
         # in a grid of shape (valdata.shape[1],res,res,res)
         grad_stack = []
         grid_list = []
         print(f"Calc Grid x {valdata.shape[1]} - one for each axis!")
         for dim in range(valdata.shape[1]):
-            data= calcGrid.calcGrid(posdata,hsml, massdata, rhodata, valdata[:,dim].astype('float64'), nx=res[0], ny=res[1], nz=res[2], boxx=box[0], boxy=box[1], boxz=box[2],centerx=center[0], centery=center[1], centerz=center[2], numthreads=numthreads, verbose=True)
+            data = calcGrid.calcGrid(
+                posdata,
+                hsml,
+                massdata,
+                rhodata,
+                valdata[:, dim].astype("float64"),
+                nx=res[0],
+                ny=res[1],
+                nz=res[2],
+                boxx=box[0],
+                boxy=box[1],
+                boxz=box[2],
+                centerx=center[0],
+                centery=center[1],
+                centerz=center[2],
+                numthreads=numthreads,
+                verbose=True,
+            )
             grid_list.append(np.transpose(data))
         grid = np.stack([subgrid for subgrid in grid_list])
         key = "Grad_" + arg
         print(f"Compute {key}!")
         for dim in range(valdata.shape[1]):
             if normed:
-                gradat = np.linalg.norm(np.array(np.gradient(grid[dim],spacing)),axis=0)
+                gradat = np.linalg.norm(
+                    np.array(np.gradient(grid[dim], spacing)), axis=0
+                )
             else:
-                gradat = np.array(np.gradient(grid[dim],spacing))
+                gradat = np.array(np.gradient(grid[dim], spacing))
             grad_stack.append(gradat)
 
         if not normed:
-            snap.data[key] = np.stack(grad_stack).reshape(-1,3,3)
+            snap.data[key] = np.stack(grad_stack).reshape(-1, 3, 3)
         else:
-            snap.data[key] = np.stack(grad_stack).reshape(-1,3)
+            snap.data[key] = np.stack(grad_stack).reshape(-1, 3)
 
         if transposeBool:
             snap.data[key] = snap.data[key].T
     else:
         print(
-            f"[@calculate_gradient_of_parameter]: WARNING! Dimensionality of arg={arg} not 1D or 2D."+"\n"+f"Shape {np.shape(snap.data[arg][whereGas])} cannot be handled!" +"\n"+
-            f"Grad_{arg} will not be calculated!"
-            )
-
+            f"[@calculate_gradient_of_parameter]: WARNING! Dimensionality of arg={arg} not 1D or 2D."
+            + "\n"
+            + f"Shape {np.shape(snap.data[arg][whereGas])} cannot be handled!"
+            + "\n"
+            + f"Grad_{arg} will not be calculated!"
+        )
 
     # print("***---***")
     # print("*** DEBUG! ***")
@@ -1608,42 +1841,65 @@ def calculate_gradient_of_parameter(snap, arg, mapping=None, normed=False, ptype
         print("Map between Cartesian Grid and Approximate Cells")
         print("This may take a while ...")
 
-
         ### Limit RAM use
-        memLimit = 0.75 #%
+        memLimit = 0.75  #%
         maxRamPickle = 4.0e9
         maxRamSysAvailable = psutil.virtual_memory().available
         maxRamSysTot = psutil.virtual_memory().total
 
-        nchunks  = (64. * np.prod(posdata.shape))/(maxRamPickle*memLimit)
+        nchunks = (64.0 * np.prod(posdata.shape)) / (maxRamPickle * memLimit)
 
-        reqMem = 64.*(np.prod(posdata.shape)+(3.*float(intres)*numthreads))
+        reqMem = 64.0 * (np.prod(posdata.shape) + (3.0 * float(intres) * numthreads))
 
-        if (reqMem >= memLimit*maxRamSysAvailable):
+        if reqMem >= memLimit * maxRamSysAvailable:
             while (reqMem >= maxRamSysAvailable) & (numthreads >= 1):
                 numthreads -= 1
-                reqMem = 64.*(np.prod(posdata.shape)+(3.*float(intres)*numthreads))
+                reqMem = 64.0 * (
+                    np.prod(posdata.shape) + (3.0 * float(intres) * numthreads)
+                )
 
-        numthreads = int(max(numthreads,1))
+        numthreads = int(max(numthreads, 1))
 
-        if (reqMem >= maxRamSysTot):
-            print(f"[@calculate_gradient_of_parameter]: WARNING! RAM requirements will be exceeded by resolution of ({intres})**3 !")
-            print(f"RAM requirements are {reqMem} ({(reqMem/maxRamSysTot):.2%} of total RAM)!")
-            suggested = math.floor((((maxRamSysTot/64.) - np.prod(posdata.shape))/(3.))**(1./3.))
-            print(f"We suggest a GridRes < {suggested} for this system. Remember to leave RAM for other objects too!")
+        if reqMem >= maxRamSysTot:
+            print(
+                f"[@calculate_gradient_of_parameter]: WARNING! RAM requirements will be exceeded by resolution of ({intres})**3 !"
+            )
+            print(
+                f"RAM requirements are {reqMem} ({(reqMem/maxRamSysTot):.2%} of total RAM)!"
+            )
+            suggested = math.floor(
+                (((maxRamSysTot / 64.0) - np.prod(posdata.shape)) / (3.0))
+                ** (1.0 / 3.0)
+            )
+            print(
+                f"We suggest a GridRes < {suggested} for this system. Remember to leave RAM for other objects too!"
+            )
 
-        nchunks = int(max(nchunks,numthreads))
+        nchunks = int(max(nchunks, numthreads))
 
         pool = mp.Pool(numthreads)
-        print(f"Starting numthreads = {numthreads} mp pool with data split into {nchunks} chunks...")
+        print(
+            f"Starting numthreads = {numthreads} mp pool with data split into {nchunks} chunks..."
+        )
 
-
-        posrange = range(0,posdata.shape[0]+1,int(posdata.shape[0]//nchunks))
-        args_list = [[posSubset,boxsize,intres,center] for posSubset in [posdata[ii:jj] for (ii,jj) in zip(list(posrange),list(posrange)[1:])] ]
+        posrange = range(0, posdata.shape[0] + 1, int(posdata.shape[0] // nchunks))
+        args_list = [
+            [posSubset, boxsize, intres, center]
+            for posSubset in [
+                posdata[ii:jj] for (ii, jj) in zip(list(posrange), list(posrange)[1:])
+            ]
+        ]
 
         print("Map...")
         start = time.time()
-        args_list = args_list + [[posdata[(-1-int(posdata.shape[0]%nchunks)):-1],boxsize,intres,center]]
+        args_list = args_list + [
+            [
+                posdata[(-1 - int(posdata.shape[0] % nchunks)) : -1],
+                boxsize,
+                intres,
+                center,
+            ]
+        ]
 
         # printpercent = 5.0
         # printcount = 0.0
@@ -1654,12 +1910,19 @@ def calculate_gradient_of_parameter(snap, arg, mapping=None, normed=False, ptype
         #         print(f"{percentage:0.02f}% Cells mapped to Cart. Grid!")
         #         printcount += printpercent
 
-        output_list = [pool.apply_async(_wrapper_map_cart_grid_to_cells, args=args, error_callback=err_catcher) for args in args_list]
+        output_list = [
+            pool.apply_async(
+                _wrapper_map_cart_grid_to_cells, args=args, error_callback=err_catcher
+            )
+            for args in args_list
+        ]
 
         pool.close()
         pool.join()
 
-        mapping = np.concatenate(tuple([out.get() for out in output_list]),axis=0).astype(np.int32)
+        mapping = np.concatenate(
+            tuple([out.get() for out in output_list]), axis=0
+        ).astype(np.int32)
         stop = time.time()
 
         print("...done!")
@@ -1668,7 +1931,9 @@ def calculate_gradient_of_parameter(snap, arg, mapping=None, normed=False, ptype
     # Perform mapping from Cart Grid back to approx. cells
     snap.data[key] = snap.data[key][mapping]
 
-    assert np.shape(snap.data[key])[0] == np.shape(snap.data[arg])[0], f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE! Output from Gradient Calc and subsequent mapping not equal in shape to input data! Check Logic!"
+    assert (
+        np.shape(snap.data[key])[0] == np.shape(snap.data[arg])[0]
+    ), f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE! Output from Gradient Calc and subsequent mapping not equal in shape to input data! Check Logic!"
 
     # print("***---***")
     # print("*** DEBUG! ***")
@@ -1678,6 +1943,7 @@ def calculate_gradient_of_parameter(snap, arg, mapping=None, normed=False, ptype
     # print("shape key", np.shape(snap.data[key]))
     # print("***---***")
     return snap, mapping
+
 
 # ------------------------------------------------------------------------------#
 def halo_only_gas_select(snapGas, snap_subfind, Halo=0, snapNumber=None):
@@ -1699,7 +1965,8 @@ def halo_only_gas_select(snapGas, snap_subfind, Halo=0, snapNumber=None):
 
 
 # ------------------------------------------------------------------------------#
-#------------------------------------------------------------------------------#
+# ------------------------------------------------------------------------------#
+
 
 def high_res_only_gas_select(snapGas, snapNumber):
     """
@@ -1714,9 +1981,9 @@ def high_res_only_gas_select(snapGas, snapNumber):
 
     whereHighRes = np.where(
         snapGas.data["hrgm"][whereGas] >= 0.90 * snapGas.data["mass"][whereGas]
-    ) [0]
+    )[0]
 
-    selected = np.concatenate((whereHighRes,whereOthers),axis=0)
+    selected = np.concatenate((whereHighRes, whereOthers), axis=0)
 
     for key, value in snapGas.data.items():
         if value is not None:
@@ -1809,14 +2076,18 @@ def halo_id_finder(snapGas, snap_subfind, snapNumber, OnlyHalo=None):
                 lowest = cumsumflty[fofhalo - 1, tp]
 
             # Find the cumulative sum (and thus index ranges) of the subhaloes for THIS FoFhalo ONLY!
-            if nshLO==nshUP:
-                cslty = snap_subfind.data["slty"][nshLO,tp]
+            if nshLO == nshUP:
+                cslty = snap_subfind.data["slty"][nshLO, tp]
             else:
                 cslty = np.cumsum(snap_subfind.data["slty"][nshLO:nshUP, tp], axis=0)
 
             # Skip where subfind data goes beyond what we have in memory
             maxWhereType = np.nanmax(whereType[0])
-            if (lowest>maxWhereType)|(np.nanmax(cslty)>maxWhereType)|(csflty>maxWhereType):
+            if (
+                (lowest > maxWhereType)
+                | (np.nanmax(cslty) > maxWhereType)
+                | (csflty > maxWhereType)
+            ):
                 continue
 
             # Start the data selection from end of previous FoFHalo and continue lower bound to last slty entry
@@ -1838,9 +2109,9 @@ def halo_id_finder(snapGas, snap_subfind, snapNumber, OnlyHalo=None):
             #  a subhalo number
             #       In the case where only 1 index is returned we opt to assign this single gas cell its own subhalo number
             for (lo, up) in zip(lower[:-1], upper[:-1]):
-                            # Skip where subfind data goes beyond what we have in memory
+                # Skip where subfind data goes beyond what we have in memory
 
-                if (lo>maxWhereType)|(up>maxWhereType):
+                if (lo > maxWhereType) | (up > maxWhereType):
                     continue
                 # print(f"lo {lo} : up {up} --> subhalo {subhalo}")
 
@@ -1917,12 +2188,17 @@ def load_tracers_parameters(TracersParamsPath):
             # Convert values to floats
             TRACERSPARAMS.update({key: float(value)})
 
-    for paramList in [TRACERSPARAMS['saveParams'],TRACERSPARAMS['saveTracersOnly'], TRACERSPARAMS['saveEssentials']]:
-        for defunctParam,newParam in zip(["SubHaloID","FoFHaloID"],["subhalo","halo"]):
+    for paramList in [
+        TRACERSPARAMS["saveParams"],
+        TRACERSPARAMS["saveTracersOnly"],
+        TRACERSPARAMS["saveEssentials"],
+    ]:
+        for defunctParam, newParam in zip(
+            ["SubHaloID", "FoFHaloID"], ["subhalo", "halo"]
+        ):
             if defunctParam in paramList:
                 paramList.remove(defunctParam)
                 paramList.append(newParam)
-
 
     TRACERSPARAMS["Axes"] = [int(axis) for axis in TRACERSPARAMS["Axes"]]
 
@@ -1938,7 +2214,7 @@ def load_tracers_parameters(TracersParamsPath):
 
     if TRACERSPARAMS["QuadPlotBool"]:
         TRACERSPARAMS["saveParamsOriginal"] = copy.copy(TRACERSPARAMS["saveParams"])
-        for param in ["Tdens","rho_rhomean","n_H","B","gz"]:
+        for param in ["Tdens", "rho_rhomean", "n_H", "B", "gz"]:
             if param not in TRACERSPARAMS["saveParams"]:
                 TRACERSPARAMS["saveParams"].append(param)
 
@@ -2480,15 +2756,20 @@ def full_dict_hdf5_load(path, TRACERSPARAMS, FullDataPathSuffix):
 
     return FullDict
 
+
 def halo_param_names_adjust(dataDict):
     out = {}
     for key, val in dataDict.items():
-        for defunctParam,newParam in zip(["SubHaloID","FoFHaloID"],["subhalo","halo"]):
+        for defunctParam, newParam in zip(
+            ["SubHaloID", "FoFHaloID"], ["subhalo", "halo"]
+        ):
             if defunctParam in list(val.keys()):
-                val.update({newParam : val[defunctParam].copy()})
+                val.update({newParam: val[defunctParam].copy()})
                 del val[defunctParam]
         out.update({key: val})
     return out
+
+
 # ------------------------------------------------------------------------------#
 
 
@@ -2617,11 +2898,7 @@ def pad_non_entries(snapGas, snapNumber):
 # ------------------------------------------------------------------------------#
 
 
-def calculate_statistics(
-    Cells,
-    TRACERSPARAMS,
-    saveParams,
-    weightedStatsBool = False):
+def calculate_statistics(Cells, TRACERSPARAMS, saveParams, weightedStatsBool=False):
     # ------------------------------------------------------------------------------#
     #       Flatten dict and take subset
     # ------------------------------------------------------------------------------#
@@ -2629,7 +2906,7 @@ def calculate_statistics(
     # print(f"Analysing Statistics!")
 
     try:
-        nonMassWeightDict = TRACERSPARAMS['nonMassWeightDict']
+        nonMassWeightDict = TRACERSPARAMS["nonMassWeightDict"]
     except:
         pass
     else:
@@ -2667,7 +2944,9 @@ def calculate_statistics(
                             weightKey = "mass"
                             weightData = Cells[weightKey]
 
-                        stat =  weighted_percentile(v, weights=weightData, perc=percentile, key=k)
+                        stat = weighted_percentile(
+                            v, weights=weightData, perc=percentile, key=k
+                        )
                     else:
                         stat = np.array([0.0])
                 if saveKey not in statsData.keys():
@@ -2683,7 +2962,7 @@ def save_statistics_csv(
     TRACERSPARAMS,
     Tlst,
     snapRange,
-    savePathInsert = "",
+    savePathInsert="",
     StatsDataPathSuffix=".csv",
 ):
 
@@ -2714,7 +2993,11 @@ def save_statistics_csv(
     dfOut = pd.concat(dfList, axis=0)
 
     savePath = (
-        HaloPathBase + f"Data_Tracers_MultiHalo_"+savePathInsert+"Statistics-Table" + StatsDataPathSuffix
+        HaloPathBase
+        + f"Data_Tracers_MultiHalo_"
+        + savePathInsert
+        + "Statistics-Table"
+        + StatsDataPathSuffix
     )
 
     print(f"Saving Statistics to csv as: {savePath}")
@@ -2790,7 +3073,7 @@ def flatten_wrt_time(
                 tracerData = v[np.newaxis]
                 if k == "trid":
                     tracerData = TracersReturned[np.newaxis]
-                elif (k == "prid") or ( k == "id"):
+                elif (k == "prid") or (k == "id"):
                     tracerData = ParentsReturned[np.newaxis]
                 # print(key)
                 # print(k)
@@ -2925,7 +3208,7 @@ def plot_projections(
     TRACERSPARAMS,
     DataSavepath,
     FullDataPathSuffix,
-    titleBool = True,
+    titleBool=True,
     Axes=[0, 1],
     zAxis=[2],
     boxsize=400.0,
@@ -2936,9 +3219,7 @@ def plot_projections(
     CMAP=None,
     numThreads=10,
 ):
-    print(
-        f"[@{int(snapNumber)}]: Starting Projections Video Plots!"
-    )
+    print(f"[@{int(snapNumber)}]: Starting Projections Video Plots!")
 
     if CMAP == None:
         cmap = plt.get_cmap("inferno")
@@ -2967,10 +3248,7 @@ def plot_projections(
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     nprojections = 5
     # print(np.unique(snapGas.type))
-    print(
-        "\n"
-        + f"[@{int(snapNumber)}]: Projection 1 of {nprojections}"
-    )
+    print("\n" + f"[@{int(snapNumber)}]: Projection 1 of {nprojections}")
 
     proj_T = snapGas.get_Aslice(
         "Tdens",
@@ -2985,10 +3263,7 @@ def plot_projections(
         numthreads=numThreads,
     )
 
-    print(
-        "\n"
-        + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}"
-    )
+    print("\n" + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}")
 
     proj_dens = snapGas.get_Aslice(
         "rho_rhomean",
@@ -3003,10 +3278,7 @@ def plot_projections(
         numthreads=numThreads,
     )
 
-    print(
-        "\n"
-        + f"[@{int(snapNumber)}]: Projection 3 of {nprojections}"
-    )
+    print("\n" + f"[@{int(snapNumber)}]: Projection 3 of {nprojections}")
 
     proj_nH = snapGas.get_Aslice(
         "n_H",
@@ -3021,10 +3293,7 @@ def plot_projections(
         numthreads=numThreads,
     )
 
-    print(
-        "\n"
-        + f"[@{int(snapNumber)}]: Projection 4 of {nprojections}"
-    )
+    print("\n" + f"[@{int(snapNumber)}]: Projection 4 of {nprojections}")
 
     proj_B = snapGas.get_Aslice(
         "B",
@@ -3039,10 +3308,7 @@ def plot_projections(
         numthreads=numThreads,
     )
 
-    print(
-        "\n"
-        + f"[@{int(snapNumber)}]: Projection 5 of {nprojections}"
-    )
+    print("\n" + f"[@{int(snapNumber)}]: Projection 5 of {nprojections}")
 
     proj_gz = snapGas.get_Aslice(
         "gz",
@@ -3124,7 +3390,7 @@ def plot_projections(
         proj_T["y"],
         np.transpose(proj_T["grid"] / proj_dens["grid"]),
         vmin=1e4,
-        vmax=10**(6.5),
+        vmax=10 ** (6.5),
         norm=matplotlib.colors.LogNorm(),
         cmap=cmap,
         rasterized=True,
@@ -3303,8 +3569,8 @@ def tracer_plot(
     MaxSubset=100,
     lazyLoadBool=True,
     tailsLength=3,
-    trioTitleBool = True,
-    titleBool = False,
+    trioTitleBool=True,
+    titleBool=False,
 ):
     if CMAP == None:
         cmap = plt.get_cmap("inferno")
@@ -3314,7 +3580,7 @@ def tracer_plot(
     # Axes Labels to allow for adaptive axis selection
     AxesLabels = ["y", "z", "x"]
 
-    #Base sizes for Trio plot. Smaller for bigger relative fonts and annotations
+    # Base sizes for Trio plot. Smaller for bigger relative fonts and annotations
     xsize = 4.0
     ysize = 4.0
 
@@ -3347,7 +3613,7 @@ def tracer_plot(
     fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 5)]
     fudgeTicks = fullTicks[1:]
 
-    #Base sizes for tails plots for video. Bigger sizes for smaller relative fonts and annotations
+    # Base sizes for tails plots for video. Bigger sizes for smaller relative fonts and annotations
     xsize = 7.0
     ysize = 7.0
 
@@ -3515,7 +3781,9 @@ def tracer_plot(
             rotation_matrix = snapGas.select_halo(snap_subfind, do_rotation=True)
         else:
             snapGas.select_halo(snap_subfind, do_rotation=False)
-            snapGas.rotateto(rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2])
+            snapGas.rotateto(
+                rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2]
+            )
 
         # --------------------------#
         ##    Units Conversion    ##
@@ -3529,9 +3797,9 @@ def tracer_plot(
         snapGas.mass *= 1e10  # [Msol]
         snapGas.hrgm *= 1e10  # [Msol]
 
-        rmax = np.max(TRACERSPARAMS['Router'])
-        boxmax = 1.5*rmax
-        box = [boxmax,boxmax,boxmax]
+        rmax = np.max(TRACERSPARAMS["Router"])
+        boxmax = 1.5 * rmax
+        box = [boxmax, boxmax, boxmax]
         # Calculate New Parameters and Load into memory others we want to track
         snapGas = calculate_tracked_parameters(
             snapGas,
@@ -3542,8 +3810,8 @@ def tracer_plot(
             Zsolar,
             omegabaryon0,
             snapNumber,
-            paramsOfInterest = saveParams,
-            box = box
+            paramsOfInterest=saveParams,
+            box=box,
         )
 
         # ==================#
@@ -3571,7 +3839,7 @@ def tracer_plot(
                 if np.shape(value)[0] == (NDM + NGas + NStars):
                     # print("All")
                     snapGas.data[key] = value.copy()[whereStarsGas]
-                elif np.shape(value)[0] == (NGas + NDM) :
+                elif np.shape(value)[0] == (NGas + NDM):
                     # print("Gas")
                     snapGas.data[key] = value.copy()[whereGas]
                 elif np.shape(value)[0] == (NStars + NDM):
@@ -3846,7 +4114,7 @@ def tracer_plot(
                     proj_T["y"],
                     np.transpose(proj_T["grid"] / proj_dens["grid"]),
                     vmin=1e4,
-                    vmax=10**(6.5),
+                    vmax=10 ** (6.5),
                     norm=matplotlib.colors.LogNorm(),
                     cmap=cmap,
                     rasterized=True,
@@ -3857,7 +4125,7 @@ def tracer_plot(
                         proj_T["y"],
                         np.transpose(proj_T["grid"] / proj_dens["grid"]),
                         vmin=1e4,
-                        vmax=10**(6.5),
+                        vmax=10 ** (6.5),
                         norm=matplotlib.colors.LogNorm(),
                         cmap=cmap,
                         rasterized=True,
@@ -4001,30 +4269,41 @@ def tracer_plot(
                     axOuter.set_xlim(xmin=xmin, xmax=xmax)
 
                 cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
-                cbarfig = fig.colorbar(pcm1, cax=cax1, ticks=[1e4, 1e5, 1e6, 10**(6.5)], orientation="vertical")
-                cbarfig.set_label(
-                    label=r"T [K]", size=fontsize)
+                cbarfig = fig.colorbar(
+                    pcm1,
+                    cax=cax1,
+                    ticks=[1e4, 1e5, 1e6, 10 ** (6.5)],
+                    orientation="vertical",
+                )
+                cbarfig.set_label(label=r"T [K]", size=fontsize)
                 ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + r" [kpc]", fontsize=fontsize)
                 ax1.set_xlabel(f"{AxesLabels[Axes[0]]}" + r" [kpc]", fontsize=fontsize)
                 ax1.set_aspect(aspect)
-                cbarfig.ax.set_yticklabels([r'$10^{4}$', r'$10^{5}$', r'$10^{6}$', r'$10^{6.5}$'],fontdict={'fontsize':fontsize})
+                cbarfig.ax.set_yticklabels(
+                    [r"$10^{4}$", r"$10^{5}$", r"$10^{6}$", r"$10^{6.5}$"],
+                    fontdict={"fontsize": fontsize},
+                )
                 if snapNumber in outerPlotSnaps:
-
 
                     # For middle Axis make all subplot spanning colorbar
                     # that is 100% width of subplots, and 5% in height
                     if snapNumber == outerPlotSnaps[-1]:
-                        cax = figOuter.add_axes([leftParam,bottomParam*0.5,0.90 - leftParam,0.075])
+                        cax = figOuter.add_axes(
+                            [leftParam, bottomParam * 0.5, 0.90 - leftParam, 0.075]
+                        )
                         cbarfigOuter = figOuter.colorbar(
                             pcm1Outer,
-                            cax = cax,
-                            ax = axOuterObj.ravel().tolist(),
-                            ticks=[1e4, 1e5, 1e6, 10**(6.5)],
+                            cax=cax,
+                            ax=axOuterObj.ravel().tolist(),
+                            ticks=[1e4, 1e5, 1e6, 10 ** (6.5)],
                             orientation="horizontal",
                             pad=0.15,
                         )
                         cbarfigOuter.set_label(label=r"T [K]", size=fontsize)
-                        cbarfigOuter.ax.set_xticklabels([r'$10^{4}$', r'$10^{5}$', r'$10^{6}$', r'$10^{6.5}$'],fontsize=fontsize)
+                        cbarfigOuter.ax.set_xticklabels(
+                            [r"$10^{4}$", r"$10^{5}$", r"$10^{6}$", r"$10^{6.5}$"],
+                            fontsize=fontsize,
+                        )
                     if snapNumber == outerPlotSnaps[0]:
                         axOuter.set_ylabel(
                             f"{AxesLabels[Axes[1]]}" + r" [kpc]", fontsize=fontsize
@@ -4042,8 +4321,8 @@ def tracer_plot(
                     else:
                         plt.sca(axOuter)
                         plt.xticks(fullTicks)
-                    ax1.tick_params(axis="both",which="both",labelsize=fontsize)
-                    axOuter.tick_params(axis="both",which="both",labelsize=fontsize)
+                    ax1.tick_params(axis="both", which="both", labelsize=fontsize)
+                    axOuter.tick_params(axis="both", which="both", labelsize=fontsize)
                 fig.tight_layout()
                 if titleBool is True:
                     fig.subplots_adjust(hspace=0.1, wspace=0.1, right=0.85, top=0.80)
@@ -4087,7 +4366,8 @@ def tracer_plot(
                     + f"{selectlookback :0.03f} Gyrs"
                     + " with "
                     + "\n"
-                    + r"$T = 10^{%3.2f \pm %3.2f} K$" % (targetT, TRACERSPARAMS["deltaT"])
+                    + r"$T = 10^{%3.2f \pm %3.2f} K$"
+                    % (targetT, TRACERSPARAMS["deltaT"])
                     + r" and $ %3.0f < R < %3.0f $ kpc" % (rin, rout)
                 )
 
@@ -4095,11 +4375,20 @@ def tracer_plot(
             # figOuter.tight_layout()
             if trioTitleBool is True:
                 figOuter.subplots_adjust(
-                    hspace=0.1, wspace=0.0, left=leftParam, top=topParam, bottom=bottomParam
+                    hspace=0.1,
+                    wspace=0.0,
+                    left=leftParam,
+                    top=topParam,
+                    bottom=bottomParam,
                 )
             else:
                 figOuter.subplots_adjust(
-                    hspace=0.1, wspace=0.0, left=leftParam, top=topParam, bottom=bottomParam)
+                    hspace=0.1,
+                    wspace=0.0,
+                    left=leftParam,
+                    top=topParam,
+                    bottom=bottomParam,
+                )
 
             savePathOuter = (
                 DataSavepath + f"_T{targetT}_{rin}R{rout}_Tracer_Subset_Plot_Trio.pdf"
@@ -4146,7 +4435,7 @@ def multi_halo_merge(
     mergedDict = {}
     saveParams = []
     loadedParams = []
-    for (saveHalo,sim), loadPath in zip(enumerate(simList), haloPathList):
+    for (saveHalo, sim), loadPath in zip(enumerate(simList), haloPathList):
         loadPath += "/"
 
         TRACERSPARAMS, DataSavepath, _ = load_tracers_parameters(
@@ -4180,16 +4469,19 @@ def multi_halo_merge(
 
                 if key == "trid":
                     # print("Check trids are unique!")
-                    u,c = np.unique(dataDict[selectKey][key][0],return_counts=True)
-                    assert np.shape(np.where(c>1)[0])[0]<=0, f"[Multi Halo Merge Time flattened Before Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
+                    u, c = np.unique(dataDict[selectKey][key][0], return_counts=True)
+                    assert (
+                        np.shape(np.where(c > 1)[0])[0] <= 0
+                    ), f"[Multi Halo Merge Time flattened Before Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
                     # print("Done!")
-
 
                 ## Add Halo Number plus one zero to start of every number ##
                 # if padFlag is False:
                 index = math.ceil(np.log10(np.nanmax(dataDict[selectKey][key])))
 
-                dataDict[selectKey][key] = dataDict[selectKey][key].astype(np.float64) + float(int(saveHalo) * 10 ** (1 + index))
+                dataDict[selectKey][key] = dataDict[selectKey][key].astype(
+                    np.float64
+                ) + float(int(saveHalo) * 10 ** (1 + index))
                 # else:
                 #     index = math.ceil(np.log10(np.nanmax(dataDict[selectKey][key])))
                 #
@@ -4197,8 +4489,10 @@ def multi_halo_merge(
 
                 if key == "trid":
                     # print("Check trids are unique!")
-                    u,c = np.unique(dataDict[selectKey][key][0],return_counts=True)
-                    assert np.shape(np.where(c>1)[0])[0]<=0, f"[Multi Halo Merge Time flattened After Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
+                    u, c = np.unique(dataDict[selectKey][key][0], return_counts=True)
+                    assert (
+                        np.shape(np.where(c > 1)[0])[0] <= 0
+                    ), f"[Multi Halo Merge Time flattened After Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
                 # np.array([
                 # int(str(saveHalo)+'0'+str(v)) for v in dataDict[selectKey][key]
                 # ])
@@ -4295,20 +4589,20 @@ def multi_halo_merge_flat_wrt_time(
     mergedDict = {}
     saveParams = []
     loadedParams = []
-    for (saveHalo,sim), loadPath in zip(enumerate(simList), haloPathList):
+    for (saveHalo, sim), loadPath in zip(enumerate(simList), haloPathList):
         loadPath += "/"
 
         TRACERSPARAMS, DataSavepath, _ = load_tracers_parameters(
             loadPath + TracersParamsPath
         )
         saveParams += TRACERSPARAMS["saveParams"]
-    #
-    #     saveHalo = (sim.split("_"))[-1]
-    #     if "L" in saveHalo:
-    #         saveHalo = saveHalo.split("L")[-1]
-    #         padFlag = True
-    #     else:
-    #         padFlag = False
+        #
+        #     saveHalo = (sim.split("_"))[-1]
+        #     if "L" in saveHalo:
+        #         saveHalo = saveHalo.split("L")[-1]
+        #         padFlag = True
+        #     else:
+        #         padFlag = False
 
         print("")
         print(f"Loading {sim} Data!")
@@ -4338,16 +4632,19 @@ def multi_halo_merge_flat_wrt_time(
 
                 if key == "trid":
                     # print("Check trids are unique!")
-                    u,c = np.unique(dataDict[selectKey][key][0],return_counts=True)
-                    assert np.shape(np.where(c>1)[0])[0]<=0, f"[Multi Halo Merge Time flattened Before Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
+                    u, c = np.unique(dataDict[selectKey][key][0], return_counts=True)
+                    assert (
+                        np.shape(np.where(c > 1)[0])[0] <= 0
+                    ), f"[Multi Halo Merge Time flattened Before Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
                     # print("Done!")
-
 
                 ## Add Halo Number plus one zero to start of every number ##
                 # if padFlag is False:
                 index = math.ceil(np.log10(np.nanmax(dataDict[selectKey][key])))
 
-                dataDict[selectKey][key] = dataDict[selectKey][key].astype(np.float64) + float(int(saveHalo) * 10 ** (1 + index))
+                dataDict[selectKey][key] = dataDict[selectKey][key].astype(
+                    np.float64
+                ) + float(int(saveHalo) * 10 ** (1 + index))
                 # else:
                 #     index = math.ceil(np.log10(np.nanmax(dataDict[selectKey][key])))
                 #
@@ -4355,8 +4652,10 @@ def multi_halo_merge_flat_wrt_time(
 
                 if key == "trid":
                     # print("Check trids are unique!")
-                    u,c = np.unique(dataDict[selectKey][key][0],return_counts=True)
-                    assert np.shape(np.where(c>1)[0])[0]<=0, f"[Multi Halo Merge Time flattened After Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
+                    u, c = np.unique(dataDict[selectKey][key][0], return_counts=True)
+                    assert (
+                        np.shape(np.where(c > 1)[0])[0] <= 0
+                    ), f"[Multi Halo Merge Time flattened After Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
                     # print("Done!")
                 # np.array([
                 # int(str(saveHalo)+'0'+str(v)) for v in dataDict[selectKey][key]
@@ -4523,9 +4822,7 @@ def multi_halo_statistics(
                 # print(f"...done!")
                 # print(f"Calculating {snap} Statistics!")
                 dat = calculate_statistics(
-                    timeDat,
-                    TRACERSPARAMS=TRACERSPARAMS,
-                    saveParams=saveParams
+                    timeDat, TRACERSPARAMS=TRACERSPARAMS, saveParams=saveParams
                 )
                 # Fix values to arrays to remove concat error of 0D arrays
                 for k, val in dat.items():
