@@ -414,7 +414,7 @@ def cr_analysis_radial(
         paramsOfInterest=CRPARAMS["saveParams"],
         mappingBool=True,
         box=box,
-        gridRes=CRPARAMS["gridRes"],
+        gridres=CRPARAMS["gridRes"],
         numthreads=CRPARAMS["numThreads"],
     )
     # snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)

@@ -130,91 +130,91 @@ snapRange = [
 
 if __name__ == "__main__":
     for halo, allSimsDict in CRSELECTEDHALOES.items():
-        # dataDict = {}
-        # starsDict ={}
-        # CRPARAMSHALO = {}
-        # DataSavepathBase = CRPARAMSMASTER['savepath'] + f"{halo}/"
-        # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        # #   MAIN ANALYSIS
-        # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        # for sim, simDict in allSimsDict.items():
-        #     CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
-        #     selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-        #     CRPARAMSHALO.update({selectKey : CRPARAMS})
-        #     if CRPARAMS['simfile'] is not None:
-        # # #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        # # #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        # # #         #
-        # # #         # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
-        # # #         # # Setup arguments combinations for parallel processing pool
-        # # #         # print("\n" + f"Sorting multi-core arguments!")
-        # # #         # manager = mp.Manager()
-        # # #         # args_list = manager.list()
-        # # #         # args_default =  [
-        # # #         #     CRPARAMS,
-        # # #         #     DataSavepathBase,
-        # # #         #     FullDataPathSuffix,
-        # # #         #
-        # # #         #
-        # # #         # ]
-        # # #         #
-        # # #         # args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
-        # # #         #
-        # # #         # # Open multiprocesssing pool
-        # # #         #
-        # # #         # print("\n" + f"Opening {n_processes} core Pool!")
-        # # #         # pool = mp.Pool(processes=n_processes)
-        # # #         #
-        # # #         # # C ompute Snap analysis
-        # # #         # output_list = [
-        # # #         #     pool.apply_async(cr_analysis, args=args, error_callback=err_catcher)
-        # # #         #     for args in args_list
-        # # #         # ]
-        # # #         #
-        # # #         # pool.close()
-        # # #         # pool.join()
-        # # #         # # Close multiprocesssing pool
-        # # #         # print(f"Closing core Pool!")
-        # # #         # print(f"Error checks")
-        # # #         # success = [result.successful() for result in output_list]
-        # # #         # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
-        # # #         # print("No Errors!")
-        # # #         #
-        # # #         # print("Gather the multiprocess outputs")
-        # # #         # out = {}
-        # # #         # for output in output_list:
-        # # #         #
-        # # #         #     tmpOut = output.get()
-        # # #         #
-        # # #         #     # as function gives out dictionary extract what want (or just save dict)
-        # # #         #     out.update(tmpOut)
-        # # #         #
-        # # #         # del output_list, pool
-        # # #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        #
-        #         print("\n" + f"Starting SERIAL type Analysis!")
-        #         out = {}
-        #         for snapNumber in snapRange:
-        #             tmpOut = cr_analysis_radial(
-        #                 snapNumber,
-        #                 CRPARAMS,
-        #                 DataSavepathBase,
-        #                 FullDataPathSuffix
-        #                 )
-        #             out.update(tmpOut)
-        #
-        #         del tmpOut
-        #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        #
-        #         flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
-        #
-        #         del out
-        #         for key, dict in flatDict.items():
-        #             if key[-1] == "Stars":
-        #                 starsDict.update({key : dict})
-        #             else:
-        #                 dataDict.update({key : dict})
-        #
+        dataDict = {}
+        starsDict ={}
+        CRPARAMSHALO = {}
+        DataSavepathBase = CRPARAMSMASTER['savepath'] + f"{halo}/"
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        #   MAIN ANALYSIS
+        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        for sim, simDict in allSimsDict.items():
+            CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+            selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+            CRPARAMSHALO.update({selectKey : CRPARAMS})
+            if CRPARAMS['simfile'] is not None:
+        # #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        # #         # # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+        # #         #
+        # #         # print("\n" + f"Starting MULTIPROCESSING type Analysis!")
+        # #         # # Setup arguments combinations for parallel processing pool
+        # #         # print("\n" + f"Sorting multi-core arguments!")
+        # #         # manager = mp.Manager()
+        # #         # args_list = manager.list()
+        # #         # args_default =  [
+        # #         #     CRPARAMS,
+        # #         #     DataSavepathBase,
+        # #         #     FullDataPathSuffix,
+        # #         #
+        # #         #
+        # #         # ]
+        # #         #
+        # #         # args_list = manager.list([[snapNumber] + args_default for snapNumber in snapRange])
+        # #         #
+        # #         # # Open multiprocesssing pool
+        # #         #
+        # #         # print("\n" + f"Opening {n_processes} core Pool!")
+        # #         # pool = mp.Pool(processes=n_processes)
+        # #         #
+        # #         # # C ompute Snap analysis
+        # #         # output_list = [
+        # #         #     pool.apply_async(cr_analysis, args=args, error_callback=err_catcher)
+        # #         #     for args in args_list
+        # #         # ]
+        # #         #
+        # #         # pool.close()
+        # #         # pool.join()
+        # #         # # Close multiprocesssing pool
+        # #         # print(f"Closing core Pool!")
+        # #         # print(f"Error checks")
+        # #         # success = [result.successful() for result in output_list]
+        # #         # assert all(success) == True, "WARNING: CRITICAL: Child Process Returned Error!"
+        # #         # print("No Errors!")
+        # #         #
+        # #         # print("Gather the multiprocess outputs")
+        # #         # out = {}
+        # #         # for output in output_list:
+        # #         #
+        # #         #     tmpOut = output.get()
+        # #         #
+        # #         #     # as function gives out dictionary extract what want (or just save dict)
+        # #         #     out.update(tmpOut)
+        # #         #
+        # #         # del output_list, pool
+        # #         #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+
+                print("\n" + f"Starting SERIAL type Analysis!")
+                out = {}
+                for snapNumber in snapRange:
+                    tmpOut = cr_analysis_radial(
+                        snapNumber,
+                        CRPARAMS,
+                        DataSavepathBase,
+                        FullDataPathSuffix
+                        )
+                    out.update(tmpOut)
+
+                del tmpOut
+                #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+
+                flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
+
+                del out
+                for key, dict in flatDict.items():
+                    if key[-1] == "Stars":
+                        starsDict.update({key : dict})
+                    else:
+                        dataDict.update({key : dict})
+
         # # #----------------------------------------------------------------------#
         # # #      Calculate Radius xmin
         # # #----------------------------------------------------------------------#
@@ -229,60 +229,62 @@ if __name__ == "__main__":
         # #
         # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
         # # #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
-        # #----------------------------------------------------------------------#
-        # #      Calculate statistics...
-        # #----------------------------------------------------------------------#
-        #
-        # print("")
-        # print("Calculate Statistics!")
-        # print(f"{halo}")
-        # statsDict = {}
-        # statsDictStars = {}
-        # for sim, CRPARAMS in CRPARAMSHALO.items():
-        #     if CRPARAMS['simfile'] is not None:
-        #
-        #
-        #         print(f"{sim}")
-        #         print("Calculate Statistics...")
-        #         print("Gas...")
-        #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-        #
-        #         tmpCRPARAMS = copy.deepcopy(CRPARAMS)
-        #         tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
-        #
-        #         if tmpCRPARAMS['analysisType'] == 'cgm':
-        #             xlimDict["R"]['xmin'] = 0.0
-        #             xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
-        #
-        #         elif tmpCRPARAMS['analysisType'] == 'ism':
-        #             xlimDict["R"]['xmin'] = 0.0
-        #             xlimDict["R"]['xmax'] = tmpCRPARAMS['Rinner']
-        #         else:
-        #             xlimDict["R"]['xmin'] = 0.0
-        #             xlimDict["R"]['xmax'] =  tmpCRPARAMS['Router']
-        #
-        #         dat = cr_calculate_statistics(
-        #             dataDict = dataDict[selectKey],
-        #             CRPARAMS = tmpCRPARAMS,
-        #             xParam = CRPARAMSMASTER["xParam"],
-        #             Nbins = CRPARAMSMASTER["NxParamBins"],
-        #             xlimDict = xlimDict
-        #         )
-        #
-        #         statsDict.update({selectKey: dat})
-        #
-        #         print("Stars...")
-        #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
-        #
-        #         dat = cr_calculate_statistics(
-        #             dataDict = starsDict[selectKey],
-        #             CRPARAMS = tmpCRPARAMS,
-        #             xParam = CRPARAMSMASTER["xParam"],
-        #             Nbins = CRPARAMSMASTER["NxParamBins"],
-        #             xlimDict = xlimDict
-        #         )
-        #
-        #         statsDictStars.update({selectKey: dat})
+        #----------------------------------------------------------------------#
+        #      Calculate statistics...
+        #----------------------------------------------------------------------#
+
+        print("")
+        print("Calculate Statistics!")
+        print(f"{halo}")
+        statsDict = {}
+        statsDictStars = {}
+        for sim, CRPARAMS in CRPARAMSHALO.items():
+            if CRPARAMS['simfile'] is not None:
+
+
+                print(f"{sim}")
+                print("Calculate Statistics...")
+                print("Gas...")
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+
+                tmpCRPARAMS = copy.deepcopy(CRPARAMS)
+                tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
+
+                if tmpCRPARAMS['analysisType'] == 'cgm':
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
+
+                elif tmpCRPARAMS['analysisType'] == 'ism':
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Rinner']
+                else:
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] =  tmpCRPARAMS['Router']
+
+                print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
+                xlimDict["R"]['xmax'])
+                dat = cr_calculate_statistics(
+                    dataDict = dataDict[selectKey],
+                    CRPARAMS = tmpCRPARAMS,
+                    xParam = CRPARAMSMASTER["xParam"],
+                    Nbins = CRPARAMSMASTER["NxParamBins"],
+                    xlimDict = xlimDict
+                )
+
+                statsDict.update({selectKey: dat})
+
+                print("Stars...")
+                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+
+                dat = cr_calculate_statistics(
+                    dataDict = starsDict[selectKey],
+                    CRPARAMS = tmpCRPARAMS,
+                    xParam = CRPARAMSMASTER["xParam"],
+                    Nbins = CRPARAMSMASTER["NxParamBins"],
+                    xlimDict = xlimDict
+                )
+
+                statsDictStars.update({selectKey: dat})
         # ----------------------------------------------------------------------#
         #  Plots...
         # ----------------------------------------------------------------------#

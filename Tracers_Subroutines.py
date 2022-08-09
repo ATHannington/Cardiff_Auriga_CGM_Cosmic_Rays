@@ -115,7 +115,7 @@ def snap_analysis(
     snapGas.hrgm *= 1e10  # [Msol]
 
     rmax = np.max(TRACERSPARAMS["Router"])
-    boxmax = 1.5 * rmax
+    boxmax = rmax
     box = [boxmax, boxmax, boxmax]
     # Calculate New Parameters and Load into memory others we want to track
     snapGas = calculate_tracked_parameters(
@@ -197,6 +197,8 @@ def snap_analysis(
 
     if TRACERSPARAMS["QuadPlotBool"]:
         TRACERSPARAMS["saveParams"] = copy.copy(TRACERSPARAMS["saveParamsOriginal"])
+        print(f"Save Params:")
+        print(TRACERSPARAMS["saveParams"])
 
     ###
     ##  Selection   ##
@@ -403,7 +405,7 @@ def tracer_selection_snap_analysis(
     snapGas.hrgm *= 1e10  # [Msol]
 
     rmax = np.max(TRACERSPARAMS["Router"])
-    boxmax = 1.5 * rmax
+    boxmax = rmax
     box = [boxmax, boxmax, boxmax]
     # Calculate New Parameters and Load into memory others we want to track
     snapGas = calculate_tracked_parameters(
@@ -476,6 +478,8 @@ def tracer_selection_snap_analysis(
 
     if TRACERSPARAMS["QuadPlotBool"]:
         TRACERSPARAMS["saveParams"] = copy.copy(TRACERSPARAMS["saveParamsOriginal"])
+        print(f"Save Params:")
+        print(TRACERSPARAMS["saveParams"])
 
     if TFCbool == True:
         # --------------------------------------------------------------------------#
@@ -1216,7 +1220,7 @@ def _multi_inner_product(x, y):
     return np.array([np.inner(xx, yy) for (xx, yy) in zip(x, y)])
 
 
-def _wrapper_map_cart_grid_to_cells(pos_array, boxsize, intres, center):
+def _wrapper_map_cart_grid_to_cells(pos_array, boxsize, gridres, center):
     import copy
 
     v_map_cart_grid_to_cells = np.vectorize(
@@ -1224,7 +1228,7 @@ def _wrapper_map_cart_grid_to_cells(pos_array, boxsize, intres, center):
     )
 
     halfbox = copy.copy(boxsize) / 2.0
-    coord_spacings = np.linspace(-1.0 * halfbox, halfbox, intres)
+    coord_spacings = np.linspace(-1.0 * halfbox, halfbox, gridres)
     xx = coord_spacings + center[0]
     yy = coord_spacings + center[1]
     zz = coord_spacings + center[2]
@@ -1243,16 +1247,16 @@ def calculate_tracked_parameters(
     omegabaryon0,
     snapNumber,
     paramsOfInterest=[],
-    mapping=None,
-    gridRes=512,
+    mappingBool=True,
     numthreads=2,
     box=None,
+    gridres = 512,
 ):
     """
     Calculate the physical properties of all cells, or gas only where necessary
     """
     print(f"[@{snapNumber}]: Calculate Tracked Parameters!")
-
+    mapping = None
     whereGas = np.where(snapGas.type == 0)[0]
     # Density is rho/ <rho> where <rho> is average baryonic density
     rhocrit = (
@@ -1514,8 +1518,8 @@ def calculate_tracked_parameters(
             mapping=mapping,
             normed=True,
             box=box,
-            res=gridRes,
             numthreads=numthreads,
+            gridres = gridres,
         )
     if np.any(np.isin(np.array(["Grad_n_H"]), np.array(paramsOfInterest))) | (
         len(paramsOfInterest) == 0
@@ -1526,8 +1530,8 @@ def calculate_tracked_parameters(
             mapping=mapping,
             normed=True,
             box=box,
-            res=gridRes,
             numthreads=numthreads,
+            gridres = gridres,
         )
     if np.any(np.isin(np.array(["Grad_bfld"]), np.array(paramsOfInterest))) | (
         len(paramsOfInterest) == 0
@@ -1538,8 +1542,8 @@ def calculate_tracked_parameters(
             mapping=mapping,
             normed=True,
             box=box,
-            res=gridRes,
             numthreads=numthreads,
+            gridres = gridres,
         )
         snapGas.data["Grad_bfld"] = np.linalg.norm(snapGas.data["Grad_bfld"], axis=1)
     # Cosmic Ray Pressure
@@ -1589,8 +1593,8 @@ def calculate_tracked_parameters(
                 mapping=mapping,
                 normed=False,
                 box=box,
-                res=gridRes,
                 numthreads=numthreads,
+                gridres = gridres,
             )
     except Exception as e:
         print(f"[@calculate_tracked_parameters]: Grad_P_CR {str(e)}")
@@ -1647,14 +1651,14 @@ def calculate_gradient_of_parameter(
     snap,
     arg,
     mapping=None,
+    mappingBool=True,
     normed=False,
     ptype=0,
     center=False,
-    box=False,
-    res=512,
+    box=None,
     use_only_cells=None,
     numthreads=8,
-    nneighbours=10,
+    gridres = 512,
 ):
     """
     Calculate the (norm of the) gradient of parameters argv for
@@ -1673,21 +1677,12 @@ def calculate_gradient_of_parameter(
     print(f"Calculating gradient of {arg}!")
     print(f"Norm of gradient? {normed}")
 
-    intres = copy.copy(res)
-    if (box is False) | (box is None):
-        boxsize = snap.boxsize * 1e3
-    elif np.all(box == box[0]):
-        boxsize = copy.copy(np.max(box))
-    else:
-        raise Exception(
-            f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE!"
-            + "\n"
-            + "Box not False, None, or all elements equal."
-            + "\n"
-            + "function @calculate_gradient_of_parameter not adapted for non-cube boxes."
-            + "\n"
-            + "All box sides must be equal, or snap.boxsize [kpc] will be used."
-        )
+    # if (box is False) | (box is None):
+    #     boxsize = snap.boxsize*2.
+    # elif np.all(box==box[0]):
+    #     boxsize = copy.copy(np.max(box)/1e3)*2.
+    # else:
+    #     raise Exception(f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE!" + "\n" + "Box not False, None, or all elements equal." + "\n" + "function @calculate_gradient_of_parameter not adapted for non-cube boxes." + "\n" + "All box sides must be equal, or snap.boxsize [Mpc] will be used.")
 
     if use_only_cells is None:
         use_only_cells = np.where(snap.type == ptype)[0]
@@ -1697,63 +1692,48 @@ def calculate_gradient_of_parameter(
     elif type(center) != np.ndarray:
         center = snap.center
 
-    if type(box) == list:
-        box = pylab.array(box)
-    elif type(box) != np.ndarray:
-        box = np.array([boxsize, boxsize, boxsize])
+    if np.all(box == box[0]) is False:
+        raise Exception(
+            f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE!"
+            + "\n"
+            + "Box not False, None, or all elements equal."
+            + "\n"
+            + "function @calculate_gradient_of_parameter not adapted for non-cube boxes."
+            + "\n"
+            + "All box sides must be equal, or snap.boxsize [Mpc] will be used."
+        )
+    elif (type(box) == list) | (type(box) == np.ndarray):
+        box = pylab.array([(bb*2.) / (1e3) for bb in box])
+    elif box is None:
+        bb = (np.nanmax(snap.data["pos"])*2.) / 1e3
+        box = np.array([bb] * 3)
 
-    if type(res) == list:
-        res = pylab.array(res)
-    elif type(res) != np.ndarray:
-        res = np.array([res] * 3)
+    boxsize = box[0]
 
-    boxsize *= 2.0
-    box *= 2.0
-    halfbox = copy.copy(boxsize) / 2.0
-    spacing = halfbox / float(intres)
+    spacing = (boxsize) / float(gridres)
 
-    pos = snap.pos[use_only_cells, :].astype("float64").copy()
+    pos = snap.pos[use_only_cells, :].astype("float64").copy() / 1e3
     px = np.abs(pos[:, 0] - center[0])
     py = np.abs(pos[:, 1] - center[1])
     pz = np.abs(pos[:, 2] - center[2])
 
-    (pp,) = np.where((px < 0.5 * box[0]) & (py < 0.5 * box[1]) & (pz < 0.5 * box[2]))
+    (pp,) = np.where((px <= 0.5*box[0]) & (py <= 0.5*box[1]) & (pz <= 0.5*box[2]))
     print("Selected %d of %d particles." % (pp.size, snap.npart))
 
     posdata = pos[pp]
     valdata = snap.data[arg][use_only_cells][pp].astype("float64")
-    massdata = snap.mass[use_only_cells][pp].astype("float64")
+    massdata = snap.mass[use_only_cells][pp].astype("float64") / (1e10)
 
     # vol *= 1e9  # [kpc^3]
     # mass *= 1e10  # [Msol]
-    rhodata = snap.rho[use_only_cells][pp].astype("float64") * (1e10 / 1e9)
+    rhodata = snap.rho[use_only_cells][pp].astype("float64")
 
-    tree = pysph.makeTree(posdata)
-
-    hsmlScalar, _, _ = tree.calcHsml(center, posdata, massdata, nneighbours)
-
-    hsml = np.full(massdata.shape, fill_value=hsmlScalar).astype("float64")
+    # Empirical finding of 5*spacing seems to work well
+    hsml = np.full(massdata.shape, fill_value=5.*spacing).astype("float64")
 
     if valdata.ndim == 1:
         print("Calc Grid!")
-        grid = calcGrid.calcGrid(
-            posdata,
-            hsml,
-            massdata,
-            rhodata,
-            valdata.astype("float64"),
-            nx=res[0],
-            ny=res[1],
-            nz=res[2],
-            boxx=box[0],
-            boxy=box[1],
-            boxz=box[2],
-            centerx=center[0],
-            centery=center[1],
-            centerz=center[2],
-            numthreads=numthreads,
-            verbose=True,
-        )
+        grid = calcGrid.calcGrid(posdata,hsml,massdata,rhodata,valdata.astype("float64"),nx=gridres,ny=gridres,nz=gridres,boxx=0.5*box[0],boxy=0.5*box[1],boxz=0.5*box[2],centerx=center[0],centery=center[1],centerz=center[2],numthreads=numthreads,verbose=True)
 
         grid = np.transpose(grid)
         key = "Grad_" + arg
@@ -1788,12 +1768,12 @@ def calculate_gradient_of_parameter(
                 massdata,
                 rhodata,
                 valdata[:, dim].astype("float64"),
-                nx=res[0],
-                ny=res[1],
-                nz=res[2],
-                boxx=box[0],
-                boxy=box[1],
-                boxz=box[2],
+                nx=gridres,
+                ny=gridres,
+                nz=gridres,
+                boxx=0.5*box[0],
+                boxy=0.5*box[1],
+                boxz=0.5*box[2],
                 centerx=center[0],
                 centery=center[1],
                 centerz=center[2],
@@ -1829,6 +1809,21 @@ def calculate_gradient_of_parameter(
             + f"Grad_{arg} will not be calculated!"
         )
 
+    nExpectedZeros = ((gridres**2)*6.0)
+    if valdata.ndim == 2: nExpectedZeros*=3.0
+
+    try:
+        if transposeBool is False:
+            nActualZeros = (np.where(snap.data[key]==0.0)[0]).shape[0]
+        else:
+            nActualZeros = (np.where(snap.data[key]==0.0)[0]).shape[1]
+    except:
+        nActualZeros = (np.where(snap.data[key]==0.0)[0]).shape[0]
+
+    if int(nActualZeros) >= int(2 * nExpectedZeros):
+        print(f"[@calculate_gradient_of_parameter]: nActualZeros found in data > 2*nExpectedZeros! Gradients may not have been calculated correctly"+"\n"+f"nActualZeros = {nActualZeros} | nExpectedZeros = {nExpectedZeros}"+"\n"+f"Data:"+"\n"+f"{snap.data[key]}"+ f"Grid:"+"\n"+f"{grid}")
+        STOP1844ZEROS
+
     # print("***---***")
     # print("*** DEBUG! ***")
     # print(arg)
@@ -1836,104 +1831,109 @@ def calculate_gradient_of_parameter(
     # print("shape arg", np.shape(snap.data[arg]))
     # print("shape key", np.shape(snap.data[key]))
     # print("***---***")
+    if mappingBool is True:
+        if mapping is None:
+            print("Map between Cartesian Grid and Approximate Cells")
+            print("This may take a while ...")
 
-    if mapping is None:
-        print("Map between Cartesian Grid and Approximate Cells")
-        print("This may take a while ...")
+            ### Limit RAM use
+            memLimit = 0.75  #%
+            maxRamPickle = 4.0e9
+            maxRamSysAvailable = psutil.virtual_memory().available
+            maxRamSysTot = psutil.virtual_memory().total
 
-        ### Limit RAM use
-        memLimit = 0.75  #%
-        maxRamPickle = 4.0e9
-        maxRamSysAvailable = psutil.virtual_memory().available
-        maxRamSysTot = psutil.virtual_memory().total
+            nchunks = (64.0 * np.prod(posdata.shape)) / (maxRamPickle * memLimit)
 
-        nchunks = (64.0 * np.prod(posdata.shape)) / (maxRamPickle * memLimit)
+            reqMem = 64.0 * (
+                np.prod(posdata.shape) + (3.0 * float(gridres) * numthreads)
+            )
 
-        reqMem = 64.0 * (np.prod(posdata.shape) + (3.0 * float(intres) * numthreads))
+            if reqMem >= memLimit * maxRamSysAvailable:
+                while (reqMem >= maxRamSysAvailable) & (numthreads >= 1):
+                    numthreads -= 1
+                    reqMem = 64.0 * (
+                        np.prod(posdata.shape) + (3.0 * float(gridres) * numthreads)
+                    )
 
-        if reqMem >= memLimit * maxRamSysAvailable:
-            while (reqMem >= maxRamSysAvailable) & (numthreads >= 1):
-                numthreads -= 1
-                reqMem = 64.0 * (
-                    np.prod(posdata.shape) + (3.0 * float(intres) * numthreads)
+            numthreads = int(max(numthreads, 1))
+
+            if reqMem >= maxRamSysTot:
+                print(
+                    f"[@calculate_gradient_of_parameter]: WARNING! RAM requirements will be exceeded by resolution of ({gridres})**3 !"
+                )
+                print(
+                    f"RAM requirements are {reqMem} ({(reqMem/maxRamSysTot):.2%} of total RAM)!"
+                )
+                suggested = math.floor(
+                    (((maxRamSysTot / 64.0) - np.prod(posdata.shape)) / (3.0))
+                    ** (1.0 / 3.0)
+                )
+                print(
+                    f"We suggest a GridRes < {suggested} for this system. Remember to leave RAM for other objects too!"
                 )
 
-        numthreads = int(max(numthreads, 1))
+            nchunks = int(max(nchunks, numthreads))
 
-        if reqMem >= maxRamSysTot:
+            pool = mp.Pool(numthreads)
             print(
-                f"[@calculate_gradient_of_parameter]: WARNING! RAM requirements will be exceeded by resolution of ({intres})**3 !"
-            )
-            print(
-                f"RAM requirements are {reqMem} ({(reqMem/maxRamSysTot):.2%} of total RAM)!"
-            )
-            suggested = math.floor(
-                (((maxRamSysTot / 64.0) - np.prod(posdata.shape)) / (3.0))
-                ** (1.0 / 3.0)
-            )
-            print(
-                f"We suggest a GridRes < {suggested} for this system. Remember to leave RAM for other objects too!"
+                f"Starting numthreads = {numthreads} mp pool with data split into {nchunks} chunks..."
             )
 
-        nchunks = int(max(nchunks, numthreads))
-
-        pool = mp.Pool(numthreads)
-        print(
-            f"Starting numthreads = {numthreads} mp pool with data split into {nchunks} chunks..."
-        )
-
-        posrange = range(0, posdata.shape[0] + 1, int(posdata.shape[0] // nchunks))
-        args_list = [
-            [posSubset, boxsize, intres, center]
-            for posSubset in [
-                posdata[ii:jj] for (ii, jj) in zip(list(posrange), list(posrange)[1:])
+            posrange = range(0, posdata.shape[0] + 1, int(posdata.shape[0] // nchunks))
+            args_list = [
+                [posSubset, boxsize, gridres, center]
+                for posSubset in [
+                    posdata[ii:jj]
+                    for (ii, jj) in zip(list(posrange), list(posrange)[1:])
+                ]
             ]
-        ]
 
-        print("Map...")
-        start = time.time()
-        args_list = args_list + [
-            [
-                posdata[(-1 - int(posdata.shape[0] % nchunks)) : -1],
-                boxsize,
-                intres,
-                center,
+            print("Map...")
+            start = time.time()
+            args_list = args_list + [
+                [
+                    posdata[(-1 - int(posdata.shape[0] % nchunks)) : -1],
+                    boxsize,
+                    gridres,
+                    center,
+                ]
             ]
-        ]
 
-        # printpercent = 5.0
-        # printcount = 0.0
-        # output_list = []
-        # for ii,args in enumerate(args_list):
-        #     percentage = (float(ii)/float(len(args_list))) * 100.0
-        #     if percentage >= printcount:
-        #         print(f"{percentage:0.02f}% Cells mapped to Cart. Grid!")
-        #         printcount += printpercent
+            # printpercent = 5.0
+            # printcount = 0.0
+            # output_list = []
+            # for ii,args in enumerate(args_list):
+            #     percentage = (float(ii)/float(len(args_list))) * 100.0
+            #     if percentage >= printcount:
+            #         print(f"{percentage:0.02f}% Cells mapped to Cart. Grid!")
+            #         printcount += printpercent
 
-        output_list = [
-            pool.apply_async(
-                _wrapper_map_cart_grid_to_cells, args=args, error_callback=err_catcher
-            )
-            for args in args_list
-        ]
+            output_list = [
+                pool.apply_async(
+                    _wrapper_map_cart_grid_to_cells,
+                    args=args,
+                    error_callback=err_catcher,
+                )
+                for args in args_list
+            ]
 
-        pool.close()
-        pool.join()
+            pool.close()
+            pool.join()
 
-        mapping = np.concatenate(
-            tuple([out.get() for out in output_list]), axis=0
-        ).astype(np.int32)
-        stop = time.time()
+            mapping = np.concatenate(
+                tuple([out.get() for out in output_list]), axis=0
+            ).astype(np.int32)
+            stop = time.time()
 
-        print("...done!")
-        print(f"Mapping took {stop-start:.2f}s")
+            print("...done!")
+            print(f"Mapping took {stop-start:.2f}s")
 
-    # Perform mapping from Cart Grid back to approx. cells
-    snap.data[key] = snap.data[key][mapping]
+        # Perform mapping from Cart Grid back to approx. cells
+        snap.data[key] = snap.data[key][mapping]
 
-    assert (
-        np.shape(snap.data[key])[0] == np.shape(snap.data[arg])[0]
-    ), f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE! Output from Gradient Calc and subsequent mapping not equal in shape to input data! Check Logic!"
+        assert (
+            np.shape(snap.data[key])[0] == np.shape(snap.data[arg])[0]
+        ), f"[@calculate_gradient_of_parameter]: WARNING! CRITICAL! FAILURE! Output from Gradient Calc and subsequent mapping not equal in shape to input data! Check Logic!"
 
     # print("***---***")
     # print("*** DEBUG! ***")
@@ -2929,6 +2929,7 @@ def calculate_statistics(Cells, TRACERSPARAMS, saveParams, weightedStatsBool=Fal
                 saveKey = f"{k}_{percentile:2.2f}%"
 
                 truthy = np.all(np.isnan(v))
+                if truthy == True: print(f"[@calculate_statistics]: WARNING! truthy == False! All data is NaN!")
 
                 if weightedStatsBool is False:
                     if truthy == False:
@@ -2944,8 +2945,9 @@ def calculate_statistics(Cells, TRACERSPARAMS, saveParams, weightedStatsBool=Fal
                             weightKey = "mass"
                             weightData = Cells[weightKey]
 
+                        whereReal = np.where((np.isfinite(v)==True)&(np.isfinite(weightData))==True)
                         stat = weighted_percentile(
-                            v, weights=weightData, perc=percentile, key=k
+                            v[whereReal], weights=weightData[whereReal], perc=percentile, key=k
                         )
                     else:
                         stat = np.array([0.0])
@@ -3726,6 +3728,31 @@ def tracer_plot(
     figureArray = np.array(figureArray)
     axesArray = np.array(axesArray)
 
+    # load in the subfind group files
+    tmpsnap_subfind = load_subfind(
+        int(TRACERSPARAMS["selectSnap"]), dir=TRACERSPARAMS["simfile"]
+    )
+
+    # load in the gas particles mass and position only for HaloID 0.
+    #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
+    tmpsnapGas = gadget_readsnap(
+        int(TRACERSPARAMS["selectSnap"]),
+        TRACERSPARAMS["simfile"],
+        hdf5=True,
+        loadonlytype=[0],
+        lazy_load=True,
+        subfind=tmpsnap_subfind,
+    )
+
+    # Redshift
+    tmpredshift = tmpsnapGas.redshift  # z
+    aConst = 1.0 / (1.0 + tmpredshift)  # [/]
+
+    # [0] to remove from numpy array for purposes of plot title
+    selectlookback = tmpsnapGas.cosmology_get_lookback_time_from_a(np.array([aConst]))[
+        0
+    ]  # [Gyrs]
+
     ss = -1
 
     for snapNumber in snapRange:
@@ -3798,7 +3825,7 @@ def tracer_plot(
         snapGas.hrgm *= 1e10  # [Msol]
 
         rmax = np.max(TRACERSPARAMS["Router"])
-        boxmax = 1.5 * rmax
+        boxmax = rmax
         box = [boxmax, boxmax, boxmax]
         # Calculate New Parameters and Load into memory others we want to track
         snapGas = calculate_tracked_parameters(
@@ -3966,33 +3993,6 @@ def tracer_plot(
                 # PLOTTING TIME
 
                 print(f"[@T{targetT} @{rin}R{rout} @{int(snapNumber)}]: Tracer Plot...")
-
-                # load in the subfind group files
-                tmpsnap_subfind = load_subfind(
-                    int(TRACERSPARAMS["selectSnap"]), dir=TRACERSPARAMS["simfile"]
-                )
-
-                # load in the gas particles mass and position only for HaloID 0.
-                #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
-                tmpsnapGas = gadget_readsnap(
-                    int(TRACERSPARAMS["selectSnap"]),
-                    TRACERSPARAMS["simfile"],
-                    hdf5=True,
-                    loadonlytype=[0],
-                    lazy_load=True,
-                    subfind=tmpsnap_subfind,
-                )
-
-                # Redshift
-                tmpredshift = tmpsnapGas.redshift  # z
-                aConst = 1.0 / (1.0 + tmpredshift)  # [/]
-
-                # [0] to remove from numpy array for purposes of plot title
-                selectlookback = tmpsnapGas.cosmology_get_lookback_time_from_a(
-                    np.array([aConst])
-                )[
-                    0
-                ]  # [Gyrs]
 
                 print(
                     f"[@T{targetT} @{rin}R{rout} @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
@@ -4289,7 +4289,12 @@ def tracer_plot(
                     # that is 100% width of subplots, and 5% in height
                     if snapNumber == outerPlotSnaps[-1]:
                         cax = figOuter.add_axes(
-                            [leftParam, bottomParam * 0.5, 0.90 - leftParam, 0.075]
+                            [
+                                leftParam,
+                                bottomParam * 0.5,
+                                0.90 - leftParam,
+                                bottomParam * 0.5 * 0.66,
+                            ]
                         )
                         cbarfigOuter = figOuter.colorbar(
                             pcm1Outer,
@@ -4297,7 +4302,7 @@ def tracer_plot(
                             ax=axOuterObj.ravel().tolist(),
                             ticks=[1e4, 1e5, 1e6, 10 ** (6.5)],
                             orientation="horizontal",
-                            pad=0.15,
+                            pad=0.05,
                         )
                         cbarfigOuter.set_label(label=r"T [K]", size=fontsize)
                         cbarfigOuter.ax.set_xticklabels(
@@ -4531,6 +4536,10 @@ def multi_halo_merge(
     if truthy == False:
         print("")
         print(f"Param Counts Dict: {paramFreqDict}")
+        print("Save params were:")
+        print(saveParams)
+        print("In the order of the following sims:")
+        print(simList)
         raise Exception(
             "[@ multi_halo_merge]: WARNING! CRITICAL! Simulations do not contain same Save Parameters (saveParams)! Check TracersParams.csv!"
         )
@@ -4542,6 +4551,10 @@ def multi_halo_merge(
     if truthy == False:
         print("")
         print(f"Param Counts Dict: {paramFreqDict}")
+        print("Loaded Save params were:")
+        print(loadedParams)
+        print("In the order of the following sims:")
+        print(simList)
         raise Exception(
             "[@ multi_halo_merge]: WARNING! CRITICAL! Flattened Data do not contain same Save Parameters (saveParams)! Check TracersParams.csv BEFORE flatten_wrt_time contained same Save Parameters (saveParams)!"
         )
@@ -4773,6 +4786,10 @@ def multi_halo_merge_flat_wrt_time(
     if truthy == False:
         print("")
         print(f"Param Counts Dict: {paramFreqDict}")
+        print("Save params were:")
+        print(saveParams)
+        print("In the order of the following sims:")
+        print(simList)
         raise Exception(
             "[@ multi_halo_merge]: WARNING! CRITICAL! Simulations do not contain same Save Parameters (saveParams)! Check TracersParams.csv!"
         )
@@ -4784,6 +4801,10 @@ def multi_halo_merge_flat_wrt_time(
     if truthy == False:
         print("")
         print(f"Param Counts Dict: {paramFreqDict}")
+        print("Loaded save params were:")
+        print(loadedParams)
+        print("In the order of the following sims:")
+        print(simList)
         raise Exception(
             "[@ multi_halo_merge]: WARNING! CRITICAL! Flattened Data do not contain same Save Parameters (saveParams)! Check TracersParams.csv BEFORE flatten_wrt_time contained same Save Parameters (saveParams)!"
         )
