@@ -23,6 +23,7 @@ import sys
 import logging
 import copy
 
+colourmapMain = "plasma"
 CRPARAMSPATHMASTER = "CRParams.json"
 CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, "r"))
 # =============================================================================#
@@ -304,6 +305,7 @@ if __name__ == "__main__":
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
+            colourmapMain = colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -320,6 +322,7 @@ if __name__ == "__main__":
             xlimDict=xlimDict,
             snapRange=snapRange,
             densityBool=True,
+            colourmapMain = colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -336,6 +339,7 @@ if __name__ == "__main__":
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
+            colourmapMain = colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -351,6 +355,7 @@ if __name__ == "__main__":
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
+            colourmapMain = colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
