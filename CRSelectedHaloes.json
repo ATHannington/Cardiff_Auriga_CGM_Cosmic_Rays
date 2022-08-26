@@ -1,24 +1,70 @@
 {
 "halo_12" : {
-  "standard_with_CRs" : {
-    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
-    "resolution": "standard",
-    "with_CRs" : true
-      },
-  "standard_no_CRs" : {
-    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_standard/output/",
-    "resolution": "standard",
-    "with_CRs" : false
-      },
   "high_with_CRs" : {
-    "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",
+    "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",
     "resolution": "high",
     "with_CRs" : true
       },
   "high_no_CRs" : {
-      "simfile": "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc/output/",
+      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_1kpc/output/",
       "resolution": "high",
       "with_CRs" : false
+      },
+  "standard_with_CRs" : {
+    "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
+    "resolution": "standard",
+    "with_CRs" : true
+      },
+  "standard_no_CRs" : {
+    "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_standard/output/",
+    "resolution": "standard",
+    "with_CRs" : false
       }
-  }
+  },
+
+  "halo_6" : {
+    "high_with_CRs" : {
+      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_1kpc_CRdiffalfven/output/",
+      "resolution": "high",
+      "with_CRs" : true
+        },
+    "high_no_CRs" : {
+        "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_1kpc/output/",
+        "resolution": "high",
+        "with_CRs" : false
+        },
+    "standard_with_CRs" : {
+      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_standard_CRdiffalfven/output/",
+      "resolution": "standard",
+      "with_CRs" : true
+        },
+    "standard_no_CRs" : {
+      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_standard/output/",
+      "resolution": "standard",
+      "with_CRs" : false
+        }
+    },
+
+  "halo_5" : {
+    "high_with_CRs" : {
+      "simfile": null,
+      "resolution": "high",
+      "with_CRs" : true
+        },
+    "high_no_CRs" : {
+        "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h5_1kpc/output/",
+        "resolution": "high",
+        "with_CRs" : false
+        },
+    "standard_with_CRs" : {
+      "simfile": null,
+      "resolution": "standard",
+      "with_CRs" : true
+        },
+    "standard_no_CRs" : {
+      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h5_standard/output/",
+      "resolution": "standard",
+      "with_CRs" : false
+        }
+    }
 }
