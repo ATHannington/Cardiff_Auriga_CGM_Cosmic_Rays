@@ -130,18 +130,24 @@ def cr_analysis_radial(
         )
 
     # Load Cell Other params - avoids having to turn lazy_load off...
-    tmp = snapGas.data["id"]
-    tmp = snapGas.data["sfr"]
-    tmp = snapGas.data["hrgm"]
-    tmp = snapGas.data["mass"]
-    tmp = snapGas.data["pos"]
-    tmp = snapGas.data["vol"]
-
-    tmp = snapStars.data["mass"]
-    tmp = snapStars.data["pos"]
-    tmp = snapStars.data["age"]
-    tmp = snapStars.data["gima"]
-    tmp = snapStars.data["gz"]
+    for snap in [snapGas,snapStars]:
+        for param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
+            try:
+                tmp = snap.data[param]
+            except:
+                pass
+    # tmp = snapGas.data["id"]
+    # tmp = snapGas.data["sfr"]
+    # tmp = snapGas.data["hrgm"]
+    # tmp = snapGas.data["mass"]
+    # tmp = snapGas.data["pos"]
+    # tmp = snapGas.data["vol"]
+    #
+    # tmp = snapStars.data["mass"]
+    # tmp = snapStars.data["pos"]
+    # tmp = snapStars.data["age"]
+    # tmp = snapStars.data["gima"]
+    # tmp = snapStars.data["gz"]
 
     del tmp
 
