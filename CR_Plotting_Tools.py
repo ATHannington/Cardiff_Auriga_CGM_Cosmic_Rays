@@ -756,3 +756,189 @@ def cumulative_mass_versus_plot(
             plt.close()
 
     return
+
+def phases_plot(
+    dataDict,
+    CRPARAMSHALO,
+    halo,
+    ylabel,
+    logparams,
+    xlimDict,
+    weightKeys = ["mass", "Pthermal_Pmagnetic", "gz", "tcool_tff"],
+    titleBool=False,
+    DPI=150,
+    xsize=8.0,
+    ysize=8.0,
+    opacityPercentiles=0.25,
+    lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
+    colourmapMain="plasma",
+    Nbins=250,
+):
+
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    try:
+        tmp = xlimDict["mass"]
+    except:
+        xlimDict.update({"mass":{"xmin": 4.0, "xmax": 9.0}})
+
+    zlimDict = copy.deepcopy(xlimDict)
+
+    zlimDict.update({"rho_rhomean" :{"xmin": 0.25, "xmax": 6.5}})
+    zlimDict.update({"T" :{"xmin": 3.75, "xmax": 7.0}})
+    zlimDict.update({"tcool_tff": {"xmin": -2.5, "xmax": 2.0}})
+    zlimDict.update({"gz": {"xmin": -1.0, "xmax": 0.25}})
+    zlimDict.update({"Pthermal_Pmagnetic": {"xmin": -2.0, "xmax": 10.0}})
+
+    keys = list(CRPARAMSHALO.keys())
+    selectKey0 = keys[0]
+
+    savePath = f"./Plots/{halo}/{CRPARAMSHALO[selectKey0]['analysisType']}/Phases/"
+    tmp = "./"
+
+    for savePathChunk in savePath.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+
+    fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+        # ------------------------------------------------------------------------------#
+        #               PLOTTING
+        #
+        # ------------------------------------------------------------------------------#
+    for weightKey in weightKeys:
+        print("\n" + f"Starting weightKey {weightKey}")
+
+        zmin = zlimDict[weightKey]["xmin"]
+        zmax = zlimDict[weightKey]["xmax"]
+
+        fig, ax = plt.subplots(
+            nrows=2,
+            ncols=2,
+            figsize=(xsize, ysize),
+            dpi=DPI,
+            sharey=True,
+            sharex=True,
+        )
+        Nkeys = len(list(dataDict.items()))
+        for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+            if selectKey[-1] == "Stars":
+                selectKeyShort = selectKey[:-1]
+                print("[@phases_plot]: WARNING! Stars not supported! Skipping!")
+                continue
+            else:
+                selectKeyShort = selectKey
+
+            loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
+            if loadpath is not None:
+                print(
+                    f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}"
+                )
+
+                row, col = np.unravel_index(np.array([ii]),shape=(2,2))
+
+                currentAx = ax[row[0],col[0]]
+
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+                #   Figure 1: Full Cells Data
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+                xdataCells = np.log10(
+                    simDict["rho_rhomean"]
+                )
+                ydataCells = np.log10(simDict["T"])
+                massCells = simDict["mass"]
+                weightDataCells = (
+                    simDict[weightKey] * massCells
+                )
+
+                if weightKey == "mass":
+                    finalHistCells, xedgeCells, yedgeCells = np.histogram2d(
+                        xdataCells, ydataCells, bins=Nbins, weights=massCells
+                    )
+                else:
+                    mhistCells, _, _ = np.histogram2d(
+                        xdataCells, ydataCells, bins=Nbins, weights=massCells
+                    )
+                    histCells, xedgeCells, yedgeCells = np.histogram2d(
+                        xdataCells, ydataCells, bins=Nbins, weights=weightDataCells
+                    )
+
+                    finalHistCells = histCells / mhistCells
+
+                finalHistCells[finalHistCells == 0.0] = np.nan
+                if weightKey in logparams:
+                    finalHistCells = np.log10(finalHistCells)
+                finalHistCells = finalHistCells.T
+
+                xcells, ycells = np.meshgrid(xedgeCells, yedgeCells)
+
+                img1 = currentAx.pcolormesh(
+                    xcells,
+                    ycells,
+                    finalHistCells,
+                    cmap=colourmapMain,
+                    vmin=zmin,
+                    vmax=zmax,
+                    rasterized=True,
+                )
+                #
+                # img1 = currentAx.imshow(finalHistCells,cmap=colourmapMain,vmin=xmin,vmax=xmax \
+                # ,extent=[np.min(xedgeCells),np.max(xedgeCells),np.min(yedgeCells),np.max(yedgeCells)],origin='lower')
+
+                currentAx.set_xlabel(
+                    r"Log10 Density ($ \rho / \langle \rho \rangle $)",
+                    fontsize=fontsize,
+                )
+                currentAx.set_ylabel("Log10 Temperatures (K)", fontsize=fontsize)
+
+                currentAx.set_ylim(zlimDict["T"]["xmin"], zlimDict["T"]["xmax"])
+                currentAx.set_xlim(zlimDict["rho_rhomean"]["xmin"], zlimDict["rho_rhomean"]["xmax"])
+                currentAx.tick_params(axis="both", which="both", labelsize=fontsize)
+
+                currentAx.set_title(
+                    f"{halo}:" + "\n" +  f"{CRPARAMSHALO[selectKeyShort]['resolution']} resolution {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
+                    fontsize=fontsizeTitle,
+                )
+                currentAx.set_aspect("auto")
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        #   Figure: Finishing up
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+                            #left, bottom, width, height
+                            # x0,    y0,  delta x, delta y
+        cax1 = fig.add_axes([0.925,0.10,0.05,0.80])
+
+        fig.colorbar(img1, cax=cax1, ax=ax[:,-1].ravel().tolist(), orientation="vertical",pad=0.05).set_label(
+            label=ylabel[weightKey], size=fontsize
+        )
+        cax1.yaxis.set_ticks_position("left")
+        cax1.yaxis.set_label_position("left")
+        cax1.yaxis.label.set_color("black")
+        cax1.tick_params(axis="y", colors="black", labelsize=fontsize)
+
+
+        if titleBool is True:
+            fig.suptitle(
+                f"Temperature Density Diagram, weighted by {weightKey}",
+                fontsize=fontsizeTitle,
+            )
+
+        if titleBool is True:
+            plt.subplots_adjust(top=0.875,right = 0.8, hspace=0.3, wspace = 0.3)
+        else:
+            plt.subplots_adjust(right = 0.8, hspace=0.3, wspace = 0.3)
+
+        opslaan = (
+            savePath
+            + f"CR_{halo}_{weightKey}-Phases-Plot.pdf"
+        )
+        plt.savefig(opslaan, dpi=DPI, transparent=False)
+        print(opslaan)
+
+    return
