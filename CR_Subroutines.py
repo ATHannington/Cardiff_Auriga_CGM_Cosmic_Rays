@@ -23,9 +23,9 @@ import os
 
 DEBUG = False
 
-
 def cr_analysis_radial(
-    snapNumber, CRPARAMS, DataSavepathBase, FullDataPathSuffix=".h5"
+    snapNumber, CRPARAMS, DataSavepathBase, FullDataPathSuffix=".h5",
+    rotation_matrix=None
 ):
     analysisType = CRPARAMS["analysisType"]
 
@@ -39,9 +39,12 @@ def cr_analysis_radial(
         )
     out = {}
 
+    saveDir = ( DataSavepathBase+f"{CRPARAMS['halo']}"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/type-{analysisType}/"
+    )
+
     # Generate halo directory
     tmp = "/"
-    for savePathChunk in DataSavepathBase.split("/")[1:-1]:
+    for savePathChunk in saveDir.split("/")[1:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -51,13 +54,13 @@ def cr_analysis_radial(
             pass
 
     DataSavepath = (
-        DataSavepathBase
-        + f"Data_CR_{CRPARAMS['resolution']}_{CRPARAMS['CR_indicator']}"
+        saveDir + "CR_"
     )
+
 
     print("")
     print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}"
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}"
     )
 
     loadpath = CRPARAMS["simfile"]
@@ -72,8 +75,8 @@ def cr_analysis_radial(
         snapNumber,
         loadpath,
         hdf5=True,
-        loadonlytype=[0, 1],
-        lazy_load=False,
+        loadonlytype=[0, 1, 4],
+        lazy_load=True,
         subfind=snap_subfind,
     )
 
@@ -104,9 +107,27 @@ def cr_analysis_radial(
         loadpath,
         hdf5=True,
         loadonlytype=[4],
-        lazy_load=False,
+        lazy_load=True,
         subfind=snap_subfind,
     )
+
+    snapGas.calc_sf_indizes(snap_subfind, halolist=[int(CRPARAMS["HaloID"])])
+    if rotation_matrix is None:
+        rotation_matrix = snapGas.select_halo(snap_subfind, do_rotation=True)
+    else:
+        snapGas.select_halo(snap_subfind, do_rotation=False)
+        snapGas.rotateto(
+            rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2]
+        )
+
+    snapStars.calc_sf_indizes(snap_subfind, halolist=[int(CRPARAMS["HaloID"])])
+    if rotation_matrix is None:
+        rotation_matrix = snapStars.select_halo(snap_subfind, do_rotation=True)
+    else:
+        snapStars.select_halo(snap_subfind, do_rotation=False)
+        snapStars.rotateto(
+            rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2]
+        )
 
     # Load Cell Other params - avoids having to turn lazy_load off...
     tmp = snapGas.data["id"]
@@ -125,32 +146,13 @@ def cr_analysis_radial(
     del tmp
 
     print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
     )
 
     snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS["HaloID"]])
     # snapGas.calc_sf_indizes(snap_subfind, halolist=[0])
 
     snapStars.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS["HaloID"]])
-
-    # Centre the simulation on HaloID 0
-    snapGas = set_centre(
-        snap=snapGas,
-        snap_subfind=snap_subfind,
-        HaloID=CRPARAMS["HaloID"],
-        snapNumber=snapNumber,
-    )
-    # # Centre the simulation on HaloID 0
-    # snapGas = set_centre(
-    #     snap=snapGas, snap_subfind=snap_subfind, HaloID=0, snapNumber=100
-    # )
-
-    snapStars = set_centre(
-        snap=snapStars,
-        snap_subfind=snap_subfind,
-        HaloID=CRPARAMS["HaloID"],
-        snapNumber=snapNumber,
-    )
 
     # snapGas.select_halo(snap_subfind, do_rotation=False)
     # --------------------------#
@@ -171,231 +173,140 @@ def cr_analysis_radial(
     snapStars.data["R"] = np.linalg.norm(snapStars.data["pos"], axis=1)
 
     print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars..."
     )
-
-    whereStars = np.where(snapStars.data["age"] >= 0.0)[0]
-    for key, value in snapStars.data.items():
-        if value is not None:
-            snapStars.data[key] = value.copy()[whereStars]
 
     gasTypes = np.unique(snapGas.type)
     starTypes = np.unique(snapStars.type)
 
+    whereWind = snapStars.data["age"] < 0.0
+
+    snapStars = remove_selection(
+        snapStars,
+        removalConditionMask = whereWind,
+        gasTypes=starTypes,
+        errorString = "Remove Wind from Stars",
+        DEBUG = DEBUG,
+        )
+
+
+
     if analysisType == "cgm":
         print(
-            f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM..."
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM..."
         )
-        for tp in gasTypes:
-            try:
-                whereCGM = np.where(
-                    (snapGas.data["sfr"] <= 0.0)
-                    & (snapGas.data["R"] <= CRPARAMS["Router"])
-                    & (snapGas.data["type"] == tp)
-                )[0]
+        whereNotCGM = (snapGas.data["R"] > CRPARAMS["Router"])
 
-                if whereCGM.shape[0] > 0:
-                    for key, value in snapGas.data.items():
-                        if value is not None:
-                            snapGas.data[key] = value[whereCGM]
-                else:
-                    if DEBUG:
-                        print(
-                            f"[@analysisType == cgm ; Gas]: type {tp} ; shape where {np.shape(whereCGM)}"
-                        )
-                    pass
-            except Exception as e:
-                if DEBUG:
-                    print(f"[@analysisType == cgm ; GAS]: DEBUG! Exception: {str(e)}")
-                pass
+        snapGas = remove_selection(
+            snapGas,
+            removalConditionMask = whereNotCGM,
+            gasTypes=gasTypes,
+            errorString = "Remove NOT CGM from Gas",
+            DEBUG = DEBUG,
+            )
 
         # select the CGM, acounting for variable ISM extent
         # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
         # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
 
-        for tp in starTypes:
-            try:
-                whereCGMstars = np.where(
-                    (snapStars.data["R"] <= CRPARAMS["Router"])
-                    & (snapStars.data["type"] == tp)
-                )[0]
+        whereNotCGMstars = (snapStars.data['age'] >= 0.0) \
+            & (snapStars.data["R"] > CRPARAMS["Router"])
 
-                if whereCGMstars.shape[0] > 0:
-                    for key, value in snapStars.data.items():
-                        if value is not None:
-                            snapStars.data[key] = value[whereCGMstars]
-                else:
-                    if DEBUG:
-                        print(
-                            f"[@analysisType == cgm ; STARS]: type {tp} ; shape where {np.shape(whereCGMstars)}"
-                        )
-                    pass
-            except Exception as e:
-                if DEBUG:
-                    print(f"[@analysisType == cgm ; STARS]: DEBUG! Exception: {str(e)}")
-                pass
+        snapStars = remove_selection(
+            snapStars,
+            removalConditionMask = whereNotCGMstars,
+            gasTypes=starTypes,
+            errorString = "Remove NOT CGM from Stars",
+            DEBUG = DEBUG,
+            )
 
     elif analysisType == "ism":
         print(
-            f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the ISM..."
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the ISM..."
         )
 
-        for tp in gasTypes:
-            try:
-                whereISM = np.where(
-                    (snapGas.data["sfr"] > 0.0)
-                    & (snapGas.data["R"] <= CRPARAMS["Rinner"])
-                    & (snapGas.data["type"] == tp)
-                )[0]
+        whereNotISM = (snapGas.data["sfr"] < 0.0) \
+        & (snapGas.data["R"] > CRPARAMS["Rinner"])
 
-                if whereISM.shape[0] > 0:
-                    for key, value in snapGas.data.items():
-                        if value is not None:
-                            snapGas.data[key] = value[whereISM]
-                else:
-                    if DEBUG:
-                        print(
-                            f"[@analysisType == ism ; GAS]: type {tp} ; shape where {np.shape(whereISM)}"
-                        )
-                    pass
-            except Exception as e:
-                if DEBUG:
-                    print(f"[@analysisType == ism ; GAS]: DEBUG! Exception: {str(e)}")
-                pass
+        snapGas = remove_selection(
+            snapGas,
+            removalConditionMask = whereNotISM,
+            gasTypes=gasTypes,
+            errorString = "Remove NOT ISM from Gas",
+            DEBUG = DEBUG,
+            )
+
 
         # select the CGM, acounting for variable ISM extent
         # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
         # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
 
-        for tp in starTypes:
-            try:
-                whereISMstars = np.where(
-                    (snapStars.data["R"] <= CRPARAMS["Rinner"])
-                    & (snapStars.data["type"] == tp)
-                )[0]
+        whereNotISMstars = (snapStars.data["R"] > CRPARAMS["Rinner"])
 
-                if whereISMstars.shape[0] > 0:
-                    for key, value in snapStars.data.items():
-                        if value is not None:
-                            snapStars.data[key] = value[whereISMstars]
-                else:
-                    if DEBUG:
-                        print(
-                            f"[@analysisType == ism ; STARS]: type {tp} ; shape where {np.shape(whereISMstars)}"
-                        )
-                    pass
-            except Exception as e:
-                if DEBUG:
-                    print(f"[@analysisType == ism ; STARS]: DEBUG! Exception: {str(e)}")
-                pass
+        snapStars = remove_selection(
+            snapStars,
+            removalConditionMask = whereNotISMstars,
+            gasTypes=starTypes,
+            errorString = "Remove NOT ISM from Stars",
+            DEBUG = DEBUG,
+            )
 
     elif analysisType == "all":
 
         print(
-            f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select all of the halo..."
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select all of the halo..."
         )
 
-        for tp in gasTypes:
-            try:
-                whereAll = np.where(
-                    (snapGas.data["R"] <= CRPARAMS["Router"])
-                    & (snapGas.data["type"] == tp)
-                )[0]
+        whereOutsideSelection = (snapGas.data["R"] > CRPARAMS["Router"])
 
-                if whereAll.shape[0] > 0:
-                    for key, value in snapGas.data.items():
-                        if value is not None:
-                            snapGas.data[key] = value[whereAll]
-                else:
-                    if DEBUG:
-                        print(
-                            f"[@analysisType == all ; GAS]: type {tp} ; shape where {np.shape(whereAll)}"
-                        )
-                    pass
-            except Exception as e:
-                if DEBUG:
-                    print(f"[@analysisType == all ; GAS]: DEBUG! Exception: {str(e)}")
-                pass
+        snapGas = remove_selection(
+            snapGas,
+            removalConditionMask = whereOutsideSelection,
+            gasTypes=gasTypes,
+            errorString = "Remove ALL Outside Selection from Gas",
+            DEBUG = DEBUG,
+            )
 
         # select the CGM, acounting for variable ISM extent
         # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
         # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
 
-        for tp in starTypes:
-            try:
-                whereAllstars = np.where(
-                    (snapStars.data["R"] <= CRPARAMS["Router"])
-                    & (snapStars.data["type"] == tp)
-                )[0]
+        whereOutsideSelectionStars = (snapStars.data["R"] > CRPARAMS["Router"])
 
-                if whereAllstars.shape[0] > 0:
-                    for key, value in snapStars.data.items():
-                        if value is not None:
-                            snapStars.data[key] = value[whereAllstars]
-                else:
-                    if DEBUG:
-                        print(
-                            f"[@analysisType == all ; STARS]: type {tp} ; shape where {np.shape(whereAllstars)}"
-                        )
-                    pass
-            except Exception as e:
-                if DEBUG:
-                    print(f"[@analysisType == all ; STARS]: DEBUG! Exception: {str(e)}")
-                pass
+        snapStars = remove_selection(
+            snapStars,
+            removalConditionMask = whereOutsideSelectionStars,
+            gasTypes=starTypes,
+            errorString = "Remove ALL Outside Selection from Stars",
+            DEBUG = DEBUG,
+            )
+
 
     print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select within R_virial..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select within R_virial..."
     )
 
     Rvir = (snap_subfind.data["frc2"] * 1e3)[int(CRPARAMS["HaloID"])]
 
-    whereWithinVirialStars = np.where(snapStars.data["R"] <= Rvir)[0]
+    whereOutsideVirialStars = snapStars.data["R"] > Rvir
 
-    for tp in gasTypes:
-        try:
-            whereWithinVirial = np.where(
-                (snapGas.data["R"] <= Rvir) & (snapGas.data["type"] == tp)
-            )[0]
+    snapStars = remove_selection(
+        snapStars,
+        removalConditionMask = whereOutsideVirialStars,
+        gasTypes=starTypes,
+        errorString = "Remove Outside Virial from Stars",
+        DEBUG = DEBUG,
+        )
 
-            if whereWithinVirial.shape[0] > 0:
-                for key, value in snapGas.data.items():
-                    if value is not None:
-                        snapGas.data[key] = value[whereWithinVirial]
-            else:
-                if DEBUG:
-                    print(
-                        f"[@RVir ; GAS]: type {tp} ; shape where {np.shape(whereWithinVirial)}"
-                    )
-                pass
-        except Exception as e:
-            if DEBUG:
-                print(f"[@RVir ; GAS]: DEBUG! Exception: {str(e)}")
-            pass
+    whereOutsideVirial = snapGas.data["R"] > Rvir
 
-    # select the CGM, acounting for variable ISM extent
-    # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
-    # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-
-    for tp in starTypes:
-        try:
-            whereWithinVirialStars = np.where(
-                (snapStars.data["R"] <= Rvir) & (snapStars.data["type"] == tp)
-            )[0]
-
-            if whereWithinVirialStars.shape[0] > 0:
-                for key, value in snapStars.data.items():
-                    if value is not None:
-                        snapStars.data[key] = value[whereWithinVirialStars]
-            else:
-                if DEBUG:
-                    print(
-                        f"[@RVir ; STARS]: type {tp} ; shape where {np.shape(whereWithinVirialStars)}"
-                    )
-                pass
-        except Exception as e:
-            if DEBUG:
-                print(f"[@Rvir ; STARS]: DEBUG! Exception: {str(e)}")
-            pass
+    snapGas = remove_selection(
+        snapGas,
+        removalConditionMask = whereOutsideVirial,
+        gasTypes=gasTypes,
+        errorString = "Remove Outside Virial from Gas",
+        DEBUG = DEBUG,
+        )
 
     rmax = np.max(CRPARAMS["Router"])
     boxmax = rmax
@@ -414,8 +325,9 @@ def cr_analysis_radial(
         paramsOfInterest=CRPARAMS["saveParams"],
         mappingBool=True,
         box=box,
-        gridres=CRPARAMS["gridRes"],
         numthreads=CRPARAMS["numThreads"],
+        DataSavepath = DataSavepath,
+        verbose = DEBUG,
     )
     # snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
     if CRPARAMS["QuadPlotBool"] is True:
@@ -439,33 +351,52 @@ def cr_analysis_radial(
         )
 
     print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Delete Dark Matter..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Delete Dark Matter..."
     )
 
-    whereDM = np.where(snapGas.type == 1)[0]
-    whereGas = np.where(snapGas.type == 0)[0]
+    whereDM = snapGas.data["type"] == 1
 
-    NDM = len(whereDM)
-    NGas = len(whereGas)
-    deleteKeys = []
-    for key, value in snapGas.data.items():
-        if value is not None:
-            # print("")
-            # print(key)
-            # print(np.shape(value))
-            if np.shape(value)[0] == (NGas + NDM):
-                # print("Gas")
-                snapGas.data[key] = value.copy()[whereGas]
-            elif np.shape(value)[0] == (NDM):
-                # print("DM")
-                deleteKeys.append(key)
-            else:
-                # print("Gas or Stars")
-                pass
-            # print(np.shape(snapGas.data[key]))
+    snapGas = remove_selection(
+        snapGas,
+        removalConditionMask = whereDM,
+        gasTypes=gasTypes,
+        errorString = "Remove DM from Gas",
+        DEBUG = DEBUG,
+        )
 
-    for key in deleteKeys:
-        del snapGas.data[key]
+    whereStars = snapGas.data["type"] == 4
+
+    snapGas = remove_selection(
+        snapGas,
+        removalConditionMask = whereStars,
+        gasTypes=gasTypes,
+        errorString = "Remove Stars from Gas",
+        DEBUG = DEBUG,
+        )
+
+    # whereDM = np.where(snapGas.type == 1)[0]
+    # whereGas = np.where(snapGas.type == 0)[0]
+    # NDM = len(whereDM)
+    # NGas = len(whereGas)
+    # deleteKeys = []
+    # for key, value in snapGas.data.items():
+    #     if value is not None:
+    #         # print("")
+    #         # print(key)
+    #         # print(np.shape(value))
+    #         if np.shape(value)[0] == (NGas + NDM):
+    #             # print("Gas")
+    #             snapGas.data[key] = value.copy()[whereGas]
+    #         elif np.shape(value)[0] == (NDM):
+    #             # print("DM")
+    #             deleteKeys.append(key)
+    #         else:
+    #             # print("Gas or Stars")
+    #             pass
+    #         # print(np.shape(snapGas.data[key]))
+    #
+    # for key in deleteKeys:
+    #     del snapGas.data[key]
 
     # Redshift
     redshift = snapGas.redshift  # z
@@ -488,43 +419,22 @@ def cr_analysis_radial(
     snapStars.data["Rvir"] = np.array([Rvir])
 
     print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Trim SnapShot..."
-    )
-
-    # Trim snapshot...
-    keys = list(snapGas.data.keys())
-    for key in keys:
-        if key not in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-            del snapGas.data[key]
-
-    keys = list(snapStars.data.keys())
-    for key in keys:
-        if key not in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-            del snapStars.data[key]
-
-    for key, value in snapGas.data.items():
-        if value is None:
-            del snapGas.data[key]
-
-    for key, value in snapStars.data.items():
-        if value is None:
-            del snapStars.data[key]
-
-    print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary and Trim ..."
     )
     # Make normal dictionary form of snapGas
     inner = {}
     for key, value in snapGas.data.items():
         if key in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-            inner.update({key: copy.deepcopy(value)})
+            if value is not None:
+                inner.update({key: copy.deepcopy(value)})
 
     del snapGas
 
     innerStars = {}
     for key, value in snapStars.data.items():
         if key in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-            innerStars.update({key: copy.deepcopy(value)})
+            if value is not None:
+                innerStars.update({key: copy.deepcopy(value)})
 
     del snapStars
     # Add to final output
@@ -550,9 +460,9 @@ def cr_analysis_radial(
     )
 
     print(
-        f"[@{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process..."
     )
-    return out
+    return out, rotation_matrix
 
 
 def cr_parameters(CRPARAMSMASTER, simDict):
@@ -740,6 +650,61 @@ def cr_calculate_statistics(
     statsData.update({f"{xParam}": xData})
     return statsData
 
+def remove_selection(
+    snap,
+    removalConditionMask,
+    gasTypes,
+    errorString = "NOT SET",
+    DEBUG = False,
+    ):
+
+    if type(gasTypes) != np.ndarray: gasTypes = np.array(gasTypes)
+
+    removedTruthy = np.full(gasTypes.shape,fill_value=True)
+
+    if DEBUG is True: print(errorString)
+
+    for ii,tp in enumerate(gasTypes):
+        if DEBUG is True: print(f"Type {tp}")
+        try:
+            whereToRemove = np.where(removalConditionMask
+                & (snap.data["type"] == tp)
+            )[0]
+        except Exception as e:
+            if DEBUG:
+                print(f"[@remove_selection]: DEBUG! Exception: {str(e)}")
+            #If data of type tp does not meet broadcasting shape for`
+            # removalConditionMask, skip this type and continue
+            removedTruthy[ii] = False
+            continue
+
+        whereType = np.where(snap.data["type"] == tp)[0]
+        if whereToRemove.shape[0] > 0:
+            for key, value in snap.data.items():
+                if value is not None:
+                    if value.shape[0] >= whereType.shape[0]:
+                        try:
+                            newvalue = np.delete(value,whereToRemove,axis=0)
+                            snap.data[key]= newvalue
+                        except Exception as e:
+                            if DEBUG:
+                                print(f"[remove_selection]: WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}.")
+        # Update removalConditionMask as shape of snap changes after above completes
+        removalConditionMask = np.delete(removalConditionMask, whereToRemove,axis=0)
+    noneRemovedTruthy = np.all(~removedTruthy)
+
+    if noneRemovedTruthy is True:
+        print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
+    elif DEBUG is True:
+        if np.any(~removedTruthy):
+            print(f"[@remove_selection]: WARNING! DEBUG! Selection criteria for error string = '{errorString}' not applied to particles of type:")
+            print(f"{gasTypes[np.where(removedTruthy==False)[0]]}")
+        else:
+            print(f"[@remove_selection]: DEBUG! Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
+
+    nData = np.shape(snap.data["type"])[0]
+    assert nData > 0,f"[@remove_selection]: FAILURE! CRITICAL!"+"\n"+f"Error String: {errorString} returned an empty snapShot!"
+    return snap
 
 # def cr_histogram_dd_summarise():
 #
