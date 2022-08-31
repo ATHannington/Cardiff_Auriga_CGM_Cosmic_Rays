@@ -24,7 +24,11 @@ import os
 DEBUG = False
 
 def cr_analysis_radial(
-    snapNumber, CRPARAMS, DataSavepathBase, FullDataPathSuffix=".h5",
+    snapNumber,
+    CRPARAMS,
+    DataSavepathBase,
+    FullDataPathSuffix=".h5",
+    logParameters = [],
     rotation_matrix=None
 ):
     analysisType = CRPARAMS["analysisType"]
@@ -39,7 +43,7 @@ def cr_analysis_radial(
         )
     out = {}
 
-    saveDir = ( DataSavepathBase+f"{CRPARAMS['halo']}"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/type-{analysisType}/"
+    saveDir = ( DataSavepathBase+f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/"
     )
 
     # Generate halo directory
@@ -76,27 +80,20 @@ def cr_analysis_radial(
         loadpath,
         hdf5=True,
         loadonlytype=[0, 1, 4],
-        lazy_load=True,
+        lazy_load=False,
         subfind=snap_subfind,
     )
 
     # # load in the subfind group files
-    # snap_subfind = load_subfind(100, dir="/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/")
+    # snap_subfind = load_subfind(100, dir="/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/")
     #
     # # load in the gas particles mass and position only for HaloID 0.
     # #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
     # #       gas and stars (type 0 and 4) MUST be loaded first!!
-    # snapGas = gadget_readsnap(
-    #     100,
-    #     "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
-    #     hdf5=True,
-    #     loadonlytype=[0, 1],
-    #     lazy_load=True,
-    #     subfind=snap_subfind,
-    # )
+    # snapGas = gadget_readsnap(100,"/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",hdf5=True,loadonlytype=[0, 1, 4],lazy_load=True,subfind=snap_subfind)
     # snapStars = gadget_readsnap(
     #     100,
-    #     "/home/universe/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
+    #     "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",
     #     hdf5=True,
     #     loadonlytype=[4],
     #     lazy_load=True,
@@ -107,7 +104,7 @@ def cr_analysis_radial(
         loadpath,
         hdf5=True,
         loadonlytype=[4],
-        lazy_load=True,
+        lazy_load=False,
         subfind=snap_subfind,
     )
 
@@ -130,12 +127,13 @@ def cr_analysis_radial(
         )
 
     # Load Cell Other params - avoids having to turn lazy_load off...
-    for snap in [snapGas,snapStars]:
-        for param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-            try:
-                tmp = snap.data[param]
-            except:
-                pass
+    # for snap in [snapGas,snapStars]:
+    #     # for param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
+    #     for param in snap.data.keys():
+    #         try:
+    #             tmp = snap.data[param]
+    #         except:
+    #             pass
     # tmp = snapGas.data["id"]
     # tmp = snapGas.data["sfr"]
     # tmp = snapGas.data["hrgm"]
@@ -182,19 +180,24 @@ def cr_analysis_radial(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars..."
     )
 
-    gasTypes = np.unique(snapGas.type)
-    starTypes = np.unique(snapStars.type)
 
-    whereWind = snapStars.data["age"] < 0.0
+    whereWind = snapGas.data["age"] < 0.0
 
-    snapStars = remove_selection(
-        snapStars,
+    snapGas = remove_selection(
+        snapGas,
         removalConditionMask = whereWind,
-        gasTypes=starTypes,
-        errorString = "Remove Wind from Stars",
+        errorString = "Remove Wind from Gas",
         DEBUG = DEBUG,
         )
 
+    whereWindStars = snapStars.data["age"] < 0.0
+
+    snapStars = remove_selection(
+        snapStars,
+        removalConditionMask = whereWindStars,
+        errorString = "Remove Wind from Stars",
+        DEBUG = DEBUG,
+        )
 
 
     if analysisType == "cgm":
@@ -206,7 +209,6 @@ def cr_analysis_radial(
         snapGas = remove_selection(
             snapGas,
             removalConditionMask = whereNotCGM,
-            gasTypes=gasTypes,
             errorString = "Remove NOT CGM from Gas",
             DEBUG = DEBUG,
             )
@@ -221,7 +223,6 @@ def cr_analysis_radial(
         snapStars = remove_selection(
             snapStars,
             removalConditionMask = whereNotCGMstars,
-            gasTypes=starTypes,
             errorString = "Remove NOT CGM from Stars",
             DEBUG = DEBUG,
             )
@@ -237,7 +238,6 @@ def cr_analysis_radial(
         snapGas = remove_selection(
             snapGas,
             removalConditionMask = whereNotISM,
-            gasTypes=gasTypes,
             errorString = "Remove NOT ISM from Gas",
             DEBUG = DEBUG,
             )
@@ -252,7 +252,6 @@ def cr_analysis_radial(
         snapStars = remove_selection(
             snapStars,
             removalConditionMask = whereNotISMstars,
-            gasTypes=starTypes,
             errorString = "Remove NOT ISM from Stars",
             DEBUG = DEBUG,
             )
@@ -268,7 +267,6 @@ def cr_analysis_radial(
         snapGas = remove_selection(
             snapGas,
             removalConditionMask = whereOutsideSelection,
-            gasTypes=gasTypes,
             errorString = "Remove ALL Outside Selection from Gas",
             DEBUG = DEBUG,
             )
@@ -282,7 +280,6 @@ def cr_analysis_radial(
         snapStars = remove_selection(
             snapStars,
             removalConditionMask = whereOutsideSelectionStars,
-            gasTypes=starTypes,
             errorString = "Remove ALL Outside Selection from Stars",
             DEBUG = DEBUG,
             )
@@ -299,7 +296,6 @@ def cr_analysis_radial(
     snapStars = remove_selection(
         snapStars,
         removalConditionMask = whereOutsideVirialStars,
-        gasTypes=starTypes,
         errorString = "Remove Outside Virial from Stars",
         DEBUG = DEBUG,
         )
@@ -309,7 +305,6 @@ def cr_analysis_radial(
     snapGas = remove_selection(
         snapGas,
         removalConditionMask = whereOutsideVirial,
-        gasTypes=gasTypes,
         errorString = "Remove Outside Virial from Gas",
         DEBUG = DEBUG,
         )
@@ -328,6 +323,7 @@ def cr_analysis_radial(
         oc.Zsolar,
         oc.omegabaryon0,
         snapNumber,
+        logParameters = logParameters,
         paramsOfInterest=CRPARAMS["saveParams"],
         mappingBool=True,
         box=box,
@@ -365,19 +361,16 @@ def cr_analysis_radial(
     snapGas = remove_selection(
         snapGas,
         removalConditionMask = whereDM,
-        gasTypes=gasTypes,
         errorString = "Remove DM from Gas",
         DEBUG = DEBUG,
         )
 
     whereStars = snapGas.data["type"] == 4
-
     snapGas = remove_selection(
         snapGas,
         removalConditionMask = whereStars,
-        gasTypes=gasTypes,
         errorString = "Remove Stars from Gas",
-        DEBUG = DEBUG,
+        DEBUG = DEBUG
         )
 
     # whereDM = np.where(snapGas.type == 1)[0]
@@ -656,61 +649,135 @@ def cr_calculate_statistics(
     statsData.update({f"{xParam}": xData})
     return statsData
 
+def map_params_to_types(snap):
+    from itertools import combinations#
+    import copy
+
+    types = np.unique(snap.data["type"])
+    lenTypes = [np.shape(np.where(snap.data["type"]==tp)[0])[0] for tp in types]
+    possibleTypesCombos = []
+    for jj in range(1,len(types)+1):
+        possibleTypesCombos += list(combinations(types,r=jj))
+    possibleTypesCombos = np.array(possibleTypesCombos)
+
+    possibleValueLengths = []
+    possibleValueLengthsSumTot = []
+    for jj in range(1,len(types)+1):
+        val = np.array(list(combinations(lenTypes,r=jj)))
+        possibleValueLengths += val.tolist()
+        possibleValueLengthsSumTot += np.sum(val,axis=-1).tolist()
+
+    possibleValueLengths = np.array(possibleValueLengths)
+    possibleValueLengthsSumTot = np.array(possibleValueLengthsSumTot)
+
+    paramToTypeMap = {}
+    for key, value in snap.data.items():
+        if value is not None:
+            whereValueShape = np.where(possibleValueLengthsSumTot == value.shape[0])[0]
+            paramToTypeMap.update({
+                key: copy.deepcopy(possibleTypesCombos[whereValueShape][0]),
+            })
+        else:
+            pass
+            # raise Exception(f"[@map_params_to_types]: value of None found for key {key}! This is not allowed! Make sure this function is removed before removal of any data, check logic; re-run!")
+    paramToTypeMap.update({"lty" : copy.deepcopy(lenTypes)})
+
+    return paramToTypeMap
 def remove_selection(
     snap,
     removalConditionMask,
-    gasTypes,
     errorString = "NOT SET",
     DEBUG = False,
     ):
 
-    if type(gasTypes) != np.ndarray: gasTypes = np.array(gasTypes)
+    import copy
 
-    removedTruthy = np.full(gasTypes.shape,fill_value=True)
+    types = np.unique(snap.data["type"])
 
+    paramToTypeMap = map_params_to_types(snap)
+
+    removedTruthy = np.full(types.shape,fill_value=True)
     if DEBUG is True: print(errorString)
 
-    for ii,tp in enumerate(gasTypes):
+    for ii,tp in enumerate(types):
         if DEBUG is True: print(f"Type {tp}")
+        if DEBUG is True: print(f"START Shape of Type {np.shape(np.where(snap.data['type']==tp)[0])}")
         try:
-            whereToRemove = np.where(removalConditionMask
-                & (snap.data["type"] == tp)
-            )[0]
+            whereToRemove = np.where(removalConditionMask & (snap.data["type"] == tp))[0]
+            # whereType = np.where(snap.data["type"] == tp)[0]
         except Exception as e:
             if DEBUG:
-                print(f"[@remove_selection]: DEBUG! Exception: {str(e)}")
+                print(f"[@remove_selection]: DEBUG!"+"\n"+f"Exception: {str(e)}")
             #If data of type tp does not meet broadcasting shape for`
             # removalConditionMask, skip this type and continue
             removedTruthy[ii] = False
             continue
-
-        whereType = np.where(snap.data["type"] == tp)[0]
+        if DEBUG: print(f"[remove_selection]: Shape whereToRemove to be applied: {np.shape(whereToRemove)}")
         if whereToRemove.shape[0] > 0:
-            for key, value in snap.data.items():
-                if value is not None:
-                    if value.shape[0] >= whereType.shape[0]:
+            whereTypeInMap = np.where(types==tp)[0][0]
+
+            paramToTypeMap["lty"][whereTypeInMap] = copy.deepcopy(paramToTypeMap["lty"][whereTypeInMap]) -  whereToRemove.shape[0]
+
+            for jj,(key, value) in enumerate(snap.data.items()):
+                if tp in paramToTypeMap[key]:
+                    if value is not None:
+                        # print(f"{jj}, {key}")
+
+                        typesNotInParam = np.array([tt for tt in types[:ii] if tt not in paramToTypeMap[f"{key}"]])
+
+                        if len(typesNotInParam) == 0:
+                            # no types before this type so set offset to zero
+                            offset = 0
+                        else:
+                            offset = np.sum(np.array(paramToTypeMap["lty"])[typesNotInParam])
                         try:
-                            newvalue = np.delete(value,whereToRemove,axis=0)
-                            snap.data[key]= newvalue
+                            newvalue = np.delete(value,whereToRemove-offset,axis=0)
+                            if newvalue.shape[0]>0:
+                                snap.data[key] = newvalue
+                            else:
+                                snap.data[key] = None
+                                del paramToTypeMap[f"{key}"][whereTypeInMap]
+
                         except Exception as e:
                             if DEBUG:
-                                print(f"[remove_selection]: WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}.")
-        # Update removalConditionMask as shape of snap changes after above completes
-        removalConditionMask = np.delete(removalConditionMask, whereToRemove,axis=0)
+                                print(f"[remove_selection]: Shape key: {np.shape(value)}")
+                                print(f"[remove_selection]: WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp} (remove Type = {removeType}).")
+        # Need to remove deleted entries of this type so that next type has
+        # correct broadcast shape for removalConditionMask and whereType
+        removalConditionMask = np.delete(removalConditionMask,whereToRemove,axis=0)
+
+
     noneRemovedTruthy = np.all(~removedTruthy)
+
 
     if noneRemovedTruthy is True:
         print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
+
     elif DEBUG is True:
         if np.any(~removedTruthy):
             print(f"[@remove_selection]: WARNING! DEBUG! Selection criteria for error string = '{errorString}' not applied to particles of type:")
-            print(f"{gasTypes[np.where(removedTruthy==False)[0]]}")
+            print(f"{types[np.where(removedTruthy==False)[0]]}")
         else:
             print(f"[@remove_selection]: DEBUG! Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
 
+    snap = clean_snap_nones(snap)
+
     nData = np.shape(snap.data["type"])[0]
     assert nData > 0,f"[@remove_selection]: FAILURE! CRITICAL!"+"\n"+f"Error String: {errorString} returned an empty snapShot!"
+
     return snap
+
+def clean_snap_nones(snap):
+    deleteKeys = []
+    for key, value in snap.data.items():
+        if value is None:
+            deleteKeys.append(key)
+
+    for key in deleteKeys:
+        del snap.data[key]
+
+    return snap
+
 
 # def cr_histogram_dd_summarise():
 #
