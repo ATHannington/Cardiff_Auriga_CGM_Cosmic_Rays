@@ -677,7 +677,7 @@ def cumulative_mass_versus_plot(
                     currentAx.yaxis.set_minor_locator(AutoMinorLocator())
                     currentAx.tick_params(axis="both", which="both", labelsize=fontsize)
 
-                    currentAx.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
+                    currentAx.set_ylabel("Cumulative " + ylabel[analysisParam], fontsize=fontsize)
 
                     if titleBool is True:
                         if selectKey[-1] == "Stars":
@@ -762,7 +762,7 @@ def phases_plot(
     CRPARAMSHALO,
     halo,
     ylabel,
-    logparams,
+    logParameters,
     xlimDict,
     weightKeys = ["mass", "Pthermal_Pmagnetic", "gz", "tcool_tff"],
     titleBool=False,
@@ -871,7 +871,7 @@ def phases_plot(
                     finalHistCells = histCells / mhistCells
 
                 finalHistCells[finalHistCells == 0.0] = np.nan
-                if weightKey in logparams:
+                if weightKey in logParameters:
                     finalHistCells = np.log10(finalHistCells)
                 finalHistCells = finalHistCells.T
 
