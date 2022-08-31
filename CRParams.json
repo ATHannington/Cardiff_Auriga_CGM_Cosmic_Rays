@@ -55,7 +55,7 @@
 
     "fontsizeTitle" : 14,
 
-    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal","gah","Grad_T","Grad_n_H","Grad_bfld","Grad_P_CR","tcool","theat","tcross","tff","tcool_tff","mass"],
+    "logParameters" : ["dens","ndens","rho_rhomean","csound","T","n_H","B","gz","L","P_thermal","P_magnetic","P_kinetic","P_tot","Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal","gah","bfld","Grad_T","Grad_n_H","Grad_bfld","Grad_P_CR","tcool","theat","tcross","tff","tcool_tff","mass"],
 
     "nonMassWeightDict" :
       {
@@ -65,6 +65,7 @@
       "dens": "vol",
       "rho_rhomean": "vol",
       "B": "vol",
+      "bfld" : "vol",
       "P_kinetic": "vol",
       "P_thermal": "vol",
       "P_magnetic": "vol",
@@ -73,6 +74,7 @@
       "P_CR" : "vol",
       "PCR_Pthermal" : "vol",
       "gah" : "vol",
+      "Grad_T" : "mass",
       "Grad_n_H" : "vol",
       "Grad_bfld" : "vol",
       "Grad_P_CR" : "vol"

@@ -49,7 +49,7 @@ ylabel = {
     "n_H": r"n$_H$ (cm$^{-3}$)",
     "B": r"|B| ($ \mu $G)",
     "vrad": r"Radial Velocity (km s$^{-1}$)",
-    "gz": r"Average Metallicity Z/Z$_{\odot}$",
+    "gz": r"Metallicity Z/Z$_{\odot}$",
     "L": r"Specific Angular Momentum" + "\n" + r"(kpc km s$^{-1}$)",
     "P_thermal": r"P$_{Thermal}$ / k$_B$ (K cm$^{-3}$)",
     "P_magnetic": r"P$_{Magnetic}$ / k$_B$ (K cm$^{-3}$)",
@@ -61,10 +61,11 @@ ylabel = {
     "P_CR": r"P$_{CR}$ (K cm$^{-3}$)",
     "PCR_Pthermal": r"(X$_{CR}$ = P$_{CR}$/P$_{Thermal}$)",
     "gah": r"Alfven Gas Heating (erg s$^{-1}$)",
-    "Grad_T": r"||Temperature Gradient|| (K cm$^{-1}$)",
-    "Grad_n_H": r"||n$_H$ Gradient|| (cm$^{-4}$)",
-    "Grad_bfld": r"||B-Field Gradient|| ($ \mu $G cm$^{-1}$)",
-    "Grad_P_CR": r"||P$_{CR}$ Gradient|| (K cm$^{-4}$)",
+    "bfld": r"||B-Field|| ($ \mu $G)",
+    "Grad_T": r"||Temperature Gradient|| (K kpc$^{-1}$)",
+    "Grad_n_H": r"||n$_H$ Gradient|| (kpc$^{-4}$)",
+    "Grad_bfld": r"||B-Field Gradient|| ($ \mu $G kpc$^{-1}$)",
+    "Grad_P_CR": r"||P$_{CR}$ Gradient|| (K kpc$^{-4}$)",
     # "crac" : r"Alfven CR Cooling (erg s$^{-1}$)",
     "tcool": r"Cooling Time (Gyr)",
     "theat": r"Heating Time (Gyr)",
@@ -103,6 +104,20 @@ xlimDict = {
     "ndens": {"xmin": -6.0, "xmax": 2.0},
 }
 
+#   Perform forbidden log of Grad check
+deleteParams = []
+for entry in CRPARAMSMASTER["logParameters"]:
+    entrySplit = entry.split("_")
+    if (
+        ("Grad" in entrySplit) &
+        (np.any(np.isin(np.array(CRPARAMSMASTER["logParameters"]),np.array("_".join(entrySplit[1:])))))
+    ):
+        print(entry)
+        print("Cannot have Log10 of Grad of already Log10'ed parameter...")
+        deleteParams.append(entry)
+
+for entry in deleteParams:
+    CRPARAMSMASTER["logParameters"].remove(entry)
 
 for entry in CRPARAMSMASTER["logParameters"]:
     ylabel[entry] = r"$Log_{10}$" + ylabel[entry]
@@ -150,10 +165,11 @@ if __name__ == "__main__":
                 rotation_matrix = None
                 for snapNumber in snapRange:
                     tmpOut,rotation_matrix = cr_analysis_radial(
-                        snapNumber,
-                        CRPARAMS,
-                        DataSavepathBase,
-                        FullDataPathSuffix,
+                        snapNumber=snapNumber,
+                        CRPARAMS=CRPARAMS,
+                        DataSavepathBase=DataSavepathBase,
+                        FullDataPathSuffix=FullDataPathSuffix,
+                        logParameters=CRPARAMSMASTER["logParameters"],
                         rotation_matrix = rotation_matrix,
                         )
                     out.update(tmpOut)
@@ -323,6 +339,6 @@ if __name__ == "__main__":
             CRPARAMSHALO=CRPARAMSHALO,
             halo=halo,
             ylabel=ylabel,
-            logparams=CRPARAMSMASTER["logParameters"],
+            logParameters=CRPARAMSMASTER["logParameters"],
             xlimDict=xlimDict,
         )
