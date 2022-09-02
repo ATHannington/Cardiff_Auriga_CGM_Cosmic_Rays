@@ -110,11 +110,16 @@ def medians_versus_plot(
                     lineStyle = lineStyleDict[
                         CRPARAMSHALO[selectKeyShort]["CR_indicator"]
                     ]
-
-                    loadPercentilesTypes = [
-                        analysisParam + "_" + str(percentile) + "%"
-                        for percentile in CRPARAMSHALO[selectKeyShort]["percentiles"]
-                    ]
+                    try:
+                        loadPercentilesTypes = [
+                            analysisParam + "_" + str(percentile) + "%"
+                            for percentile in CRPARAMSHALO[selectKeyShort]["percentiles"]
+                        ]
+                    except:
+                        print(
+                            f"Variable {analysisParam} not found. Skipping plot..."
+                        )
+                        continue
                     LO = (
                         analysisParam
                         + "_"
@@ -211,6 +216,11 @@ def medians_versus_plot(
             #     finalymax = np.nanmax(ymaxlist)
             # else:
             #     pass
+            if (len(yminlist)==0)|(len(ymaxlist)==0):
+                print(
+                    f"Variable {analysisParam} not found. Skipping plot..."
+                )
+                continue
 
             finalymin = np.nanmin(yminlist)
             finalymax = np.nanmax(ymaxlist)
@@ -321,7 +331,7 @@ def mass_pdf_versus_by_radius_plot(
                 try:
                     weightsData = simDict["mass"].copy()
                 except:
-                    print(f"Variable {analysisParam} not found. Skipping plot...")
+                    print(f"Variable {'mass'} not found. Skipping plot...")
                     continue
 
                 whereInRadius = np.where(
@@ -332,7 +342,7 @@ def mass_pdf_versus_by_radius_plot(
                 tmp.append(np.sum(weightsData))
         massSumDict.update({f"{rinner}R{router}": np.array(tmp)})
 
-    for analysisParam in CRPARAMSHALO[selectKey0]["saveParams"]:
+    for analysisParam in CRPARAMSHALO[selectKey0]["saveParams"][14:]:
         if (analysisParam != "mass") & (analysisParam != "R"):
             print("")
             print(f"Starting {analysisParam} plots!")
@@ -371,14 +381,16 @@ def mass_pdf_versus_by_radius_plot(
                             f"{CRPARAMSHALO[selectKey]['resolution']}, @{CRPARAMSHALO[selectKey]['CR_indicator']}"
                         )
                         # Create a plot for each Temperature
-
+                        skipBool = False
                         try:
                             plotData = simDict[analysisParam].copy()
                             weightsData = simDict["mass"].copy()
+                            skipBool = False
                         except:
                             print(
                                 f"Variable {analysisParam} not found. Skipping plot..."
                             )
+                            skipBool = True
                             continue
 
                         lineStyle = lineStyleDict[
@@ -400,8 +412,14 @@ def mass_pdf_versus_by_radius_plot(
                         if analysisParam in CRPARAMSHALO[selectKey]["logParameters"]:
                             plotData = np.log10(plotData)
 
-                        xmin = np.nanmin(plotData[np.isfinite(plotData)])
-                        xmax = np.nanmax(plotData[np.isfinite(plotData)])
+                        try:
+                            xmin = np.nanmin(plotData[np.isfinite(plotData)])
+                            xmax = np.nanmax(plotData[np.isfinite(plotData)])
+                            skipBool = False
+                        except:
+                            print(f"Variable {analysisParam} not found. Skipping plot...")
+                            skipBool = True
+                            continue
                         xminlist.append(xmin)
                         xmaxlist.append(xmax)
 
@@ -413,6 +431,7 @@ def mass_pdf_versus_by_radius_plot(
                         ):
                             # print()
                             print("Data All Inf/NaN! Skipping entry!")
+                            skipBool = True
                             continue
 
                         try:
@@ -446,9 +465,14 @@ def mass_pdf_versus_by_radius_plot(
                             print("Hist All Inf/NaN! Skipping entry!")
                             continue
 
-                        yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
-                        ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
-
+                        try:
+                            yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
+                            ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
+                            skipBool = False
+                        except:
+                            print(f"Variable {analysisParam} not found. Skipping plot...")
+                            skipBool = True
+                            continue
                         xFromBins = np.array(
                             [
                                 (x1 + x2) / 2.0
@@ -488,6 +512,10 @@ def mass_pdf_versus_by_radius_plot(
                     # Only give 1 x-axis a label, as they sharex
 
                 ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
+
+                if (skipBool == True):
+                    print(f"Variable {analysisParam} not found. Skipping plot...")
+                    continue
 
                 try:
                     finalxmin = max(
@@ -620,10 +648,14 @@ def cumulative_mass_versus_plot(
                         f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}"
                     )
                     # Create a plot for each Temperature
-
-                    plotData = simDict[analysisParam].copy()
-                    xData = simDict[xParam].copy()
-
+                    try:
+                        plotData = simDict[analysisParam].copy()
+                        xData = simDict[xParam].copy()
+                    except:
+                        print(
+                            f"Variable {analysisParam} not found. Skipping plot..."
+                        )
+                        continue
                     ind_sorted = np.argsort(xData)
 
                     # Sort the data
@@ -707,6 +739,12 @@ def cumulative_mass_versus_plot(
             #     finalymax = np.nanmax(ymaxlist)
             # else:
             #     pass
+            if (len(yminlist)==0)|(len(ymaxlist)==0):
+                print(
+                    f"Variable {analysisParam} not found. Skipping plot..."
+                )
+                continue
+
             finalymin = np.nanmin(yminlist)
             finalymax = np.nanmax(ymaxlist)
             if (
@@ -764,7 +802,14 @@ def phases_plot(
     ylabel,
     logParameters,
     xlimDict,
-    weightKeys = ["mass", "Pthermal_Pmagnetic", "gz", "tcool_tff"],
+    weightKeys = ["mass",
+        "Pthermal_Pmagnetic",
+        "PCR_Pthermal",
+        "P_thermal",
+        "P_CR",
+        "gz",
+        "tcool_tff"
+    ],
     titleBool=False,
     DPI=150,
     xsize=8.0,
@@ -852,9 +897,17 @@ def phases_plot(
                 )
                 ydataCells = np.log10(simDict["T"])
                 massCells = simDict["mass"]
-                weightDataCells = (
-                    simDict[weightKey] * massCells
-                )
+                try:
+                    weightDataCells = (
+                        simDict[weightKey] * massCells
+                    )
+                    skipBool = False
+                except:
+                    print(
+                        f"Variable {weightKey} not found. Skipping plot..."
+                    )
+                    skipBool = True
+                    continue
 
                 if weightKey == "mass":
                     finalHistCells, xedgeCells, yedgeCells = np.histogram2d(
@@ -871,8 +924,13 @@ def phases_plot(
                     finalHistCells = histCells / mhistCells
 
                 finalHistCells[finalHistCells == 0.0] = np.nan
-                if weightKey in logParameters:
-                    finalHistCells = np.log10(finalHistCells)
+                try:
+                    if weightKey in logParameters:
+                        finalHistCells = np.log10(finalHistCells)
+                except:
+                    print(f"Variable {weightKey} not found. Skipping plot...")
+                    skipBool = True
+                    continue
                 finalHistCells = finalHistCells.T
 
                 xcells, ycells = np.meshgrid(xedgeCells, yedgeCells)
@@ -909,6 +967,12 @@ def phases_plot(
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         #   Figure: Finishing up
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        if skipBool == True:
+            print(
+                f"Variable {weightKey} not found. Skipping plot..."
+            )
+            continue
+
 
                             #left, bottom, width, height
                             # x0,    y0,  delta x, delta y
