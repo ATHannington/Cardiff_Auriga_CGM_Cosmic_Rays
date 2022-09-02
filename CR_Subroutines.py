@@ -649,11 +649,16 @@ def cr_calculate_statistics(
     statsData.update({f"{xParam}": xData})
     return statsData
 
-def map_params_to_types(snap):
+def map_params_to_types(snap, degeneracyBool = False):
     from itertools import combinations#
     import copy
+    import pandas as pd
+    from collections import Counter
 
-    types = np.unique(snap.data["type"])
+    ADJUSTMENTFACTOR= 15
+
+    #Unsorted unique using pandas!!
+    types = pd.unique(snap.data["type"])
     lenTypes = [np.shape(np.where(snap.data["type"]==tp)[0])[0] for tp in types]
     possibleTypesCombos = []
     for jj in range(1,len(types)+1):
@@ -681,8 +686,53 @@ def map_params_to_types(snap):
             pass
             # raise Exception(f"[@map_params_to_types]: value of None found for key {key}! This is not allowed! Make sure this function is removed before removal of any data, check logic; re-run!")
     paramToTypeMap.update({"lty" : copy.deepcopy(lenTypes)})
+    paramToTypeMap.update({"ptyc" : copy.deepcopy(possibleTypesCombos)})
+    paramToTypeMap.update({"pvl" : copy.deepcopy(possibleValueLengths)})
+    paramToTypeMap.update({"pvl_tot" : copy.deepcopy(possibleValueLengthsSumTot)})
 
-    return paramToTypeMap
+    if len(types)>1:
+        countDict = Counter(lenTypes)
+        #If length of type is not unique...
+        if np.any(np.array(list(countDict.values()))>1):
+            print(f"[map_params_to_types]: WARNING! Type lengths are degenerate!")
+            print(f"[map_params_to_types]:",countDict)
+            print(f"[map_params_to_types]: We will pad with np.nan by small amounts to try and break this degeneracy")
+
+            nUnique = 0
+            while nUnique != len(types):
+                typeAdjustments = np.random.randint(low=1,high=ADJUSTMENTFACTOR,size=len(types))
+                nUnique = len(np.unique(typeAdjustments))
+
+            for ii,tp in enumerate(types):
+                whereType = np.where(snap.data["type"]==tp)[0]
+                for jj,(key, value) in enumerate(snap.data.items()):
+                    if tp in paramToTypeMap[key]:
+
+                        locOffset= np.array([jj for jj,tt in enumerate(types[:ii]) if tt not in paramToTypeMap[key]])
+                        if (len(locOffset) == 0):
+                            # no types before this type so set offset to zero
+                            offset = 0
+                        else:
+                            offset = np.sum(np.array(paramToTypeMap["lty"])[locOffset])
+
+                        whereAdd = whereType[0]-offset
+
+                        for kk in range(0,typeAdjustments[ii]):
+                            if key!="type":
+                                if np.issubdtype(value.dtype,np.integer):
+                                    addVal = np.nanmax(value) + 1
+                                else:
+                                    addVal = np.nan
+                                value = np.insert(value,whereAdd,addVal,axis=0)
+                            else:
+                                value = np.insert(value,whereAdd,tp,axis=0)
+                        # print(np.shape(newValue))
+                        snap.data[key] = value
+            #Recursive call to rerun this mapping and degeneracy detection
+            snap,paramToTypeMap,degeneracyBool = map_params_to_types(snap,degeneracyBool = True)
+
+    return snap, paramToTypeMap, degeneracyBool
+
 def remove_selection(
     snap,
     removalConditionMask,
@@ -691,64 +741,133 @@ def remove_selection(
     ):
 
     import copy
+    import pandas as pd
+    types = pd.unique(snap.data["type"])
 
-    types = np.unique(snap.data["type"])
+    snap, paramToTypeMap, degeneracyBool = map_params_to_types(snap)
 
-    paramToTypeMap = map_params_to_types(snap)
+    if degeneracyBool is True:
+        raise Exception(f"[remove_selection]: FAILURE! CRITICAL! Snapshot type lengths have been detected as degenerate by map_params_to_types() call in remove_selection()."+"\n"+"map_params_to_types() must be called seperately, prior to the evaluation of removalConditionMask in this call to remove_selection()"+"\n"+f"This error came from errorString {errorString} call to remove_selection()!")
 
     removedTruthy = np.full(types.shape,fill_value=True)
-    if DEBUG is True: print(errorString)
+    if DEBUG is True: print("DEBUG!",errorString)
+
+    # Find possible value length total that matches removalConditionMask
+    # shape. From this, infer which parameters are involved in this
+    # removalConditionMask. Save this possible type combination
+    # as typeCombosArray, and use that to adjust how much the keys
+    # in snap.data.keys() need to be offset based on which types
+    # used in mask aren't relevant to that snap.data key.
+
+    whereShapeMatch = np.where(paramToTypeMap["pvl_tot"] == removalConditionMask.shape[0])[0]
+
+    typeCombos = paramToTypeMap["ptyc"][whereShapeMatch]
+
+    tmp = typeCombos.tolist()
+    tmp2 = [list(xx) for xx in tmp]
+    typeCombosArray = np.array(tmp2)[0]
+
 
     for ii,tp in enumerate(types):
-        if DEBUG is True: print(f"Type {tp}")
-        if DEBUG is True: print(f"START Shape of Type {np.shape(np.where(snap.data['type']==tp)[0])}")
-        try:
-            whereToRemove = np.where(removalConditionMask & (snap.data["type"] == tp))[0]
-            # whereType = np.where(snap.data["type"] == tp)[0]
-        except Exception as e:
-            if DEBUG:
-                print(f"[@remove_selection]: DEBUG!"+"\n"+f"Exception: {str(e)}")
-            #If data of type tp does not meet broadcasting shape for`
-            # removalConditionMask, skip this type and continue
-            removedTruthy[ii] = False
-            continue
-        if DEBUG: print(f"[remove_selection]: Shape whereToRemove to be applied: {np.shape(whereToRemove)}")
-        if whereToRemove.shape[0] > 0:
-            whereTypeInMap = np.where(types==tp)[0][0]
+        if DEBUG is True: print(f" DEBUG! Type {tp}")
+        if DEBUG is True: print(f" DEBUG! START Shape of Type {np.shape(np.where(snap.data['type']==tp)[0])}")
+        if(tp in typeCombosArray):
+            whereType = np.where(snap.data["type"]==tp)[0]
+            whereTypeInTypes = np.where(types==tp)[0][0]
+            if DEBUG: print("whereTypeInTypes",whereTypeInTypes)
+            locTypesOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes])])# if tt not in typeCombosArray])
 
-            paramToTypeMap["lty"][whereTypeInMap] = copy.deepcopy(paramToTypeMap["lty"][whereTypeInMap]) -  whereToRemove.shape[0]
-
+            if (len(locTypesOffset) == 0):
+                # no types before this type so set offset to zero
+                typesOffset = 0
+            else:
+                typesOffset = np.sum(np.array(paramToTypeMap["lty"])[locTypesOffset])
+            if DEBUG: print("locTypesOffset",locTypesOffset)
+            # Type specific removal which adjusts for any type in types that
+            # aren't part of those included in removalConditionMask
+            if DEBUG: print(np.where(snap.data["type"]==tp)[0])
+            whereToRemove = np.where(removalConditionMask[np.where(snap.data["type"]==tp)[0]-typesOffset])[0] + typesOffset
+            if DEBUG: print(typesOffset)
+            if DEBUG: print(whereToRemove)
             for jj,(key, value) in enumerate(snap.data.items()):
                 if tp in paramToTypeMap[key]:
                     if value is not None:
-                        # print(f"{jj}, {key}")
+                        if DEBUG: print(f"{jj}, {key}")
 
-                        typesNotInParam = np.array([tt for tt in types[:ii] if tt not in paramToTypeMap[f"{key}"]])
+                        # For the key in snapshot data, retrieve types that
+                        # contain that key (i.e. the types that have values
+                        # for snap.data[key]). Find types in
+                        # removalConditionMask relevant types that aren't
+                        # used for this key, and remove the indexing
+                        # of this unused data type (offset) from whereToRemove
 
-                        if len(typesNotInParam) == 0:
+                        locRemovalOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes]) if tt not in paramToTypeMap[key]])
+                        if DEBUG: print("locRemovalOffset",locRemovalOffset)
+                        if DEBUG:
+                            print(tp)
+                            if len(locTypesOffset)>0:
+                                print(types[locTypesOffset])
+                            else:
+                                print("No locs type")
+
+                            if len(locRemovalOffset)>0:
+                                print(types[locRemovalOffset])
+                            else:
+                                print("No locs removal")
+
+
+                        if (len(locRemovalOffset) == 0):
                             # no types before this type so set offset to zero
-                            offset = 0
+                            removalOffset = 0
                         else:
-                            offset = np.sum(np.array(paramToTypeMap["lty"])[typesNotInParam])
+                            removalOffset = np.sum(np.array(paramToTypeMap["lty"])[locRemovalOffset])
+                        if DEBUG:
+                            print("val",np.shape(value))
+                            print("offset",removalOffset)
+                            print("where",whereToRemove)
+                            print("where - offset", whereToRemove - removalOffset)
+
                         try:
-                            newvalue = np.delete(value,whereToRemove-offset,axis=0)
+                            # Adjust whereToRemove for key specific types. If a
+                            # type in types is not used for this param key
+                            # we need to offset the whereToRemove to eliminate
+                            # the indices that would match that now not Present
+                            # particle type.
+
+                            whereToRemoveForKey = copy.copy(whereToRemove) - removalOffset
+
+                            newvalue = np.delete(value,whereToRemoveForKey,axis=0)
                             if newvalue.shape[0]>0:
                                 snap.data[key] = newvalue
                             else:
+                                # If no more data, set to None for cleaning
                                 snap.data[key] = None
-                                del paramToTypeMap[f"{key}"][whereTypeInMap]
+
+                                # If no dara for this type and key, remove this
+                                # type from relevant to key mapping dict
+                                remainingTypes = [tt for tt in paramToTypeMap[f"{key}"] if tt!=tp]
+
+                                paramToTypeMap[f"{key}"] = copy.deepcopy(remainingTypes)
 
                         except Exception as e:
                             if DEBUG:
-                                print(f"[remove_selection]: Shape key: {np.shape(value)}")
-                                print(f"[remove_selection]: WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp} (remove Type = {removeType}).")
-        # Need to remove deleted entries of this type so that next type has
-        # correct broadcast shape for removalConditionMask and whereType
-        removalConditionMask = np.delete(removalConditionMask,whereToRemove,axis=0)
+                                print(f"[remove_selection]: DEBUG! Shape key: {np.shape(value)}")
+                                print(f"[remove_selection]: DEBUG! WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}")
+
+            # Need to remove all entries (deleted (True) or kept (False))
+            # of this type so that next type has
+            # correct broadcast shape for removalConditionMask and whereType
+            removalConditionMask = np.delete(removalConditionMask,(whereType-typesOffset),axis=0)
+        else:
+            removedTruthy[ii] = False
+            # continue
+        # typeCombosArray = np.delete(typeCombosArray,np.where(typeCombosArray==tp)[0])
+        #update length of types
+        paramToTypeMap["lty"][ii] = (np.where(snap.data["type"]==tp)[0]).shape[0]
+        if DEBUG: print("paramToTypeMap['lty'][ii]",paramToTypeMap["lty"][ii])
 
 
     noneRemovedTruthy = np.all(~removedTruthy)
-
 
     if noneRemovedTruthy is True:
         print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
@@ -766,6 +885,100 @@ def remove_selection(
     assert nData > 0,f"[@remove_selection]: FAILURE! CRITICAL!"+"\n"+f"Error String: {errorString} returned an empty snapShot!"
 
     return snap
+
+
+# def remove_selection(
+#     snap,
+#     removalConditionMask,
+#     errorString = "NOT SET",
+#     DEBUG = False,
+#     ):
+#
+#     import copy
+#     import pandas as pd
+#     types = pd.unique(snap.data["type"])
+#
+#     paramToTypeMap = map_params_to_types(snap)
+#
+#     removedTruthy = np.full(types.shape,fill_value=True)
+#     if DEBUG is True: print("DEBUG!",errorString)
+#
+#     for ii,tp in enumerate(types):
+#         if DEBUG is True: print(f" DEBUG! Type {tp}")
+#         if DEBUG is True: print(f" DEBUG! START Shape of Type {np.shape(np.where(snap.data['type']==tp)[0])}")
+#         try:
+#             whereToRemove = np.where(removalConditionMask & (snap.data["type"] == tp))[0]
+#             offsetNeededBool = True
+#             # whereType = np.where(snap.data["type"] == tp)[0]
+#         except Exception as e:
+#             if DEBUG:
+#                 print(f"[@remove_selection]: DEBUG! Exception: {str(e)}")
+#             # STOP716
+#             try:
+#
+#             except Exception as e2:
+#                 if DEBUG:
+#                     print(f"[@remove_selection]: DEBUG!"+"\n"+f"Exception: {str(e2)}")
+#                 #If data of type tp does not meet broadcasting shape for`
+#                 # removalConditionMask, skip this type and continue
+#                 removedTruthy[ii] = False
+#                 continue
+#
+#         if DEBUG: print(f"[remove_selection]: DEBUG! Shape whereToRemove to be applied: {np.shape(whereToRemove)}")
+#         if whereToRemove.shape[0] > 0:
+#             whereTypeInMap = np.where(types==tp)[0][0]
+#
+#             for jj,(key, value) in enumerate(snap.data.items()):
+#                 if tp in paramToTypeMap[key]:
+#                     if value is not None:
+#                         # print(f"{jj}, {key}")
+#
+#                         locTypesNotInParam = np.array([jj for jj,tt in enumerate(types[:whereTypeInMap]) if tt not in paramToTypeMap[f"{key}"]])
+#
+#                         if (len(locTypesNotInParam) == 0)|(offsetNeededBool == False):
+#                             # no types before this type so set offset to zero
+#                             offset = 0
+#                         else:
+#                             offset = np.sum(np.array(paramToTypeMap["lty"])[locTypesNotInParam])
+#                         try:
+#                             whereToRemove = whereToRemove-offset
+#                             newvalue = np.delete(value,whereToRemove,axis=0)
+#                             if newvalue.shape[0]>0:
+#                                 snap.data[key] = newvalue
+#                             else:
+#                                 snap.data[key] = None
+#                                 locTypesNotInParam2 = np.array([jj for jj,tt in enumerate(types) if tt not in paramToTypeMap[f"{key}"]])
+#
+#                                 paramToTypeMap[f"{key}"] = copy.deepcopy(types[locTypesNotInParam2].tolist())
+#
+#                         except Exception as e:
+#                             if DEBUG:
+#                                 print(f"[remove_selection]: DEBUG! Shape key: {np.shape(value)}")
+#                                 print(f"[remove_selection]: DEBUG! WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}")
+#         # Need to remove deleted entries of this type so that next type has
+#         # correct broadcast shape for removalConditionMask and whereType
+#         removalConditionMask = np.delete(removalConditionMask,whereToRemove,axis=0)
+#
+#
+#     noneRemovedTruthy = np.all(~removedTruthy)
+#
+#
+#     if noneRemovedTruthy is True:
+#         print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
+#
+#     elif DEBUG is True:
+#         if np.any(~removedTruthy):
+#             print(f"[@remove_selection]: WARNING! DEBUG! Selection criteria for error string = '{errorString}' not applied to particles of type:")
+#             print(f"{types[np.where(removedTruthy==False)[0]]}")
+#         else:
+#             print(f"[@remove_selection]: DEBUG! Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
+#
+#     snap = clean_snap_nones(snap)
+#
+#     nData = np.shape(snap.data["type"])[0]
+#     assert nData > 0,f"[@remove_selection]: FAILURE! CRITICAL!"+"\n"+f"Error String: {errorString} returned an empty snapShot!"
+#
+#     return snap
 
 def clean_snap_nones(snap):
     deleteKeys = []

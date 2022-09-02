@@ -1805,11 +1805,7 @@ def calculate_gradient_of_parameter(
     if verbose: print("Selected %d of %d particles." % (pp.size, snap.npart))
 
     posdata = pos[pp]
-    
-    if arg in logParameters:
-        valdata = np.log10(snap.data[arg][use_only_cells][pp].astype("float64"))
-    else:
-        valdata = snap.data[arg][use_only_cells][pp].astype("float64")
+    valdata = snap.data[arg][use_only_cells][pp].astype("float64")
 
     massdata = snap.mass[use_only_cells][pp].astype("float64") / (1e10)
 
@@ -1907,7 +1903,8 @@ def calculate_gradient_of_parameter(
 
         grid = np.transpose(grid)
         if verbose: print(f"Compute {key}!")
-
+        if arg in logParameters:
+            grid = np.log10(grid)
         snap.data[key]= np.array(np.gradient(grid, spacing)).reshape(-1, 3)
         if normed:
             snap.data[key] = np.linalg.norm(snap.data[key], axis=-1).flatten()
@@ -1954,7 +1951,8 @@ def calculate_gradient_of_parameter(
             grid_list.append(np.transpose(data))
 
         grid = np.stack([subgrid for subgrid in grid_list])
-
+        if arg in logParameters:
+            grid = np.log10(grid)
         if verbose: print(f"Compute {key}!")
         for dim in range(valdata.shape[1]):
             if normed:
@@ -1986,20 +1984,20 @@ def calculate_gradient_of_parameter(
 
     try:
         if transposeBool is False:
-            nActualZerosGradient = (np.where(snap.data[key]==0.0)[0]).shape[0]
+            nActualBadGradient = (np.where((snap.data[key]==0.0)|(np.isfinite(snap.data[key])==False))[0]).shape[0]
         else:
-            nActualZerosGradient = (np.where(snap.data[key]==0.0)[0]).shape[1]
+            nActualBadGradient = (np.where((snap.data[key]==0.0)|(np.isfinite(snap.data[key])==False))[0]).shape[0].shape[1]
     except:
-        nActualZerosGradient = (np.where(snap.data[key]==0.0)[0]).shape[0]
+        nActualBadGradient = (np.where((snap.data[key]==0.0)|(np.isfinite(snap.data[key])==False))[0]).shape[0]
 
-    nActualZerosGrid = (np.where(grid.flatten()==0.0)[0]).shape[0]
+    nActualBadGrid = (np.where((grid.flatten()==0.0)|(np.isfinite(grid.flatten())==False))[0]).shape[0]
 
-    nExpectedZeros = ((gridres**2)*6.0)
-    if valdata.ndim == 2: nExpectedZeros*=3.0
+    nExpectedBad = ((gridres**2)*6.0)
+    if valdata.ndim == 2: nExpectedBad*=3.0
 
     if verbose:
-        print(f"N. zeros Grid: {nActualZerosGrid} vs. tol. {nExpectedZeros}")
-        print(f"N. zeros Gradient: {nActualZerosGradient} vs. tol. {nExpectedZeros}")
+        print(f"N. bad Grid: {nActualBadGrid} vs. tol. {nExpectedBad}")
+        print(f"N. bad Gradient: {nActualBadGradient} vs. tol. {nExpectedBad}")
 
     opslaan = DataSavepath + f"{arg}-Gradient-Grid-details.txt"
 
@@ -2009,18 +2007,18 @@ def calculate_gradient_of_parameter(
         f.write(f"Boxsize (+/-) [Mpc] {boxsize/2}."+"\n")
         f.write(f"Grid Res per side {int(gridres)}"+"\n")
         f.write(f"Hsml value used [Mpc] {hsmlScalar:.5f}"+"\n")
-        f.write(f"n Zeros Tol. {int(nExpectedZeros)}"+"\n")
-        f.write(f"n Actual Zeros Gradient {int(nActualZerosGradient)}"+"\n")
-        f.write(f"n Actual Zeros Grid {int(nActualZerosGrid)}"+"\n")
+        f.write(f"n Bad Tol. {int(nExpectedBad)}"+"\n")
+        f.write(f"n Actual Bad Gradient {int(nActualBadGradient)}"+"\n")
+        f.write(f"n Actual Bad Grid {int(nActualBadGrid)}"+"\n")
 
     print("Gradient Grid Details saved as: ",opslaan)
 
     # Now we have saved the details, raise Exception if gradient is buggy...
-    if int(nActualZerosGradient) >= int(2 * nExpectedZeros):
-        raise Exception(f"[@calculate_gradient_of_parameter]: nActualZerosGradient found in data > 2*nExpectedZeros! Gradients may not have been calculated correctly"+"\n"+f"nActualZerosGradient = {nActualZerosGradient} | nExpectedZeros = {nExpectedZeros}"+"\n"+f"Data:"+"\n"+f"{snap.data[key]}"+ f"Grid:"+"\n"+f"{grid}")
+    if int(nActualBadGradient) >= int(2 * nExpectedBad):
+        raise Exception(f"[@calculate_gradient_of_parameter]: nActualBadGradient found in data > 2*nExpectedBad! Gradients may not have been calculated correctly"+"\n"+f"nActualBadGradient = {nActualBadGradient} | nExpectedBad = {nExpectedBad}"+"\n"+f"Data:"+"\n"+f"{snap.data[key]}"+ f"Grid:"+"\n"+f"{grid}")
 
-    if int(nActualZerosGrid) >= int(2 * nExpectedZeros):
-        raise Exception(f"[@calculate_gradient_of_parameter]: nActualZerosGrid found in data > 2*nExpectedZeros! Gradients may not have been calculated correctly"+"\n"+f"nActualZerosGrid = {nActualZerosGrid} | nExpectedZeros = {nExpectedZeros}"+"\n"+f"Data:"+"\n"+f"{snap.data[key]}"+ f"Grid:"+"\n"+f"{grid}")
+    if int(nActualBadGrid) >= int(2 * nExpectedBad):
+        raise Exception(f"[@calculate_gradient_of_parameter]: nActualBadGrid found in data > 2*nExpectedBad! Gradients may not have been calculated correctly"+"\n"+f"nActualBadGrid = {nActualBadGrid} | nExpectedBad = {nExpectedBad}"+"\n"+f"Data:"+"\n"+f"{snap.data[key]}"+ f"Grid:"+"\n"+f"{grid}")
 
     # print("***---***")
     # print("*** DEBUG! ***")

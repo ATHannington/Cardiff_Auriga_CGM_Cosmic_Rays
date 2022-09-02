@@ -147,6 +147,10 @@ snapRange = [
 if __name__ == "__main__":
     print("\n" + f"Starting SERIAL type Analysis!")
     for halo, allSimsDict in CRSELECTEDHALOES.items():
+
+        # if halo == "halo_12":
+        #     continue
+
         dataDict = {}
         starsDict ={}
         CRPARAMSHALO = {}
