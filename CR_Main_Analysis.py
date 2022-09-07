@@ -1,27 +1,26 @@
+import logging
+import sys
+import multiprocessing as mp
+from random import sample
+import math
+import json
+import h5py
+import copy
+from CR_Plotting_Tools import *
+from CR_Subroutines import *
+from Tracers_Subroutines import *
+from gadget_subfind import *
+from gadget import *
+import OtherConstants as oc
+import const as c
+from matplotlib.ticker import AutoMinorLocator
+import matplotlib.transforms as tx
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import matplotlib
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
-import matplotlib.pyplot as plt
-import matplotlib.transforms as tx
-from matplotlib.ticker import AutoMinorLocator
-import const as c
-import OtherConstants as oc
-from gadget import *
-from gadget_subfind import *
-from Tracers_Subroutines import *
-from CR_Subroutines import *
-from CR_Plotting_Tools import *
-import copy
-import h5py
-import json
-import math
-from random import sample
-import multiprocessing as mp
-import sys
-import logging
-import copy
 
 colourmapMain = "plasma"
 CRPARAMSPATHMASTER = "CRParams.json"
@@ -49,7 +48,7 @@ ylabel = {
     "n_H": r"n$_H$ (cm$^{-3}$)",
     "B": r"|B| ($ \mu $G)",
     "vrad": r"Radial Velocity (km s$^{-1}$)",
-    "gz": r"Metallicity Z/Z$_{\odot}$",
+    "gz": r"Metallicity Z$_{\odot}$",
     "L": r"Specific Angular Momentum" + "\n" + r"(kpc km s$^{-1}$)",
     "P_thermal": r"P$_{Thermal}$ / k$_B$ (K cm$^{-3}$)",
     "P_magnetic": r"P$_{Magnetic}$ / k$_B$ (K cm$^{-3}$)",
@@ -63,9 +62,10 @@ ylabel = {
     "gah": r"Alfven Gas Heating (erg s$^{-1}$)",
     "bfld": r"||B-Field|| ($ \mu $G)",
     "Grad_T": r"||Temperature Gradient|| (K kpc$^{-1}$)",
-    "Grad_n_H": r"||n$_H$ Gradient|| (kpc$^{-4}$)",
+    "Grad_n_H": r"||n$_H$ Gradient|| (cm$^{-3}$ kpc$^{-1}$)",
     "Grad_bfld": r"||B-Field Gradient|| ($ \mu $G kpc$^{-1}$)",
     "Grad_P_CR": r"||P$_{CR}$ Gradient|| (K kpc$^{-4}$)",
+    "gima" : r"Star Formation Rate (M$_{\odot}$ yr$^{-1}$)",
     # "crac" : r"Alfven CR Cooling (erg s$^{-1}$)",
     "tcool": r"Cooling Time (Gyr)",
     "theat": r"Heating Time (Gyr)",
@@ -76,7 +76,7 @@ ylabel = {
     "rho_rhomean": r"$\rho / \langle \rho \rangle$",
     "dens": r"Density (g cm$^{-3}$)",
     "ndens": r"Number density (cm$^{-3}$)",
-    "mass": r"Mass (M/M$_{\odot}$)",
+    "mass": r"Mass (M$_{\odot}$)",
 }
 
 xlimDict = {
@@ -104,23 +104,23 @@ xlimDict = {
     "ndens": {"xmin": -6.0, "xmax": 2.0},
 }
 
+
+for entry in CRPARAMSMASTER["logParameters"]:
+    ylabel[entry] = r"$Log_{10}$" + ylabel[entry]
+
 #   Perform forbidden log of Grad check
 deleteParams = []
 for entry in CRPARAMSMASTER["logParameters"]:
     entrySplit = entry.split("_")
     if (
         ("Grad" in entrySplit) &
-        (np.any(np.isin(np.array(CRPARAMSMASTER["logParameters"]),np.array("_".join(entrySplit[1:])))))
+        (np.any(np.isin(np.array(CRPARAMSMASTER["logParameters"]), np.array(
+            "_".join(entrySplit[1:])))))
     ):
-        print(entry)
-        print("Cannot have Log10 of Grad of already Log10'ed parameter...")
         deleteParams.append(entry)
 
 for entry in deleteParams:
     CRPARAMSMASTER["logParameters"].remove(entry)
-
-for entry in CRPARAMSMASTER["logParameters"]:
-    ylabel[entry] = r"$Log_{10}$" + ylabel[entry]
 
 
 # ==============================================================================#
@@ -152,7 +152,8 @@ if __name__ == "__main__":
         #     continue
 
         dataDict = {}
-        starsDict ={}
+        starsDict = {}
+        lastSnapDict = {}
         CRPARAMSHALO = {}
         DataSavepathBase = CRPARAMSMASTER['savepath']
         print("\n"+f"Starting {halo} Analysis!")
@@ -162,20 +163,21 @@ if __name__ == "__main__":
         for sim, simDict in allSimsDict.items():
             CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
             CRPARAMS.update({'halo': halo})
-            selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-            CRPARAMSHALO.update({selectKey : CRPARAMS})
+            selectKey = (f"{CRPARAMS['resolution']}",
+                         f"{CRPARAMS['CR_indicator']}")
+            CRPARAMSHALO.update({selectKey: CRPARAMS})
             if CRPARAMS['simfile'] is not None:
                 out = {}
                 rotation_matrix = None
                 for snapNumber in snapRange:
-                    tmpOut,rotation_matrix = cr_analysis_radial(
+                    tmpOut, rotation_matrix = cr_analysis_radial(
                         snapNumber=snapNumber,
                         CRPARAMS=CRPARAMS,
                         DataSavepathBase=DataSavepathBase,
                         FullDataPathSuffix=FullDataPathSuffix,
                         logParameters=CRPARAMSMASTER["logParameters"],
-                        rotation_matrix = rotation_matrix,
-                        )
+                        rotation_matrix=rotation_matrix,
+                    )
                     out.update(tmpOut)
 
                 del tmpOut
@@ -183,13 +185,18 @@ if __name__ == "__main__":
 
                 flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
 
-                del out
                 for key, dict in flatDict.items():
                     if key[-1] == "Stars":
-                        starsDict.update({key : dict})
+                        starsDict.update({key: dict})
                     else:
-                        dataDict.update({key : dict})
+                        dataDict.update({key: dict})
 
+                for key, items in out.items():
+                    if key[-1] == "Stars":
+                        if key[-2] == int(snapRange[-1]):
+                            lastSnapDict.update({key : copy.deepcopy(item)})
+
+                del out
         # # #----------------------------------------------------------------------#
         # # #      Calculate Radius xmin
         # # #----------------------------------------------------------------------#
@@ -216,11 +223,11 @@ if __name__ == "__main__":
         for sim, CRPARAMS in CRPARAMSHALO.items():
             if CRPARAMS['simfile'] is not None:
 
-
                 print(f"{sim}")
                 print("Calculate Statistics...")
                 print("Gas...")
-                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+                selectKey = (f"{CRPARAMS['resolution']}",
+                             f"{CRPARAMS['CR_indicator']}")
 
                 tmpCRPARAMS = copy.deepcopy(CRPARAMS)
                 tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
@@ -234,29 +241,30 @@ if __name__ == "__main__":
                     xlimDict["R"]['xmax'] = tmpCRPARAMS['Rinner']
                 else:
                     xlimDict["R"]['xmin'] = 0.0
-                    xlimDict["R"]['xmax'] =  tmpCRPARAMS['Router']
+                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
 
                 print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
-                xlimDict["R"]['xmax'])
+                      xlimDict["R"]['xmax'])
                 dat = cr_calculate_statistics(
-                    dataDict = dataDict[selectKey],
-                    CRPARAMS = tmpCRPARAMS,
-                    xParam = CRPARAMSMASTER["xParam"],
-                    Nbins = CRPARAMSMASTER["NxParamBins"],
-                    xlimDict = xlimDict
+                    dataDict=dataDict[selectKey],
+                    CRPARAMS=tmpCRPARAMS,
+                    xParam=CRPARAMSMASTER["xParam"],
+                    Nbins=CRPARAMSMASTER["NxParamBins"],
+                    xlimDict=xlimDict
                 )
 
                 statsDict.update({selectKey: dat})
 
                 print("Stars...")
-                selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+                selectKey = (f"{CRPARAMS['resolution']}",
+                             f"{CRPARAMS['CR_indicator']}", "Stars")
 
                 dat = cr_calculate_statistics(
-                    dataDict = starsDict[selectKey],
-                    CRPARAMS = tmpCRPARAMS,
-                    xParam = CRPARAMSMASTER["xParam"],
-                    Nbins = CRPARAMSMASTER["NxParamBins"],
-                    xlimDict = xlimDict
+                    dataDict=starsDict[selectKey],
+                    CRPARAMS=tmpCRPARAMS,
+                    xParam=CRPARAMSMASTER["xParam"],
+                    Nbins=CRPARAMSMASTER["NxParamBins"],
+                    xlimDict=xlimDict
                 )
 
                 statsDictStars.update({selectKey: dat})
@@ -279,7 +287,7 @@ if __name__ == "__main__":
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
-            colourmapMain = colourmapMain,
+            colourmapMain=colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -296,7 +304,7 @@ if __name__ == "__main__":
             xlimDict=xlimDict,
             snapRange=snapRange,
             densityBool=True,
-            colourmapMain = colourmapMain,
+            colourmapMain=colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -313,7 +321,7 @@ if __name__ == "__main__":
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
-            colourmapMain = colourmapMain,
+            colourmapMain=colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -329,7 +337,7 @@ if __name__ == "__main__":
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
-            colourmapMain = colourmapMain,
+            colourmapMain=colourmapMain,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -343,6 +351,23 @@ if __name__ == "__main__":
             CRPARAMSHALO=CRPARAMSHALO,
             halo=halo,
             ylabel=ylabel,
-            logParameters=CRPARAMSMASTER["logParameters"],
             xlimDict=xlimDict,
+            colourmapMain=colourmapMain,
         )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+        print("")
+        print(f"SFR Plot!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        sfr_pdf_versus_time_plot(
+            dataDict=lastSnapDict,
+            CRPARAMSHALO=CRPARAMSHALO,
+            halo=halo,
+            snapRange=snapRange,
+            ylabel=ylabel,
+            colourmapMain=colourmapMain,
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")

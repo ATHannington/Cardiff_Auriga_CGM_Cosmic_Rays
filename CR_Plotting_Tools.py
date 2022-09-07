@@ -1,24 +1,24 @@
+import logging
+import sys
+from random import sample
+import math
+import json
+import h5py
+import copy
+from CR_Subroutines import *
+from Tracers_Subroutines import *
+from gadget_subfind import *
+from gadget import *
+import OtherConstants as oc
+import const as c
+from matplotlib.ticker import AutoMinorLocator
+import matplotlib.transforms as tx
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import matplotlib
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
-import matplotlib.pyplot as plt
-import matplotlib.transforms as tx
-from matplotlib.ticker import AutoMinorLocator
-import const as c
-import OtherConstants as oc
-from gadget import *
-from gadget_subfind import *
-from Tracers_Subroutines import *
-from CR_Subroutines import *
-import copy
-import h5py
-import json
-import math
-from random import sample
-import sys
-import logging
 
 
 def round_it(x, sig):
@@ -139,10 +139,13 @@ def medians_versus_plot(
                             plotData.update({k: np.log10(v)})
 
                     try:
-                        ymin = np.nanmin(plotData[LO][np.isfinite(plotData[LO])])
-                        ymax = np.nanmax(plotData[UP][np.isfinite(plotData[UP])])
+                        ymin = np.nanmin(
+                            plotData[LO][np.isfinite(plotData[LO])])
+                        ymax = np.nanmax(
+                            plotData[UP][np.isfinite(plotData[UP])])
                     except:
-                        print(f"Variable {analysisParam} not found. Skipping plot...")
+                        print(
+                            f"Variable {analysisParam} not found. Skipping plot...")
                         continue
                     yminlist.append(ymin)
                     ymaxlist.append(ymax)
@@ -162,7 +165,7 @@ def medians_versus_plot(
                     midPercentile = math.floor(len(loadPercentilesTypes) / 2.0)
                     percentilesPairs = zip(
                         loadPercentilesTypes[:midPercentile],
-                        loadPercentilesTypes[midPercentile + 1 :],
+                        loadPercentilesTypes[midPercentile + 1:],
                     )
                     for (LO, UP) in percentilesPairs:
                         currentAx.fill_between(
@@ -183,9 +186,11 @@ def medians_versus_plot(
 
                     currentAx.xaxis.set_minor_locator(AutoMinorLocator())
                     currentAx.yaxis.set_minor_locator(AutoMinorLocator())
-                    currentAx.tick_params(axis="both", which="both", labelsize=fontsize)
+                    currentAx.tick_params(
+                        axis="both", which="both", labelsize=fontsize)
 
-                    currentAx.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
+                    currentAx.set_ylabel(
+                        ylabel[analysisParam], fontsize=fontsize)
 
                     if titleBool is True:
                         if selectKey[-1] == "Stars":
@@ -216,7 +221,7 @@ def medians_versus_plot(
             #     finalymax = np.nanmax(ymaxlist)
             # else:
             #     pass
-            if (len(yminlist)==0)|(len(ymaxlist)==0):
+            if (len(yminlist) == 0) | (len(ymaxlist) == 0):
                 print(
                     f"Variable {analysisParam} not found. Skipping plot..."
                 )
@@ -259,7 +264,8 @@ def medians_versus_plot(
                 plt.subplots_adjust(hspace=0.1, left=0.15)
 
             if selectKey[-1] == "Stars":
-                opslaan = savePath + f"CR_{halo}_Stellar-{analysisParam}_Medians.pdf"
+                opslaan = savePath + \
+                    f"CR_{halo}_Stellar-{analysisParam}_Medians.pdf"
             else:
                 opslaan = savePath + f"CR_{halo}_{analysisParam}_Medians.pdf"
             plt.savefig(opslaan, dpi=DPI, transparent=False)
@@ -317,32 +323,32 @@ def mass_pdf_versus_by_radius_plot(
         decimals=1,
     )
 
-    massSumDict = {}
-    for rinner, router in zip(Rrange[:-1], Rrange[1:]):
-        Nkeys = len(list(dataDict.items()))
-        tmp = []
-        for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
-            if selectKey[-1] == "Stars":
-                continue
-            loadpath = CRPARAMSHALO[selectKey]["simfile"]
-            if loadpath is not None:
-                # Create a plot for each Temperature
+    # massSumDict = {}
+    # for rinner, router in zip(Rrange[:-1], Rrange[1:]):
+    #     Nkeys = len(list(dataDict.items()))
+    #     tmp = []
+    #     for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+    #         if selectKey[-1] == "Stars":
+    #             continue
+    #         loadpath = CRPARAMSHALO[selectKey]["simfile"]
+    #         if loadpath is not None:
+    #             # Create a plot for each Temperature
+    #
+    #             try:
+    #                 weightsData = simDict["mass"].copy()
+    #             except:
+    #                 print(f"Variable {'mass'} not found. Skipping plot...")
+    #                 continue
+    #
+    #             whereInRadius = np.where(
+    #                 (simDict["R"] >= rinner) & (simDict["R"] < router)
+    #             )[0]
+    #
+    #             weightsData = weightsData[whereInRadius].copy()
+    #             tmp.append(np.sum(weightsData))
+    #     massSumDict.update({f"{rinner}R{router}": np.array(tmp)})
 
-                try:
-                    weightsData = simDict["mass"].copy()
-                except:
-                    print(f"Variable {'mass'} not found. Skipping plot...")
-                    continue
-
-                whereInRadius = np.where(
-                    (simDict["R"] >= rinner) & (simDict["R"] < router)
-                )[0]
-
-                weightsData = weightsData[whereInRadius].copy()
-                tmp.append(np.sum(weightsData))
-        massSumDict.update({f"{rinner}R{router}": np.array(tmp)})
-
-    for analysisParam in CRPARAMSHALO[selectKey0]["saveParams"][14:]:
+    for analysisParam in CRPARAMSHALO[selectKey0]["saveParams"]:
         if (analysisParam != "mass") & (analysisParam != "R"):
             print("")
             print(f"Starting {analysisParam} plots!")
@@ -417,7 +423,8 @@ def mass_pdf_versus_by_radius_plot(
                             xmax = np.nanmax(plotData[np.isfinite(plotData)])
                             skipBool = False
                         except:
-                            print(f"Variable {analysisParam} not found. Skipping plot...")
+                            print(
+                                f"Variable {analysisParam} not found. Skipping plot...")
                             skipBool = True
                             continue
                         xminlist.append(xmin)
@@ -441,7 +448,8 @@ def mass_pdf_versus_by_radius_plot(
                                 num=Nbins,
                             )
                         except:
-                            xBins = np.linspace(start=xmin, stop=xmax, num=Nbins)
+                            xBins = np.linspace(
+                                start=xmin, stop=xmax, num=Nbins)
                         else:
                             pass
 
@@ -455,7 +463,7 @@ def mass_pdf_versus_by_radius_plot(
                         )
 
                         hist = hist / Nsnaps
-                        massSum = massSumDict[f"{rinner}R{router}"]
+                        # massSum = massSumDict[f"{rinner}R{router}"]
                         # if densityBool is True:
                         #     hist = hist * massSum[ii]/np.nanmax(massSum)
                         # else:
@@ -470,7 +478,8 @@ def mass_pdf_versus_by_radius_plot(
                             ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
                             skipBool = False
                         except:
-                            print(f"Variable {analysisParam} not found. Skipping plot...")
+                            print(
+                                f"Variable {analysisParam} not found. Skipping plot...")
                             skipBool = True
                             continue
                         xFromBins = np.array(
@@ -495,7 +504,8 @@ def mass_pdf_versus_by_radius_plot(
                         )
 
                         if densityBool is False:
-                            currentAx.set_ylabel(ylabel["mass"], fontsize=fontsize)
+                            currentAx.set_ylabel(
+                                ylabel["mass"], fontsize=fontsize)
                         else:
                             currentAx.set_ylabel("PDF", fontsize=fontsize)
 
@@ -514,7 +524,8 @@ def mass_pdf_versus_by_radius_plot(
                 ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
 
                 if (skipBool == True):
-                    print(f"Variable {analysisParam} not found. Skipping plot...")
+                    print(
+                        f"Variable {analysisParam} not found. Skipping plot...")
                     continue
 
                 try:
@@ -680,7 +691,8 @@ def cumulative_mass_versus_plot(
                         ymin = np.nanmin(plotData[np.isfinite(plotData)])
                         ymax = np.nanmax(plotData[np.isfinite(plotData)])
                     except:
-                        print(f"Variable {analysisParam} not found. Skipping plot...")
+                        print(
+                            f"Variable {analysisParam} not found. Skipping plot...")
                         continue
                     yminlist.append(ymin)
                     ymaxlist.append(ymax)
@@ -707,9 +719,11 @@ def cumulative_mass_versus_plot(
 
                     currentAx.xaxis.set_minor_locator(AutoMinorLocator())
                     currentAx.yaxis.set_minor_locator(AutoMinorLocator())
-                    currentAx.tick_params(axis="both", which="both", labelsize=fontsize)
+                    currentAx.tick_params(
+                        axis="both", which="both", labelsize=fontsize)
 
-                    currentAx.set_ylabel("Cumulative " + ylabel[analysisParam], fontsize=fontsize)
+                    currentAx.set_ylabel(
+                        "Cumulative " + ylabel[analysisParam], fontsize=fontsize)
 
                     if titleBool is True:
                         if selectKey[-1] == "Stars":
@@ -739,7 +753,7 @@ def cumulative_mass_versus_plot(
             #     finalymax = np.nanmax(ymaxlist)
             # else:
             #     pass
-            if (len(yminlist)==0)|(len(ymaxlist)==0):
+            if (len(yminlist) == 0) | (len(ymaxlist) == 0):
                 print(
                     f"Variable {analysisParam} not found. Skipping plot..."
                 )
@@ -787,7 +801,8 @@ def cumulative_mass_versus_plot(
                 )
             else:
                 opslaan = (
-                    savePath + f"CR_{halo}_Cumulative-{analysisParam}-vs-{xParam}.pdf"
+                    savePath +
+                    f"CR_{halo}_Cumulative-{analysisParam}-vs-{xParam}.pdf"
                 )
             plt.savefig(opslaan, dpi=DPI, transparent=False)
             print(opslaan)
@@ -795,21 +810,21 @@ def cumulative_mass_versus_plot(
 
     return
 
+
 def phases_plot(
     dataDict,
     CRPARAMSHALO,
     halo,
     ylabel,
-    logParameters,
     xlimDict,
-    weightKeys = ["mass",
-        "Pthermal_Pmagnetic",
-        "PCR_Pthermal",
-        "P_thermal",
-        "P_CR",
-        "gz",
-        "tcool_tff"
-    ],
+    weightKeys=["mass",
+                "Pthermal_Pmagnetic",
+                "PCR_Pthermal",
+                "P_thermal",
+                "P_CR",
+                "gz",
+                "tcool_tff"
+                ],
     titleBool=False,
     DPI=150,
     xsize=8.0,
@@ -825,12 +840,12 @@ def phases_plot(
     try:
         tmp = xlimDict["mass"]
     except:
-        xlimDict.update({"mass":{"xmin": 4.0, "xmax": 9.0}})
+        xlimDict.update({"mass": {"xmin": 4.0, "xmax": 9.0}})
 
     zlimDict = copy.deepcopy(xlimDict)
 
-    zlimDict.update({"rho_rhomean" :{"xmin": 0.25, "xmax": 6.5}})
-    zlimDict.update({"T" :{"xmin": 3.75, "xmax": 7.0}})
+    zlimDict.update({"rho_rhomean": {"xmin": 0.25, "xmax": 6.5}})
+    zlimDict.update({"T": {"xmin": 3.75, "xmax": 7.0}})
     zlimDict.update({"tcool_tff": {"xmin": -2.5, "xmax": 2.0}})
     zlimDict.update({"gz": {"xmin": -1.0, "xmax": 0.25}})
     zlimDict.update({"Pthermal_Pmagnetic": {"xmin": -2.0, "xmax": 10.0}})
@@ -852,10 +867,10 @@ def phases_plot(
 
     fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
     fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
-        # ------------------------------------------------------------------------------#
-        #               PLOTTING
-        #
-        # ------------------------------------------------------------------------------#
+    # ------------------------------------------------------------------------------#
+    #               PLOTTING
+    #
+    # ------------------------------------------------------------------------------#
     for weightKey in weightKeys:
         print("\n" + f"Starting weightKey {weightKey}")
 
@@ -885,9 +900,9 @@ def phases_plot(
                     f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}"
                 )
 
-                row, col = np.unravel_index(np.array([ii]),shape=(2,2))
+                row, col = np.unravel_index(np.array([ii]), shape=(2, 2))
 
-                currentAx = ax[row[0],col[0]]
+                currentAx = ax[row[0], col[0]]
 
                 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
                 #   Figure 1: Full Cells Data
@@ -925,7 +940,7 @@ def phases_plot(
 
                 finalHistCells[finalHistCells == 0.0] = np.nan
                 try:
-                    if weightKey in logParameters:
+                    if weightKey in CRPARAMSHALO[selectKeyShort]['logParameters']:
                         finalHistCells = np.log10(finalHistCells)
                 except:
                     print(f"Variable {weightKey} not found. Skipping plot...")
@@ -952,14 +967,19 @@ def phases_plot(
                     r"Log10 Density ($ \rho / \langle \rho \rangle $)",
                     fontsize=fontsize,
                 )
-                currentAx.set_ylabel("Log10 Temperatures (K)", fontsize=fontsize)
+                currentAx.set_ylabel(
+                    "Log10 Temperatures (K)", fontsize=fontsize)
 
-                currentAx.set_ylim(zlimDict["T"]["xmin"], zlimDict["T"]["xmax"])
-                currentAx.set_xlim(zlimDict["rho_rhomean"]["xmin"], zlimDict["rho_rhomean"]["xmax"])
-                currentAx.tick_params(axis="both", which="both", labelsize=fontsize)
+                currentAx.set_ylim(
+                    zlimDict["T"]["xmin"], zlimDict["T"]["xmax"])
+                currentAx.set_xlim(
+                    zlimDict["rho_rhomean"]["xmin"], zlimDict["rho_rhomean"]["xmax"])
+                currentAx.tick_params(
+                    axis="both", which="both", labelsize=fontsize)
 
                 currentAx.set_title(
-                    f"{halo}:" + "\n" +  f"{CRPARAMSHALO[selectKeyShort]['resolution']} resolution {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
+                    f"{halo}:" + "\n" +
+                    f"{CRPARAMSHALO[selectKeyShort]['resolution']} resolution {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
                     fontsize=fontsizeTitle,
                 )
                 currentAx.set_aspect("auto")
@@ -973,19 +993,17 @@ def phases_plot(
             )
             continue
 
+            #left, bottom, width, height
+            # x0,    y0,  delta x, delta y
+        cax1 = fig.add_axes([0.925, 0.10, 0.05, 0.80])
 
-                            #left, bottom, width, height
-                            # x0,    y0,  delta x, delta y
-        cax1 = fig.add_axes([0.925,0.10,0.05,0.80])
-
-        fig.colorbar(img1, cax=cax1, ax=ax[:,-1].ravel().tolist(), orientation="vertical",pad=0.05).set_label(
+        fig.colorbar(img1, cax=cax1, ax=ax[:, -1].ravel().tolist(), orientation="vertical", pad=0.05).set_label(
             label=ylabel[weightKey], size=fontsize
         )
         cax1.yaxis.set_ticks_position("left")
         cax1.yaxis.set_label_position("left")
         cax1.yaxis.label.set_color("black")
         cax1.tick_params(axis="y", colors="black", labelsize=fontsize)
-
 
         if titleBool is True:
             fig.suptitle(
@@ -994,9 +1012,9 @@ def phases_plot(
             )
 
         if titleBool is True:
-            plt.subplots_adjust(top=0.875,right = 0.8, hspace=0.3, wspace = 0.3)
+            plt.subplots_adjust(top=0.875, right=0.8, hspace=0.3, wspace=0.3)
         else:
-            plt.subplots_adjust(right = 0.8, hspace=0.3, wspace = 0.3)
+            plt.subplots_adjust(right=0.8, hspace=0.3, wspace=0.3)
 
         opslaan = (
             savePath
@@ -1004,5 +1022,248 @@ def phases_plot(
         )
         plt.savefig(opslaan, dpi=DPI, transparent=False)
         print(opslaan)
+
+    return
+
+
+def sfr_pdf_versus_time_plot(
+    dataDict,
+    CRPARAMSHALO,
+    halo,
+    snapRange,
+    ylabel,
+    titleBool=False,
+    DPI=150,
+    Nbins=150,
+    xsize=6.0,
+    ysize=6.0,
+    colourmapMain="tab10",
+    lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
+):
+    keys = list(CRPARAMSHALO.keys())
+    selectKey0 = keys[0]
+
+    savePath = f"./Plots/{halo}/{CRPARAMSHALO[selectKey0]['analysisType']}/SFR/"
+    tmp = "./"
+    for savePathChunk in savePath.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+
+    Nsnaps = float(len(snapRange))
+
+    keys = list(CRPARAMSHALO.keys())
+
+    plotParams = CRPARAMSHALO[selectKey0]["saveParams"]
+
+    fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+
+
+    analysisParam = "gima"
+    xParam = "age"
+    Nkeys = len(list(dataDict.items()))
+    for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
+        if selectKey[-1] == "Stars":
+            selectKeyShort = selectKey[:-1]
+        else:
+            selectKeyShort = selectKey
+
+        loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
+        if loadpath is not None:
+            print(
+                f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}"
+            )
+        if loadpath is not None:
+            xBins = np.around(
+                np.linspace(
+                    start=np.nanmin(dataDict[selectKey][xParam]),
+                    stop=np.nanmax(dataDict[selectKey][xParam]),
+                    num=CRPARAMSHALO[selectKeyShort]["NxParamBins"],
+                ),
+                decimals=1,
+            )
+
+            delta = np.mean(np.diff(xBins))
+
+            fig, ax = plt.subplots(
+                nrows=1,
+                ncols=1,
+                sharex=True,
+                sharey=True,
+                figsize=(xsize, ysize),
+                dpi=DPI,
+            )
+            xminlist = []
+            xmaxlist = []
+            yminlist = []
+            ymaxlist = []
+            patchList = []
+            labelList = []
+
+            # Create a plot for each Temperature
+            skipBool = False
+            try:
+                plotData = simDict[xParam].copy()
+                weightsData = simDict[analysisParam].copy()
+                skipBool = False
+            except:
+                print(
+                    f"Variable {analysisParam} not found. Skipping plot..."
+                )
+                skipBool = True
+                continue
+
+            lineStyle = lineStyleDict[
+                CRPARAMSHALO[selectKeyShort]["CR_indicator"]
+            ]
+
+            cmap = matplotlib.cm.get_cmap(colourmapMain)
+            if colourmapMain == "tab10":
+                colour = cmap(float(ii) / 10.0)
+            else:
+                colour = cmap(float(ii) / float(Nkeys))
+
+            if analysisParam in CRPARAMSHALO[selectKeyShort]["logParameters"]:
+                plotData = np.log10(plotData)
+
+            try:
+                xmin = np.nanmin(plotData[np.isfinite(plotData)])
+                xmax = np.nanmax(plotData[np.isfinite(plotData)])
+                skipBool = False
+            except:
+                print(
+                    f"Variable {analysisParam} not found. Skipping plot...")
+                skipBool = True
+                continue
+            xminlist.append(xmin)
+            xmaxlist.append(xmax)
+
+            if (
+                (np.isinf(xmin) == True)
+                or (np.isinf(xmax) == True)
+                or (np.isnan(xmin) == True)
+                or (np.isnan(xmax) == True)
+            ):
+                # print()
+                print("Data All Inf/NaN! Skipping entry!")
+                skipBool = True
+                continue
+
+            currentAx = ax
+
+            hist, bin_edges = np.histogram(
+                plotData,
+                bins=xBins,
+                weights=weightsData,
+            )
+
+            hist = hist / delta
+
+            if np.all(np.isfinite(hist)) == False:
+                print("Hist All Inf/NaN! Skipping entry!")
+                continue
+
+            try:
+                yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
+                ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
+                skipBool = False
+            except:
+                print(
+                    f"Variable {analysisParam} not found. Skipping plot...")
+                skipBool = True
+                continue
+            xFromBins = np.array(
+                [
+                    (x1 + x2) / 2.0
+                    for (x1, x2) in zip(bin_edges[:-1], bin_edges[1:])
+                ]
+            )
+
+            currentAx.plot(
+                xFromBins,
+                hist,
+                label=f"{CRPARAMSHALO[selectKeyShort]['resolution']}: {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
+                color=colour,
+                linestyle=lineStyle,
+            )
+
+            currentAx.xaxis.set_minor_locator(AutoMinorLocator())
+            currentAx.yaxis.set_minor_locator(AutoMinorLocator())
+            currentAx.tick_params(
+                axis="both", which="both", labelsize=fontsize
+            )
+
+            currentAx.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
+
+            if titleBool is True:
+                fig.suptitle(
+                    f" Star Formation Rate vs {xParam}",
+                    fontsize=fontsizeTitle,
+                )
+
+# Only give 1 x-axis a label, as they sharex
+
+    ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
+
+    if (skipBool == True):
+        print(
+            f"Variable {analysisParam} not found. Skipping plot...")
+    else:
+
+        try:
+            finalxmin = max(
+                np.nanmin(xminlist), xlimDict[analysisParam]["xmin"]
+            )
+            finalxmax = min(
+                np.nanmax(xmaxlist), xlimDict[analysisParam]["xmax"]
+            )
+        except:
+            finalxmin = np.nanmin(xminlist)
+            finalxmax = np.nanmax(xmaxlist)
+        else:
+            pass
+
+        if (
+            (np.isinf(finalxmax) == True)
+            or (np.isinf(finalxmin) == True)
+            or (np.isnan(finalxmax) == True)
+            or (np.isnan(finalxmin) == True)
+        ):
+            print("Data All Inf/NaN! Skipping entry!")
+        else:
+
+            try:
+                if densityBool is False:
+                    finalymin = np.nanmin(yminlist)
+                    finalymax = np.nanmax(ymaxlist)
+                else:
+                    finalymin = 0.0
+                    finalymax = np.nanmax(ymaxlist)
+            except:
+                print("Data All Inf/NaN! Skipping entry!")
+            else:
+                custom_xlim = (finalxmin, finalxmax)
+                custom_ylim = (finalymin, finalymax)
+                plt.setp(ax, xlim=custom_xlim, ylim=custom_ylim)
+                ax.legend(loc="best", fontsize=fontsize)
+
+                # plt.tight_layout()
+                if titleBool is True:
+                    plt.subplots_adjust(top=0.875, hspace=0.1, left=0.15)
+                else:
+                    plt.subplots_adjust(hspace=0.1, left=0.15)
+
+                opslaan = (
+                    savePath
+                    + f"CR_{halo}_{analysisParam}_SFR-vs-time.pdf"
+                )
+                plt.savefig(opslaan, dpi=DPI, transparent=False)
+                print(opslaan)
+                plt.close()
 
     return

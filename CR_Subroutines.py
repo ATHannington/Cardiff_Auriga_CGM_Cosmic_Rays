@@ -172,6 +172,8 @@ def cr_analysis_radial(
 
     snapStars.pos *= 1e3  # [kpc]
     snapStars.mass *= 1e10  # [Msol]
+    snapStars.gima *= 1e10  # [Msol]
+    snapStars.age *= 1e9 # [yr]
 
     snapGas.data["R"] = np.linalg.norm(snapGas.data["pos"], axis=1)
     snapStars.data["R"] = np.linalg.norm(snapStars.data["pos"], axis=1)
