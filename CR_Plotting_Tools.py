@@ -4,6 +4,8 @@ import matplotlib
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
 import matplotlib.pyplot as plt
+import matplotlib.transforms as tx
+from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import const as c
 import OtherConstants as oc

@@ -237,10 +237,10 @@ if __name__ == "__main__":
                         else:
                             dataDict.update({key: copy.deepcopy(dict)})
 
-                    for key, items in out.items():
+                    for key, dict in out.items():
                         if key[-1] == "Stars":
                             if key[-2] == f"{int(snapRange[-1])}":
-                                lastSnapDict.update({key : copy.deepcopy(item)})
+                                lastSnapDict.update({key : copy.deepcopy(dict)})
 
                     del out, flatDict
             # # #----------------------------------------------------------------------#
