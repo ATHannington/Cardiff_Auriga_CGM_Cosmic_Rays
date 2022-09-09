@@ -1,6 +1,8 @@
 {
     "analysisType" : "all",
 
+    "restartFlag" : true,
+
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V3-1/",
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","gah","Grad_T","Grad_n_H","Grad_bfld","Grad_P_CR","tcool","tff","tcool_tff"],

@@ -1,24 +1,22 @@
-import logging
-import sys
-from random import sample
-import math
-import json
-import h5py
-import copy
-from CR_Subroutines import *
-from Tracers_Subroutines import *
-from gadget_subfind import *
-from gadget import *
-import OtherConstants as oc
-import const as c
-from matplotlib.ticker import AutoMinorLocator
-import matplotlib.transforms as tx
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import matplotlib
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import const as c
+import OtherConstants as oc
+from gadget import *
+from gadget_subfind import *
+from Tracers_Subroutines import *
+from CR_Subroutines import *
+from CR_Plotting_Tools import *
+import h5py
+import json
+import copy
+import math
+import os
 
 
 def round_it(x, sig):
@@ -822,6 +820,7 @@ def phases_plot(
                 "PCR_Pthermal",
                 "P_thermal",
                 "P_CR",
+                "PCR_Pthermal",
                 "gz",
                 "tcool_tff"
                 ],
@@ -988,10 +987,15 @@ def phases_plot(
         #   Figure: Finishing up
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         if skipBool == True:
-            print(
-                f"Variable {weightKey} not found. Skipping plot..."
-            )
-            continue
+            try:
+                tmp = finalHistCells
+            except:
+                print(
+                    f"Variable {weightKey} not found. Skipping plot..."
+                )
+                continue
+            else:
+                pass
 
             #left, bottom, width, height
             # x0,    y0,  delta x, delta y

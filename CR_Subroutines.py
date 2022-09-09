@@ -15,7 +15,6 @@ import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
-from scipy.stats import binned_statistic_dd
 import h5py
 import json
 import copy
@@ -478,7 +477,7 @@ def cr_parameters(CRPARAMSMASTER, simDict):
     return CRPARAMS
 
 
-def flatten_wrt_time(dataDict, CRPARAMS, snapRange):
+def cr_flatten_wrt_time(dataDict, CRPARAMS, snapRange):
 
     print("Flattening with respect to time...")
     flatData = {}

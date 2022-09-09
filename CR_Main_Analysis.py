@@ -1,24 +1,23 @@
-import logging
-import sys
-import multiprocessing as mp
-from random import sample
-import math
-import json
-import h5py
-import copy
-from CR_Plotting_Tools import *
-from CR_Subroutines import *
-from Tracers_Subroutines import *
-from gadget_subfind import *
-from gadget import *
-import OtherConstants as oc
-import const as c
-from matplotlib.ticker import AutoMinorLocator
-import matplotlib.transforms as tx
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import matplotlib
+
+matplotlib.use("Agg")  # For suppressing plotting on clusters
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import const as c
+import OtherConstants as oc
+from gadget import *
+from gadget_subfind import *
+from Tracers_Subroutines import *
+from CR_Subroutines import *
+from CR_Plotting_Tools import *
+import h5py
+import json
+import copy
+import os
+
+KnownAnalysisType = ["cgm", "ism", "all"]
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
 
@@ -33,9 +32,6 @@ CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, "r"))
 # File types for data save.
 #   Full: full FullDict data
 FullDataPathSuffix = f".h5"
-
-# Number of cores to run on:
-n_processes = 2
 
 FullDataPathSuffix = f".h5"
 
@@ -145,129 +141,214 @@ snapRange = [
 ]
 
 if __name__ == "__main__":
-    print("\n" + f"Starting SERIAL type Analysis!")
     for halo, allSimsDict in CRSELECTEDHALOES.items():
-
-        # if halo == "halo_12":
-        #     continue
-
-        dataDict = {}
-        starsDict = {}
-        lastSnapDict = {}
-        CRPARAMSHALO = {}
+        runAnalysisBool = True
         DataSavepathBase = CRPARAMSMASTER['savepath']
-        print("\n"+f"Starting {halo} Analysis!")
-        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-        #   MAIN ANALYSIS
-        # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        for sim, simDict in allSimsDict.items():
-            CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
-            CRPARAMS.update({'halo': halo})
-            selectKey = (f"{CRPARAMS['resolution']}",
-                         f"{CRPARAMS['CR_indicator']}")
-            CRPARAMSHALO.update({selectKey: CRPARAMS})
-            if CRPARAMS['simfile'] is not None:
-                out = {}
-                rotation_matrix = None
-                for snapNumber in snapRange:
-                    tmpOut, rotation_matrix = cr_analysis_radial(
-                        snapNumber=snapNumber,
-                        CRPARAMS=CRPARAMS,
-                        DataSavepathBase=DataSavepathBase,
-                        FullDataPathSuffix=FullDataPathSuffix,
-                        logParameters=CRPARAMSMASTER["logParameters"],
-                        rotation_matrix=rotation_matrix,
-                    )
-                    out.update(tmpOut)
-
-                del tmpOut
-                #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
-
-                flatDict = flatten_wrt_time(out, CRPARAMS, snapRange)
-
-                for key, dict in flatDict.items():
-                    if key[-1] == "Stars":
-                        starsDict.update({key: dict})
-                    else:
-                        dataDict.update({key: dict})
-
-                for key, items in out.items():
-                    if key[-1] == "Stars":
-                        if key[-2] == int(snapRange[-1]):
-                            lastSnapDict.update({key : copy.deepcopy(item)})
-
-                del out
-        # # #----------------------------------------------------------------------#
-        # # #      Calculate Radius xmin
-        # # #----------------------------------------------------------------------#
-        #
-        # # for sim, CRPARAMS in CRPARAMSHALO.items():
-        # #     if CRPARAMS['simfile'] is not None:
-        # #         print(f"{sim}")
-        # #         print("Calculate Radius xmin...")
-        # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
-        # #
-        # #         dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
-        # #
-        # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
-        # # #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
-        #----------------------------------------------------------------------#
-        #      Calculate statistics...
-        #----------------------------------------------------------------------#
-
-        print("")
-        print("Calculate Statistics!")
-        print(f"{halo}")
-        statsDict = {}
-        statsDictStars = {}
-        for sim, CRPARAMS in CRPARAMSHALO.items():
-            if CRPARAMS['simfile'] is not None:
-
-                print(f"{sim}")
-                print("Calculate Statistics...")
-                print("Gas...")
+        if CRPARAMSMASTER["restartFlag"] is True:
+            CRPARAMSHALO = {}
+            for sim, simDict in allSimsDict.items():
+                CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+                CRPARAMS.update({'halo': halo})
                 selectKey = (f"{CRPARAMS['resolution']}",
                              f"{CRPARAMS['CR_indicator']}")
+                CRPARAMSHALO.update({selectKey: CRPARAMS})
+            try:
+                print("Restart Flag True! Will try to recover previous analysis data products.")
+                print("Attempting to load data products...")
+                for sim, CRPARAMS in CRPARAMSHALO.items():
+                    if CRPARAMS['simfile'] is not None:
+                        analysisType = CRPARAMS["analysisType"]
 
-                tmpCRPARAMS = copy.deepcopy(CRPARAMS)
-                tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
+                        if analysisType not in KnownAnalysisType:
+                            raise Exception(
+                                f"ERROR! CRITICAL! Unknown analysis type: {analysisType}!"
+                                + "\n"
+                                + f"Availble analysis types: {KnownAnalysisType}"
+                            )
 
-                if tmpCRPARAMS['analysisType'] == 'cgm':
-                    xlimDict["R"]['xmin'] = 0.0
-                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
+                        saveDir = ( DataSavepathBase+f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/"
+                        )
+                        DataSavepath = (
+                            saveDir + "CR_" + f"{CRPARAMS['snapMin']}-{CRPARAMS['snapMax']}_{CRPARAMS['Rinner']}R{CRPARAMS['Router']}_"
+                        )
 
-                elif tmpCRPARAMS['analysisType'] == 'ism':
-                    xlimDict["R"]['xmin'] = 0.0
-                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Rinner']
-                else:
-                    xlimDict["R"]['xmin'] = 0.0
-                    xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
+                        loadPath = DataSavepath + "lastSnapDict.h5"
+                        lastSnapDict = hdf5_load(loadPath)
 
-                print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
-                      xlimDict["R"]['xmax'])
-                dat = cr_calculate_statistics(
-                    dataDict=dataDict[selectKey],
-                    CRPARAMS=tmpCRPARAMS,
-                    xParam=CRPARAMSMASTER["xParam"],
-                    Nbins=CRPARAMSMASTER["NxParamBins"],
-                    xlimDict=xlimDict
-                )
+                        loadPath = DataSavepath + "statsDict.h5"
+                        statsDict = hdf5_load(loadPath)
 
-                statsDict.update({selectKey: dat})
+                        loadPath = DataSavepath + "statsDictStars.h5"
+                        statsDictStars = hdf5_load(loadPath)
 
-                print("Stars...")
+                        loadPath = DataSavepath + "starsDict.h5"
+                        starsDict = hdf5_load(loadPath)
+
+                        loadPath = DataSavepath + "dataDict.h5"
+                        dataDict = hdf5_load(loadPath)
+
+
+
+                print("...done!")
+                runAnalysisBool = False
+            except Exception as e:
+
+                print("Restart Failed! \n" + f"exception: {e}" + "\n Re-running Analysis!")
+                runAnalysisBool = True
+
+        if runAnalysisBool is True:
+            print("\n" + f"Starting SERIAL type Analysis!")
+            dataDict = {}
+            starsDict = {}
+            lastSnapDict = {}
+            CRPARAMSHALO = {}
+            print("\n"+f"Starting {halo} Analysis!")
+            # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
+            #   MAIN ANALYSIS
+            # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+            for sim, simDict in allSimsDict.items():
+                CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+                CRPARAMS.update({'halo': halo})
                 selectKey = (f"{CRPARAMS['resolution']}",
-                             f"{CRPARAMS['CR_indicator']}", "Stars")
+                             f"{CRPARAMS['CR_indicator']}")
+                CRPARAMSHALO.update({selectKey: CRPARAMS})
+                if CRPARAMS['simfile'] is not None:
+                    out = {}
+                    rotation_matrix = None
+                    for snapNumber in snapRange:
+                        tmpOut, rotation_matrix = cr_analysis_radial(
+                            snapNumber=snapNumber,
+                            CRPARAMS=CRPARAMS,
+                            DataSavepathBase=DataSavepathBase,
+                            FullDataPathSuffix=FullDataPathSuffix,
+                            logParameters=CRPARAMSMASTER["logParameters"],
+                            rotation_matrix=rotation_matrix,
+                        )
+                        out.update(tmpOut)
 
-                dat = cr_calculate_statistics(
-                    dataDict=starsDict[selectKey],
-                    CRPARAMS=tmpCRPARAMS,
-                    xParam=CRPARAMSMASTER["xParam"],
-                    Nbins=CRPARAMSMASTER["NxParamBins"],
-                    xlimDict=xlimDict
-                )
+                    del tmpOut
+                    #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
-                statsDictStars.update({selectKey: dat})
+                    flatDict = cr_flatten_wrt_time(out, CRPARAMS, snapRange)
+
+                    for key, dict in flatDict.items():
+                        if key[-1] == "Stars":
+                            starsDict.update({key: copy.deepcopy(dict)})
+                        else:
+                            dataDict.update({key: copy.deepcopy(dict)})
+
+                    for key, items in out.items():
+                        if key[-1] == "Stars":
+                            if key[-2] == f"{int(snapRange[-1])}":
+                                lastSnapDict.update({key : copy.deepcopy(item)})
+
+                    del out, flatDict
+            # # #----------------------------------------------------------------------#
+            # # #      Calculate Radius xmin
+            # # #----------------------------------------------------------------------#
+            #
+            # # for sim, CRPARAMS in CRPARAMSHALO.items():
+            # #     if CRPARAMS['simfile'] is not None:
+            # #         print(f"{sim}")
+            # #         print("Calculate Radius xmin...")
+            # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}")
+            # #
+            # #         dataDict[selectKey]['maxDiskRadius'] = np.nanmedian(dataDict[selectKey]['maxDiskRadius'])
+            # #
+            # #         selectKey = (f"{CRPARAMS['resolution']}",f"{CRPARAMS['CR_indicator']}","Stars")
+            # # #         starsDict[selectKey]['maxDiskRadius'] = np.nanmedian(starsDict[selectKey]['maxDiskRadius'])
+            #----------------------------------------------------------------------#
+            #      Calculate statistics...
+            #----------------------------------------------------------------------#
+
+            print("")
+            print("Calculate Statistics!")
+            print(f"{halo}")
+            statsDict = {}
+            statsDictStars = {}
+            for sim, CRPARAMS in CRPARAMSHALO.items():
+                if CRPARAMS['simfile'] is not None:
+
+                    print(f"{sim}")
+                    print("Calculate Statistics...")
+                    print("Gas...")
+                    selectKey = (f"{CRPARAMS['resolution']}",
+                                 f"{CRPARAMS['CR_indicator']}")
+
+                    tmpCRPARAMS = copy.deepcopy(CRPARAMS)
+                    tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
+
+                    if tmpCRPARAMS['analysisType'] == 'cgm':
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
+
+                    elif tmpCRPARAMS['analysisType'] == 'ism':
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] = tmpCRPARAMS['Rinner']
+                    else:
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
+
+                    print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
+                          xlimDict["R"]['xmax'])
+                    dat = cr_calculate_statistics(
+                        dataDict=dataDict[selectKey],
+                        CRPARAMS=tmpCRPARAMS,
+                        xParam=CRPARAMSMASTER["xParam"],
+                        Nbins=CRPARAMSMASTER["NxParamBins"],
+                        xlimDict=xlimDict
+                    )
+
+                    statsDict.update({selectKey: dat})
+
+                    print("Stars...")
+                    selectKey = (f"{CRPARAMS['resolution']}",
+                                 f"{CRPARAMS['CR_indicator']}", "Stars")
+
+                    dat = cr_calculate_statistics(
+                        dataDict=starsDict[selectKey],
+                        CRPARAMS=tmpCRPARAMS,
+                        xParam=CRPARAMSMASTER["xParam"],
+                        Nbins=CRPARAMSMASTER["NxParamBins"],
+                        xlimDict=xlimDict
+                    )
+
+                    statsDictStars.update({selectKey: dat})
+            # ----------------------------------------------------------------------#
+            # Save output ...
+            # ----------------------------------------------------------------------#
+            print("Saving data products...")
+            for sim, CRPARAMS in CRPARAMSHALO.items():
+                if CRPARAMS['simfile'] is not None:
+                    analysisType = CRPARAMS["analysisType"]
+
+                    if analysisType not in KnownAnalysisType:
+                        raise Exception(
+                            f"ERROR! CRITICAL! Unknown analysis type: {analysisType}!"
+                            + "\n"
+                            + f"Availble analysis types: {KnownAnalysisType}"
+                        )
+                    saveDir = ( DataSavepathBase+f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/"
+                    )
+                    DataSavepath = (
+                        saveDir + "CR_" + f"{CRPARAMS['snapMin']}-{CRPARAMS['snapMax']}_{CRPARAMS['Rinner']}R{CRPARAMS['Router']}_"
+                    )
+
+                    savePath = DataSavepath + "dataDict.h5"
+                    hdf5_save(savePath,dataDict)
+
+                    savePath = DataSavepath + "starsDict.h5"
+                    hdf5_save(savePath,starsDict)
+
+                    savePath = DataSavepath + "lastSnapDict.h5"
+                    hdf5_save(savePath,lastSnapDict)
+
+                    savePath = DataSavepath + "statsDict.h5"
+                    hdf5_save(savePath,statsDict)
+
+                    savePath = DataSavepath + "statsDictStars.h5"
+                    hdf5_save(savePath,statsDictStars)
+            print("...done!")
         # ----------------------------------------------------------------------#
         #  Plots...
         # ----------------------------------------------------------------------#
