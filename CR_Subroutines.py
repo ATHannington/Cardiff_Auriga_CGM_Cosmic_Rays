@@ -15,6 +15,7 @@ import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
+from CR_Plotting_Tools import cr_plot_projections
 import h5py
 import json
 import copy
@@ -333,23 +334,28 @@ def cr_analysis_radial(
         verbose = DEBUG,
     )
     # snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
+    quadPlotDict = cr_calculate_projections(
+        snapGas,
+        snapNumber,
+        CRPARAMS,
+        Axes=CRPARAMS["Axes"],
+        zAxis=CRPARAMS["zAxis"],
+        boxsize=CRPARAMS["boxsize"],
+        boxlos=CRPARAMS["boxlos"],
+        pixres=CRPARAMS["pixres"],
+        pixreslos=CRPARAMS["pixreslos"],
+        numThreads=CRPARAMS["numThreads"],
+    )
+
     if CRPARAMS["QuadPlotBool"] is True:
-        plot_projections(
-            snapGas,
-            snapNumber=snapNumber,
-            targetT=None,
-            rin=None,
-            rout=None,
-            TRACERSPARAMS=CRPARAMS,
-            DataSavepath=DataSavepath,
-            FullDataPathSuffix=None,
-            titleBool=False,
+        cr_plot_projections(
+            quadPlotDict,
+            CRPARAMS,
             Axes=CRPARAMS["Axes"],
             zAxis=CRPARAMS["zAxis"],
-            boxsize=CRPARAMS["boxsize"],
-            boxlos=CRPARAMS["boxlos"],
-            pixres=CRPARAMS["pixres"],
-            pixreslos=CRPARAMS["pixreslos"],
+            fontsize = CRPARAMS["fontsize"],
+            fontsizeTitle = CRPARAMS["fontsizeTitle"],
+            DPI=CRPARAMS["DPI"],
             numThreads=CRPARAMS["numThreads"],
         )
 
@@ -459,10 +465,17 @@ def cr_analysis_radial(
         }
     )
 
+    quadPlotDictOut = { (
+            f"{CRPARAMS['resolution']}",
+            f"{CRPARAMS['CR_indicator']}",
+            f"{int(snapNumber)}",
+        ): quadPlotDict
+    }
+
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process..."
     )
-    return out, rotation_matrix
+    return out, rotation_matrix , quadPlotDictOut
 
 
 def cr_parameters(CRPARAMSMASTER, simDict):
@@ -887,100 +900,6 @@ def remove_selection(
 
     return snap
 
-
-# def remove_selection(
-#     snap,
-#     removalConditionMask,
-#     errorString = "NOT SET",
-#     DEBUG = False,
-#     ):
-#
-#     import copy
-#     import pandas as pd
-#     types = pd.unique(snap.data["type"])
-#
-#     paramToTypeMap = map_params_to_types(snap)
-#
-#     removedTruthy = np.full(types.shape,fill_value=True)
-#     if DEBUG is True: print("DEBUG!",errorString)
-#
-#     for ii,tp in enumerate(types):
-#         if DEBUG is True: print(f" DEBUG! Type {tp}")
-#         if DEBUG is True: print(f" DEBUG! START Shape of Type {np.shape(np.where(snap.data['type']==tp)[0])}")
-#         try:
-#             whereToRemove = np.where(removalConditionMask & (snap.data["type"] == tp))[0]
-#             offsetNeededBool = True
-#             # whereType = np.where(snap.data["type"] == tp)[0]
-#         except Exception as e:
-#             if DEBUG:
-#                 print(f"[@remove_selection]: DEBUG! Exception: {str(e)}")
-#             # STOP716
-#             try:
-#
-#             except Exception as e2:
-#                 if DEBUG:
-#                     print(f"[@remove_selection]: DEBUG!"+"\n"+f"Exception: {str(e2)}")
-#                 #If data of type tp does not meet broadcasting shape for`
-#                 # removalConditionMask, skip this type and continue
-#                 removedTruthy[ii] = False
-#                 continue
-#
-#         if DEBUG: print(f"[remove_selection]: DEBUG! Shape whereToRemove to be applied: {np.shape(whereToRemove)}")
-#         if whereToRemove.shape[0] > 0:
-#             whereTypeInMap = np.where(types==tp)[0][0]
-#
-#             for jj,(key, value) in enumerate(snap.data.items()):
-#                 if tp in paramToTypeMap[key]:
-#                     if value is not None:
-#                         # print(f"{jj}, {key}")
-#
-#                         locTypesNotInParam = np.array([jj for jj,tt in enumerate(types[:whereTypeInMap]) if tt not in paramToTypeMap[f"{key}"]])
-#
-#                         if (len(locTypesNotInParam) == 0)|(offsetNeededBool == False):
-#                             # no types before this type so set offset to zero
-#                             offset = 0
-#                         else:
-#                             offset = np.sum(np.array(paramToTypeMap["lty"])[locTypesNotInParam])
-#                         try:
-#                             whereToRemove = whereToRemove-offset
-#                             newvalue = np.delete(value,whereToRemove,axis=0)
-#                             if newvalue.shape[0]>0:
-#                                 snap.data[key] = newvalue
-#                             else:
-#                                 snap.data[key] = None
-#                                 locTypesNotInParam2 = np.array([jj for jj,tt in enumerate(types) if tt not in paramToTypeMap[f"{key}"]])
-#
-#                                 paramToTypeMap[f"{key}"] = copy.deepcopy(types[locTypesNotInParam2].tolist())
-#
-#                         except Exception as e:
-#                             if DEBUG:
-#                                 print(f"[remove_selection]: DEBUG! Shape key: {np.shape(value)}")
-#                                 print(f"[remove_selection]: DEBUG! WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}")
-#         # Need to remove deleted entries of this type so that next type has
-#         # correct broadcast shape for removalConditionMask and whereType
-#         removalConditionMask = np.delete(removalConditionMask,whereToRemove,axis=0)
-#
-#
-#     noneRemovedTruthy = np.all(~removedTruthy)
-#
-#
-#     if noneRemovedTruthy is True:
-#         print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
-#
-#     elif DEBUG is True:
-#         if np.any(~removedTruthy):
-#             print(f"[@remove_selection]: WARNING! DEBUG! Selection criteria for error string = '{errorString}' not applied to particles of type:")
-#             print(f"{types[np.where(removedTruthy==False)[0]]}")
-#         else:
-#             print(f"[@remove_selection]: DEBUG! Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
-#
-#     snap = clean_snap_nones(snap)
-#
-#     nData = np.shape(snap.data["type"])[0]
-#     assert nData > 0,f"[@remove_selection]: FAILURE! CRITICAL!"+"\n"+f"Error String: {errorString} returned an empty snapShot!"
-#
-#     return snap
-
 def clean_snap_nones(snap):
     deleteKeys = []
     for key, value in snap.data.items():
@@ -992,6 +911,174 @@ def clean_snap_nones(snap):
 
     return snap
 
+def cr_calculate_projections(
+    snapGas,
+    snapNumber,
+    CRPARAMS,
+    Axes=[0, 1],
+    zAxis=[2],
+    boxsize=400.0,
+    boxlos=20.0,
+    pixres=0.2,
+    pixreslos=0.2,
+    numThreads=8,
+):
+
+    for param in ["Tdens", "rho_rhomean", "n_H", "B", "gz"]:
+        try:
+            tmp = snapGas.data[param]
+        except:
+            snapGas = calculate_tracked_parameters(
+                snapGas,
+                oc.elements,
+                oc.elements_Z,
+                oc.elements_mass,
+                oc.elements_solar,
+                oc.Zsolar,
+                oc.omegabaryon0,
+                snapNumber,
+                paramsOfInterest=[param],
+                mappingBool=True,
+                numthreads=CRPARAMS["numThreads"],
+                verbose = True,
+            )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    # slice_nH    = snap.get_Aslice("n_H", box = [boxsize,boxsize],\
+    #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
+    #  axes = Axes, proj = False, numthreads=16)
+    #
+    # slice_B   = snap.get_Aslice("B", box = [boxsize,boxsize],\
+    #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
+    #  axes = Axes, proj = False, numthreads=16)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    nprojections = 5
+    # print(np.unique(snapGas.type))
+    print("\n" + f"[@{int(snapNumber)}]: Projection 1 of {nprojections}")
+
+    proj_T = snapGas.get_Aslice(
+        "Tdens",
+        box=[boxsize, boxsize],
+        center=imgcent,
+        nx=int(boxsize / pixres),
+        ny=int(boxsize / pixres),
+        nz=int(boxlos / pixreslos),
+        boxz=boxlos,
+        axes=Axes,
+        proj=True,
+        numthreads=numThreads,
+    )
+
+    print("\n" + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}")
+
+    proj_dens = snapGas.get_Aslice(
+        "rho_rhomean",
+        box=[boxsize, boxsize],
+        center=imgcent,
+        nx=int(boxsize / pixres),
+        ny=int(boxsize / pixres),
+        nz=int(boxlos / pixreslos),
+        boxz=boxlos,
+        axes=Axes,
+        proj=True,
+        numthreads=numThreads,
+    )
+
+    print("\n" + f"[@{int(snapNumber)}]: Projection 3 of {nprojections}")
+
+    proj_nH = snapGas.get_Aslice(
+        "n_H",
+        box=[boxsize, boxsize],
+        center=imgcent,
+        nx=int(boxsize / pixres),
+        ny=int(boxsize / pixres),
+        nz=int(boxlos / pixreslos),
+        boxz=boxlos,
+        axes=Axes,
+        proj=True,
+        numthreads=numThreads,
+    )
+
+    print("\n" + f"[@{int(snapNumber)}]: Projection 4 of {nprojections}")
+
+    proj_B = snapGas.get_Aslice(
+        "B",
+        box=[boxsize, boxsize],
+        center=imgcent,
+        nx=int(boxsize / pixres),
+        ny=int(boxsize / pixres),
+        nz=int(boxlos / pixreslos),
+        boxz=boxlos,
+        axes=Axes,
+        proj=True,
+        numthreads=numThreads,
+    )
+
+    print("\n" + f"[@{int(snapNumber)}]: Projection 5 of {nprojections}")
+
+    proj_gz = snapGas.get_Aslice(
+        "gz",
+        box=[boxsize, boxsize],
+        center=imgcent,
+        nx=int(boxsize / pixres),
+        ny=int(boxsize / pixres),
+        nz=int(boxlos / pixreslos),
+        boxz=boxlos,
+        axes=Axes,
+        proj=True,
+        numthreads=numThreads,
+    )
+
+    return {"T":copy.deepcopy(proj_T), "dens":copy.deepcopy(proj_dens), "n_H":copy.deepcopy(proj_nH), "gz":copy.deepcopy(proj_gz), "B":copy.deepcopy(proj_B)}
+
+def cr_quad_plot_averaging(
+    quadPlotDict,
+    CRPARAMS,
+    snapRange,
+):
+
+    print("Quad plot averaging...")
+
+    quadPlotDictAveraged = {}
+    flatData = {}
+
+    tmp = {}
+    newKey = (f"{CRPARAMS['resolution']}", f"{CRPARAMS['CR_indicator']}")
+    selectKey0 = (
+        f"{CRPARAMS['resolution']}",
+        f"{CRPARAMS['CR_indicator']}",
+        f"{int(snapRange[0])}",
+    )
+
+    params = copy.deepcopy(list(quadPlotDict[selectKey0].keys()))
+
+    for param in params:
+        for key in quadPlotDict[selectKey0][param].keys():
+            stackList = []
+            innertmp = {}
+            for snapNumber in snapRange:
+                selectKey = (
+                    f"{CRPARAMS['resolution']}",
+                    f"{CRPARAMS['CR_indicator']}",
+                    f"{int(snapNumber)}",
+                )
+                stackList.append(quadPlotDict[selectKey][param][key].copy())
+            outvals = np.stack(stackList, axis=-1)
+            innertmp.update({key : outvals})
+        tmp.update({param: innertmp})
+    flatData.update({newKey: tmp})
+
+    for param in params:
+        tmp ={}
+        for arg in ["x","y"]:
+            tmp.update({arg : np.nanmedian(flatData[newKey][param][arg])})
+
+        tmp.update({"grid" : np.nansum(flatData[newKey][param]["grid"])})
+        quadPlotDictAveraged.update({param : tmp})
+
+    print("...averaging done!")
+    STOP1080
+    return quadPlotDictAveraged
 
 # def cr_histogram_dd_summarise():
 #

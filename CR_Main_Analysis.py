@@ -214,9 +214,10 @@ if __name__ == "__main__":
                 CRPARAMSHALO.update({selectKey: CRPARAMS})
                 if CRPARAMS['simfile'] is not None:
                     out = {}
+                    quadPlotDict = {}
                     rotation_matrix = None
                     for snapNumber in snapRange:
-                        tmpOut, rotation_matrix = cr_analysis_radial(
+                        tmpOut, rotation_matrix, tmpquadPlotDict = cr_analysis_radial(
                             snapNumber=snapNumber,
                             CRPARAMS=CRPARAMS,
                             DataSavepathBase=DataSavepathBase,
@@ -225,8 +226,9 @@ if __name__ == "__main__":
                             rotation_matrix=rotation_matrix,
                         )
                         out.update(tmpOut)
+                        quadPlotDict.update(tmpquadPlotDict)
 
-                    del tmpOut
+                    del tmpOut, tmpquadPlotDict
                     #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
                     for key, val in out.items():
@@ -243,6 +245,23 @@ if __name__ == "__main__":
                             dataDict.update({key: copy.deepcopy(val)})
 
                     del out, flatDict
+
+                    quadPlotDictAveraged = cr_quad_plot_averaging(
+                        quadPlotDict,
+                        CRPARAMS,
+                        snapRange,
+                    )
+
+                    cr_plot_projections(
+                        quadPlotDictAveraged,
+                        CRPARAMS,
+                        Axes=CRPARAMS["Axes"],
+                        zAxis=CRPARAMS["zAxis"],
+                        fontsize = CRPARAMS["fontsize"],
+                        fontsizeTitle = CRPARAMS["fontsizeTitle"],
+                        DPI=CRPARAMS["DPI"],
+                        numThreads=CRPARAMS["numThreads"],
+                    )
             # # #----------------------------------------------------------------------#
             # # #      Calculate Radius xmin
             # # #----------------------------------------------------------------------#

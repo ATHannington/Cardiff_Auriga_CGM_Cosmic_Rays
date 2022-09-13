@@ -1272,3 +1272,246 @@ def sfr_pdf_versus_time_plot(
                 plt.close()
 
     return
+
+def cr_plot_projections(
+    quadPlotDict,
+    CRPARAMS,
+    Axes=[0, 1],
+    zAxis=[2],
+    fontsize = 13,
+    fontsizeTitle = 14,
+    DPI=200,
+    CMAP=None,
+    numThreads=8,
+):
+    print(f"Starting Projections Video Plots!")
+
+    keys = list(CRPARAMS.keys())
+    selectKey0 = keys[0]
+
+    savePathBase = f"./Plots/{halo}/{CRPARAMS['analysisType']}/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/Images/"
+
+    tmp = "./"
+    for savePathChunk in savePathBase.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+            
+    if CMAP == None:
+        cmap = plt.get_cmap("inferno")
+    else:
+        cmap = CMAP
+
+    # Axes Labels to allow for adaptive axis selection
+    AxesLabels = ["x", "y", "z"]
+
+    # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
+    imgcent = [0.0, 0.0, 0.0]
+
+    # --------------------------#
+    ## Slices and Projections ##
+    # --------------------------#
+
+    proj_T = quadPlotDict["T"]
+
+    proj_dens = quadPlotDict["dens"]
+
+    proj_nH = quadPlotDict["n_H"]
+
+    proj_B = quadPlotDict["B"]
+
+    proj_gz = quadPlotDict["gz"]
+    # ------------------------------------------------------------------------------#
+    # PLOTTING TIME
+    # Set plot figure sizes
+    xsize = 10.0
+    ysize = 10.0
+    # Define halfsize for histogram ranges which are +/-
+    halfbox = boxsize / 2.0
+    # ==============================================================================#
+    #
+    #           Quad Plot for standard video
+    #
+    # ==============================================================================#
+    print(f" Quad Plot...")
+
+    fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 9)]
+    fudgeTicks = fullTicks[1:]
+
+    aspect = "equal"
+    # DPI Controlled by user as lower res needed for videos #
+    fig, axes = plt.subplots(
+        nrows=2, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
+    )
+
+    # cmap = plt.get_cmap(CMAP)
+    cmap.set_bad(color="grey")
+
+    # -----------#
+    # Plot Temperature #
+    # -----------#
+    # print("pcm1")
+    ax1 = axes[0, 0]
+
+    pcm1 = ax1.pcolormesh(
+        proj_T["x"],
+        proj_T["y"],
+        np.transpose(proj_T["grid"] / proj_dens["grid"]),
+        vmin=1e4,
+        vmax=10 ** (6.5),
+        norm=matplotlib.colors.LogNorm(),
+        cmap=cmap,
+        rasterized=True,
+    )
+
+    ax1.set_title(f"Temperature Projection", fontsize=fontsize)
+    cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
+    fig.colorbar(pcm1, cax=cax1, orientation="vertical").set_label(
+        label="T (K)", size=fontsize, weight="bold"
+    )
+    cax1.yaxis.set_ticks_position("left")
+    cax1.yaxis.set_label_position("left")
+    cax1.yaxis.label.set_color("white")
+    cax1.tick_params(axis="y", colors="white", labelsize=fontsize)
+
+    ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
+    # ax1.set_xlabel(f'{AxesLabels[Axes[0]]}"+" [kpc]"', fontsize = fontsize)
+    # ax1.set_aspect(aspect)
+
+    # Fudge the tick labels...
+    plt.sca(ax1)
+    plt.xticks(fullTicks)
+    plt.yticks(fudgeTicks)
+
+    # -----------#
+    # Plot n_H Projection #
+    # -----------#
+    # print("pcm2")
+    ax2 = axes[0, 1]
+
+    pcm2 = ax2.pcolormesh(
+        proj_nH["x"],
+        proj_nH["y"],
+        np.transpose(proj_nH["grid"]) / int(boxlos / pixreslos),
+        vmin=1e-6,
+        vmax=1e-1,
+        norm=matplotlib.colors.LogNorm(),
+        cmap=cmap,
+        rasterized=True,
+    )
+
+    ax2.set_title(r"Hydrogen Number Density Projection", fontsize=fontsize)
+
+    cax2 = inset_axes(ax2, width="5%", height="95%", loc="right")
+    fig.colorbar(pcm2, cax=cax2, orientation="vertical").set_label(
+        label=r"n$_H$ (cm$^{-3}$)", size=fontsize, weight="bold"
+    )
+    cax2.yaxis.set_ticks_position("left")
+    cax2.yaxis.set_label_position("left")
+    cax2.yaxis.label.set_color("white")
+    cax2.tick_params(axis="y", colors="white", labelsize=fontsize)
+    # ax2.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
+    # ax2.set_xlabel(f'{AxesLabels[Axes[0]]} "+r" (kpc)"', fontsize=fontsize)
+    # ax2.set_aspect(aspect)
+
+    # Fudge the tick labels...
+    plt.sca(ax2)
+    plt.xticks(fullTicks)
+    plt.yticks(fullTicks)
+
+    # -----------#
+    # Plot Metallicity #
+    # -----------#
+    # print("pcm3")
+    ax3 = axes[1, 0]
+
+    pcm3 = ax3.pcolormesh(
+        proj_gz["x"],
+        proj_gz["y"],
+        np.transpose(proj_gz["grid"]) / int(boxlos / pixreslos),
+        vmin=1e-2,
+        vmax=1e1,
+        norm=matplotlib.colors.LogNorm(),
+        cmap=cmap,
+        rasterized=True,
+    )
+
+    ax3.set_title(f"Metallicity Projection", y=-0.2, fontsize=fontsize)
+
+    cax3 = inset_axes(ax3, width="5%", height="95%", loc="right")
+    fig.colorbar(pcm3, cax=cax3, orientation="vertical").set_label(
+        label=r"$Z/Z_{\odot}$", size=fontsize, weight="bold"
+    )
+    cax3.yaxis.set_ticks_position("left")
+    cax3.yaxis.set_label_position("left")
+    cax3.yaxis.label.set_color("white")
+    cax3.tick_params(axis="y", colors="white", labelsize=fontsize)
+
+    ax3.set_ylabel(f"{AxesLabels[Axes[1]]} " + r" (kpc)", fontsize=fontsize)
+    ax3.set_xlabel(f"{AxesLabels[Axes[0]]} " + r" (kpc)", fontsize=fontsize)
+
+    # ax3.set_aspect(aspect)
+
+    # Fudge the tick labels...
+    plt.sca(ax3)
+    plt.xticks(fullTicks)
+    plt.yticks(fullTicks)
+
+    # -----------#
+    # Plot Magnetic Field Projection #
+    # -----------#
+    # print("pcm4")
+    ax4 = axes[1, 1]
+
+    pcm4 = ax4.pcolormesh(
+        proj_B["x"],
+        proj_B["y"],
+        np.transpose(proj_B["grid"]) / int(boxlos / pixreslos),
+        vmin=1e-3,
+        vmax=1e1,
+        norm=matplotlib.colors.LogNorm(),
+        cmap=cmap,
+        rasterized=True,
+    )
+
+    ax4.set_title(r"Magnetic Field Strength Projection",
+                  y=-0.2, fontsize=fontsize)
+
+    cax4 = inset_axes(ax4, width="5%", height="95%", loc="right")
+    fig.colorbar(pcm4, cax=cax4, orientation="vertical").set_label(
+        label=r"B ($ \mu $G)", size=fontsize, weight="bold"
+    )
+    cax4.yaxis.set_ticks_position("left")
+    cax4.yaxis.set_label_position("left")
+    cax4.yaxis.label.set_color("white")
+    cax4.tick_params(axis="y", colors="white", labelsize=fontsize)
+
+    # ax4.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
+    ax4.set_xlabel(f"{AxesLabels[Axes[0]]} " + r" (kpc)", fontsize=fontsize)
+    # ax4.set_aspect(aspect)
+
+    # Fudge the tick labels...
+    plt.sca(ax4)
+    plt.xticks(fudgeTicks)
+    plt.yticks(fullTicks)
+
+    # print("snapnum")
+    # Pad snapnum with zeroes to enable easier video making
+    fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.95)
+
+    # fig.tight_layout()
+
+    SaveSnapNumber = str(snapNumber).zfill(4)
+    savePath = savePathBase + f"Quad_Plot_{int(SaveSnapNumber)}.png"
+
+    print(f" Save {savePath}")
+    plt.savefig(savePath, transparent=False)
+    plt.close()
+
+    print(f" ...done!")
+
+    return
