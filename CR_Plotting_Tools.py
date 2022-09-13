@@ -830,7 +830,6 @@ def phases_plot(
     DPI=150,
     xsize=8.0,
     ysize=8.0,
-    opacityPercentiles=0.25,
     lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
     colourmapMain="plasma",
     Nbins=250,
@@ -1075,9 +1074,9 @@ def sfr_pdf_versus_time_plot(
     Nkeys = len(list(dataDict.items()))
     for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
         if selectKey[-1] == "Stars":
-            selectKeyShort = selectKey[:-1]
+            selectKeyShort = selectKey[:-2]
         else:
-            selectKeyShort = selectKey
+            selectKeyShort = selectKey[:-1]
 
         loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
         if loadpath is not None:

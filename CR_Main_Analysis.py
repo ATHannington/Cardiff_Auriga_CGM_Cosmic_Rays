@@ -229,18 +229,18 @@ if __name__ == "__main__":
                     del tmpOut
                     #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=#
 
-                    flatDict = cr_flatten_wrt_time(out, CRPARAMS, snapRange)
-
-                    for key, dict in flatDict.items():
-                        if key[-1] == "Stars":
-                            starsDict.update({key: copy.deepcopy(dict)})
-                        else:
-                            dataDict.update({key: copy.deepcopy(dict)})
-
-                    for key, dict in out.items():
+                    for key, val in out.items():
                         if key[-1] == "Stars":
                             if key[-2] == f"{int(snapRange[-1])}":
-                                lastSnapDict.update({key : copy.deepcopy(dict)})
+                                lastSnapDict.update({key : copy.deepcopy(val)})
+
+                    flatDict = cr_flatten_wrt_time(out, CRPARAMS, snapRange)
+
+                    for key, val in flatDict.items():
+                        if key[-1] == "Stars":
+                            starsDict.update({key: copy.deepcopy(val)})
+                        else:
+                            dataDict.update({key: copy.deepcopy(val)})
 
                     del out, flatDict
             # # #----------------------------------------------------------------------#
