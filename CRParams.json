@@ -9,9 +9,9 @@
 
     "saveEssentials" : ["halo","subhalo","Redshift","Lookback","Snap","type","mass","pos","vol","Rvir","gima","age"],
 
-    "snapMin" : 100,
+    "snapMin" : 120,
 
-    "snapMax" : 104,
+    "snapMax" : 127,
 
     "percentiles" :  [15.87, 50.0, 84.13],
 
@@ -25,15 +25,15 @@
 
     "NxParamBins" : 100,
 
-    "Axes" : [2,0],
+    "Axes" : [0,1],
 
-    "zAxis" : [1],
+    "zAxis" : [2],
 
-    "QuadPlotBool" : false,
+    "QuadPlotBool" : true,
 
     "numThreads" : 8,
 
-    "boxsize" : 400.0,
+    "boxsize" : 175.0,
 
     "boxlos" : 50.0,
 
