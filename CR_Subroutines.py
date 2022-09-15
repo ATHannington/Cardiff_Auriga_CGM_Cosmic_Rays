@@ -147,18 +147,12 @@ def cr_analysis_radial(
     # tmp = snapStars.data["gima"]
     # tmp = snapStars.data["gz"]
 
-    del tmp
+    # del tmp
 
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
     )
 
-    snapGas.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS["HaloID"]])
-    # snapGas.calc_sf_indizes(snap_subfind, halolist=[0])
-
-    snapStars.calc_sf_indizes(snap_subfind, halolist=[CRPARAMS["HaloID"]])
-
-    # snapGas.select_halo(snap_subfind, do_rotation=False)
     # --------------------------#
     ##    Units Conversion    ##
     # --------------------------#
@@ -173,7 +167,6 @@ def cr_analysis_radial(
     snapStars.pos *= 1e3  # [kpc]
     snapStars.mass *= 1e10  # [Msol]
     snapStars.gima *= 1e10  # [Msol]
-    snapStars.age *= 1e9 # [yr]
 
     snapGas.data["R"] = np.linalg.norm(snapGas.data["pos"], axis=1)
     snapStars.data["R"] = np.linalg.norm(snapStars.data["pos"], axis=1)
@@ -353,10 +346,15 @@ def cr_analysis_radial(
             CRPARAMS,
             Axes=CRPARAMS["Axes"],
             zAxis=CRPARAMS["zAxis"],
+            boxsize=CRPARAMS["boxsize"],
+            boxlos=CRPARAMS["boxlos"],
+            pixres=CRPARAMS["pixres"],
+            pixreslos=CRPARAMS["pixreslos"],
             fontsize = CRPARAMS["fontsize"],
             fontsizeTitle = CRPARAMS["fontsizeTitle"],
             DPI=CRPARAMS["DPI"],
             numThreads=CRPARAMS["numThreads"],
+            savePathKeyword = f"{int(snapNumber)}",
         )
 
     print(
@@ -943,6 +941,18 @@ def cr_calculate_projections(
                 verbose = True,
             )
 
+    # Axes Labels to allow for adaptive axis selection
+    AxesLabels = ["x", "y", "z"]
+
+    # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
+    imgcent = [0.0, 0.0, 0.0]
+    # PLOTTING TIME
+    # Set plot figure sizes
+    xsize = 10.0
+    ysize = 10.0
+    # Define halfsize for histogram ranges which are +/-
+    halfbox = boxsize / 2.0
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     # slice_nH    = snap.get_Aslice("n_H", box = [boxsize,boxsize],\
     #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
@@ -1053,9 +1063,9 @@ def cr_quad_plot_averaging(
     params = copy.deepcopy(list(quadPlotDict[selectKey0].keys()))
 
     for param in params:
+        innertmp = {}
         for key in quadPlotDict[selectKey0][param].keys():
             stackList = []
-            innertmp = {}
             for snapNumber in snapRange:
                 selectKey = (
                     f"{CRPARAMS['resolution']}",
@@ -1071,13 +1081,13 @@ def cr_quad_plot_averaging(
     for param in params:
         tmp ={}
         for arg in ["x","y"]:
-            tmp.update({arg : np.nanmedian(flatData[newKey][param][arg])})
+            tmp.update({arg : np.nanmedian(flatData[newKey][param][arg],axis=-1)})
 
-        tmp.update({"grid" : np.nansum(flatData[newKey][param]["grid"])})
+        tmp.update({"grid" : np.nansum(flatData[newKey][param]["grid"],axis=-1)/float(len(snapRange))})
         quadPlotDictAveraged.update({param : tmp})
 
     print("...averaging done!")
-    STOP1080
+    # STOP1080
     return quadPlotDictAveraged
 
 # def cr_histogram_dd_summarise():

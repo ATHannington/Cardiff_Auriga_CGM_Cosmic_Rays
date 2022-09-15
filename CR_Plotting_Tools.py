@@ -1039,7 +1039,6 @@ def sfr_pdf_versus_time_plot(
     ylabel,
     titleBool=False,
     DPI=150,
-    Nbins=150,
     xsize=6.0,
     ysize=6.0,
     colourmapMain="tab10",
@@ -1072,6 +1071,20 @@ def sfr_pdf_versus_time_plot(
     analysisParam = "gima"
     xParam = "age"
     Nkeys = len(list(dataDict.items()))
+
+    fig, ax = plt.subplots(
+        nrows=1,
+        ncols=1,
+        sharex=True,
+        sharey=True,
+        figsize=(xsize, ysize),
+        dpi=DPI,
+    )
+    xminlist = []
+    xmaxlist = []
+    yminlist = []
+    ymaxlist = []
+
     for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
         if selectKey[-1] == "Stars":
             selectKeyShort = selectKey[:-2]
@@ -1083,7 +1096,6 @@ def sfr_pdf_versus_time_plot(
             print(
                 f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}"
             )
-        if loadpath is not None:
             xBins = np.around(
                 np.linspace(
                     start=np.nanmin(dataDict[selectKey][xParam]),
@@ -1094,21 +1106,6 @@ def sfr_pdf_versus_time_plot(
             )
 
             delta = np.mean(np.diff(xBins))
-
-            fig, ax = plt.subplots(
-                nrows=1,
-                ncols=1,
-                sharex=True,
-                sharey=True,
-                figsize=(xsize, ysize),
-                dpi=DPI,
-            )
-            xminlist = []
-            xmaxlist = []
-            yminlist = []
-            ymaxlist = []
-            patchList = []
-            labelList = []
 
             # Create a plot for each Temperature
             skipBool = False
@@ -1133,9 +1130,6 @@ def sfr_pdf_versus_time_plot(
             else:
                 colour = cmap(float(ii) / float(Nkeys))
 
-            if analysisParam in CRPARAMSHALO[selectKeyShort]["logParameters"]:
-                plotData = np.log10(plotData)
-
             try:
                 xmin = np.nanmin(plotData[np.isfinite(plotData)])
                 xmax = np.nanmax(plotData[np.isfinite(plotData)])
@@ -1157,9 +1151,8 @@ def sfr_pdf_versus_time_plot(
                 # print()
                 print("Data All Inf/NaN! Skipping entry!")
                 skipBool = True
-                continue
 
-            currentAx = ax
+                continue
 
             hist, bin_edges = np.histogram(
                 plotData,
@@ -1173,6 +1166,8 @@ def sfr_pdf_versus_time_plot(
                 print("Hist All Inf/NaN! Skipping entry!")
                 continue
 
+            if analysisParam in CRPARAMSHALO[selectKeyShort]["logParameters"]:
+                hist = np.log10(hist)
             try:
                 yminlist.append(np.nanmin(hist[np.isfinite(hist)]))
                 ymaxlist.append(np.nanmax(hist[np.isfinite(hist)]))
@@ -1189,7 +1184,7 @@ def sfr_pdf_versus_time_plot(
                 ]
             )
 
-            currentAx.plot(
+            ax.plot(
                 xFromBins,
                 hist,
                 label=f"{CRPARAMSHALO[selectKeyShort]['resolution']}: {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
@@ -1197,13 +1192,13 @@ def sfr_pdf_versus_time_plot(
                 linestyle=lineStyle,
             )
 
-            currentAx.xaxis.set_minor_locator(AutoMinorLocator())
-            currentAx.yaxis.set_minor_locator(AutoMinorLocator())
-            currentAx.tick_params(
+            ax.xaxis.set_minor_locator(AutoMinorLocator())
+            ax.yaxis.set_minor_locator(AutoMinorLocator())
+            ax.tick_params(
                 axis="both", which="both", labelsize=fontsize
             )
 
-            currentAx.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
+            ax.set_ylabel(ylabel[analysisParam], fontsize=fontsize)
 
             if titleBool is True:
                 fig.suptitle(
@@ -1213,7 +1208,7 @@ def sfr_pdf_versus_time_plot(
 
 # Only give 1 x-axis a label, as they sharex
 
-    ax.set_xlabel(ylabel[analysisParam], fontsize=fontsize)
+    ax.set_xlabel("Lookback Time (Gyr)", fontsize=fontsize)
 
     if (skipBool == True):
         print(
@@ -1240,36 +1235,32 @@ def sfr_pdf_versus_time_plot(
             or (np.isnan(finalxmin) == True)
         ):
             print("Data All Inf/NaN! Skipping entry!")
+
         else:
 
-            try:
-                if densityBool is False:
-                    finalymin = np.nanmin(yminlist)
-                    finalymax = np.nanmax(ymaxlist)
-                else:
-                    finalymin = 0.0
-                    finalymax = np.nanmax(ymaxlist)
-            except:
-                print("Data All Inf/NaN! Skipping entry!")
+            finalymin = 0.0
+            finalymax = np.nanmax(ymaxlist)
+
+            custom_xlim = (np.around(finalxmax, decimals = 2), np.around(finalxmin, decimals = 2))
+            custom_ylim = (finalymin, finalymax)
+            print(custom_xlim)
+            print(custom_ylim)
+            plt.setp(ax, xlim=custom_xlim, ylim=custom_ylim)
+            ax.legend(loc="best", fontsize=fontsize)
+
+            # plt.tight_layout()
+            if titleBool is True:
+                plt.subplots_adjust(top=0.875, hspace=0.1, left=0.15)
             else:
-                custom_xlim = (finalxmin, finalxmax)
-                custom_ylim = (finalymin, finalymax)
-                plt.setp(ax, xlim=custom_xlim, ylim=custom_ylim)
-                ax.legend(loc="best", fontsize=fontsize)
+                plt.subplots_adjust(hspace=0.1, left=0.15)
 
-                # plt.tight_layout()
-                if titleBool is True:
-                    plt.subplots_adjust(top=0.875, hspace=0.1, left=0.15)
-                else:
-                    plt.subplots_adjust(hspace=0.1, left=0.15)
-
-                opslaan = (
-                    savePath
-                    + f"CR_{halo}_{analysisParam}_SFR-vs-time.pdf"
-                )
-                plt.savefig(opslaan, dpi=DPI, transparent=False)
-                print(opslaan)
-                plt.close()
+            opslaan = (
+                savePath
+                + f"CR_{halo}_SFR-vs-time.pdf"
+            )
+            plt.savefig(opslaan, dpi=DPI, transparent=False)
+            print(opslaan)
+            plt.close()
 
     return
 
@@ -1278,18 +1269,23 @@ def cr_plot_projections(
     CRPARAMS,
     Axes=[0, 1],
     zAxis=[2],
+    boxsize=400.0,
+    boxlos=20.0,
+    pixres=0.2,
+    pixreslos=0.2,
     fontsize = 13,
     fontsizeTitle = 14,
     DPI=200,
     CMAP=None,
     numThreads=8,
+    savePathKeyword = "",
 ):
     print(f"Starting Projections Video Plots!")
 
     keys = list(CRPARAMS.keys())
     selectKey0 = keys[0]
 
-    savePathBase = f"./Plots/{halo}/{CRPARAMS['analysisType']}/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/Images/"
+    savePathBase = f"./Plots/{CRPARAMS['halo']}/{CRPARAMS['analysisType']}/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/Images/"
 
     tmp = "./"
     for savePathChunk in savePathBase.split("/")[1:-1]:
@@ -1300,7 +1296,7 @@ def cr_plot_projections(
             pass
         else:
             pass
-            
+
     if CMAP == None:
         cmap = plt.get_cmap("inferno")
     else:
@@ -1505,8 +1501,8 @@ def cr_plot_projections(
 
     # fig.tight_layout()
 
-    SaveSnapNumber = str(snapNumber).zfill(4)
-    savePath = savePathBase + f"Quad_Plot_{int(SaveSnapNumber)}.png"
+    savePathKeyword = savePathKeyword.zfill(4)
+    savePath = savePathBase + f"Quad_Plot_{savePathKeyword}.png"
 
     print(f" Save {savePath}")
     plt.savefig(savePath, transparent=False)

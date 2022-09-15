@@ -257,10 +257,15 @@ if __name__ == "__main__":
                         CRPARAMS,
                         Axes=CRPARAMS["Axes"],
                         zAxis=CRPARAMS["zAxis"],
+                        boxsize=CRPARAMS["boxsize"],
+                        boxlos=CRPARAMS["boxlos"],
+                        pixres=CRPARAMS["pixres"],
+                        pixreslos=CRPARAMS["pixreslos"],
                         fontsize = CRPARAMS["fontsize"],
                         fontsizeTitle = CRPARAMS["fontsizeTitle"],
                         DPI=CRPARAMS["DPI"],
                         numThreads=CRPARAMS["numThreads"],
+                        savePathKeyword = f"Averaged",
                     )
             # # #----------------------------------------------------------------------#
             # # #      Calculate Radius xmin
