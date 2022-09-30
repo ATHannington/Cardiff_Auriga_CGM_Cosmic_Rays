@@ -1096,14 +1096,11 @@ def sfr_pdf_versus_time_plot(
             print(
                 f"{CRPARAMSHALO[selectKeyShort]['resolution']}, @{CRPARAMSHALO[selectKeyShort]['CR_indicator']}"
             )
-            xBins = np.around(
-                np.linspace(
+            xBins = np.linspace(
                     start=np.nanmin(dataDict[selectKey][xParam]),
                     stop=np.nanmax(dataDict[selectKey][xParam]),
                     num=CRPARAMSHALO[selectKeyShort]["NxParamBins"],
-                ),
-                decimals=1,
-            )
+                )
 
             delta = np.mean(np.diff(xBins))
 
@@ -1238,7 +1235,7 @@ def sfr_pdf_versus_time_plot(
 
         else:
 
-            finalymin = 0.0
+            finalymin = np.nanmin(yminlist)
             finalymax = np.nanmax(ymaxlist)
 
             custom_xlim = (np.around(finalxmax, decimals = 2), np.around(finalxmin, decimals = 2))
@@ -1285,7 +1282,7 @@ def cr_plot_projections(
     keys = list(CRPARAMS.keys())
     selectKey0 = keys[0]
 
-    savePathBase = f"./Plots/{CRPARAMS['halo']}/{CRPARAMS['analysisType']}/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/Images/"
+    savePathBase = f"./Plots/{CRPARAMS['halo']}/{CRPARAMS['analysisType']}/Images/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/"
 
     tmp = "./"
     for savePathChunk in savePathBase.split("/")[1:-1]:

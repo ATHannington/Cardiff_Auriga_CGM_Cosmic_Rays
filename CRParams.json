@@ -3,7 +3,7 @@
 
     "restartFlag" : true,
 
-    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V3-1/",
+    "savepath" : "/home/universe/c1838736/Cosmic_Rays/V3-2/",
 
     "saveParams" : ["T","R","n_H","rho_rhomean","B","vrad","gz","L","P_CR","PCR_Pthermal","P_kinetic","P_thermal","P_magnetic","Pthermal_Pmagnetic","gah","Grad_T","Grad_n_H","Grad_bfld","Grad_P_CR","tcool","tff","tcool_tff"],
 
@@ -25,15 +25,15 @@
 
     "NxParamBins" : 100,
 
-    "Axes" : [0,1],
+    "Axes" : [0,2],
 
-    "zAxis" : [2],
+    "zAxis" : [1],
 
     "QuadPlotBool" : true,
 
     "numThreads" : 8,
 
-    "boxsize" : 175.0,
+    "boxsize" : 300.0,
 
     "boxlos" : 50.0,
 

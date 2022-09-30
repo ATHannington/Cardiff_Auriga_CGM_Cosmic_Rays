@@ -43,5 +43,28 @@
       "resolution": "standard",
       "with_CRs" : false
         }
+    },
+
+  "halo_5" : {
+    "high_with_CRs" : {
+      "simfile": "/home/universe/c1838736/Auriga/level4_cgm/h5_1kpc_CRs/output/",
+      "resolution": "high",
+      "with_CRs" : true
+        },
+    "high_no_CRs" : {
+        "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h5_1kpc/output/",
+        "resolution": "high",
+        "with_CRs" : false
+        },
+    "standard_with_CRs" : {
+      "simfile": "/home/universe/c1838736/Auriga/level4_cgm/h5_standard_CRs/output/",
+      "resolution": "standard",
+      "with_CRs" : true
+        },
+    "standard_no_CRs" : {
+      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h5_standard/output/",
+      "resolution": "standard",
+      "with_CRs" : false
+        }
     }
 }

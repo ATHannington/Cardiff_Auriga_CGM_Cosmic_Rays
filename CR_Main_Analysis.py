@@ -195,6 +195,10 @@ if __name__ == "__main__":
 
                 print("Restart Failed! \n" + f"exception: {e}" + "\n Re-running Analysis!")
                 runAnalysisBool = True
+        else:
+            print("Restart Flag False! Re-running Analysis!")
+            runAnalysisBool = True
+
 
         if runAnalysisBool is True:
             print("\n" + f"Starting SERIAL type Analysis!")

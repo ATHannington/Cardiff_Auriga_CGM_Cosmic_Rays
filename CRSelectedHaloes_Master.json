@@ -47,7 +47,7 @@
 
   "halo_5" : {
     "high_with_CRs" : {
-      "simfile": null,
+      "simfile": "/home/universe/c1838736/Auriga/level4_cgm/h5_1kpc_CRs/output/",
       "resolution": "high",
       "with_CRs" : true
         },
@@ -57,7 +57,7 @@
         "with_CRs" : false
         },
     "standard_with_CRs" : {
-      "simfile": null,
+      "simfile": "/home/universe/c1838736/Auriga/level4_cgm/h5_standard_CRs/output/",
       "resolution": "standard",
       "with_CRs" : true
         },
