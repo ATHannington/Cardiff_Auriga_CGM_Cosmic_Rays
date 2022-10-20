@@ -3322,6 +3322,11 @@ def save_statistics_csv(
 
             print(f"{rin}R{rout}")
             key = (f"T{T}", f"{rin}R{rout}")
+            try:
+                tmp = statsData[key]
+                del tmp
+            except:
+                continue
             dat = statsData[key].copy()
             datDF = pd.DataFrame(dat)
             datDF["Log10(T)"] = float(T)
@@ -3404,6 +3409,9 @@ def flatten_wrt_time(
            f"{int(TRACERSPARAMS['selectSnap'])}")
     print(f"Starting {newkey} analysis!")
     TracerOrder = dataDict[key]["trid"]
+    if TracerOrder.size == 0 :
+        raise Exception(f"[@flatten_wrt_time]:{key} - no tracers found!")
+        # return
     for snap in snapRange:
         print(f"T{targetT} {rin}R{rout} Snap {snap}!")
         key = (f"T{targetT}", f"{rin}R{rout}", f"{int(snap)}")
@@ -3420,11 +3428,20 @@ def flatten_wrt_time(
         )
         for k, v in orderedData.items():
             if k in saveParams:
-                tracerData = v[np.newaxis]
+                if len(v)>0:
+                    tracerData = v[np.newaxis]
+                else:
+                    tracerData = np.array([[np.nan]])
                 if k == "trid":
-                    tracerData = TracersReturned[np.newaxis]
+                    if len(TracersReturned)>0:
+                        tracerData = TracersReturned[np.newaxis]
+                    else:
+                        tracerData = np.array([[np.nan]])
                 elif (k == "prid") or (k == "id"):
-                    tracerData = ParentsReturned[np.newaxis]
+                    if len(ParentsReturned)>0:
+                        tracerData = ParentsReturned[np.newaxis]
+                    else:
+                        tracerData = np.array([[np.nan]])
                 # print(key)
                 # print(k)
                 if k in tmp.keys():
@@ -3935,9 +3952,9 @@ def tracer_plot(
     # Axes Labels to allow for adaptive axis selection
     AxesLabels = ["y", "z", "x"]
 
-    # Base sizes for Trio plot. Smaller for bigger relative fonts and annotations
-    xsize = 4.0
-    ysize = 4.0
+    # Base sizes for singles plots. Smaller for bigger relative fonts and annotations
+    xsize = 8.5
+    ysize = 8.5
 
     # ===============#
     # Set plot figure sizes of trio
@@ -3954,11 +3971,11 @@ def tracer_plot(
     leftParam = fracX * deltaX / xsizeTrio  # Calculate left margin placement
 
     if trioTitleBool is True:
-        topParam = 1.0 - (hParam * 0.4)  # How much room to leave for title
+        topParam = 1.0 - (hParam * 0.6)  # How much room to leave for title
     else:
         topParam = 0.95
 
-    bottomParam = hParam * 0.6  # How much room to leave for colourbar
+    bottomParam = hParam * 0.4  # How much room to leave for colourbar
     ysizeTrio = xParam * (1.0 / (1.0 - hParam))  # Compute image y size
 
     # ===============#
@@ -3968,10 +3985,6 @@ def tracer_plot(
 
     fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 5)]
     fudgeTicks = fullTicks[1:]
-
-    # Base sizes for tails plots for video. Bigger sizes for smaller relative fonts and annotations
-    xsize = 7.0
-    ysize = 7.0
 
     colour = "black"
     sizeMultiply = 20
@@ -4193,7 +4206,7 @@ def tracer_plot(
             Zsolar,
             omegabaryon0,
             snapNumber,
-            paramsOfInterest=saveParams,
+            paramsOfInterest=["R","Tdens","rho_rhomean","T"],
             box=box,
         )
 
@@ -4318,6 +4331,17 @@ def tracer_plot(
                     f"{rin}R{rout}",
                     f"{int(TRACERSPARAMS['selectSnap'])}",
                 )
+
+                try:
+                    tmp = Cells[selectkey]
+                    del tmp
+                except:
+                    print("No data...")
+                    continue
+
+                if Cells[selectkey]["Ntracers"][0] == 0 :
+                    print("No tracers...", Cells[selectkey]["Ntracers"][0])
+                    continue
 
                 whereGas = np.where(Cells[selectkey]["type"] == 0)[0]
                 subset = min(len(tridDict[selectkey]), MaxSubset)
@@ -4839,7 +4863,7 @@ def multi_halo_merge(
         print("PAD")
         for selectKey in dataDict.keys():
             for key in ["id", "prid", "trid"]:
-
+                if dataDict[selectKey][key].size == 0 : continue
                 if key == "trid":
                     # print("Check trids are unique!")
                     u, c = np.unique(
@@ -4848,7 +4872,6 @@ def multi_halo_merge(
                         np.shape(np.where(c > 1)[0])[0] <= 0
                     ), f"[Multi Halo Merge Time flattened Before Pad] {key} Duplicate Trids Detected! Fatal! \n {np.shape(u[c>1])} \n {u[c>1]} "
                     # print("Done!")
-
                 ## Add Halo Number plus one zero to start of every number ##
                 # if padFlag is False:
                 index = math.ceil(
@@ -4879,6 +4902,7 @@ def multi_halo_merge(
 
         for selectKey in dataDict.keys():
             for key in dataDict[selectKey].keys():
+                if dataDict[selectKey][key].size == 0 : continue
                 if selectKey in list(mergedDict.keys()):
                     if key in list(mergedDict[selectKey].keys()):
 
@@ -5005,8 +5029,12 @@ def multi_halo_merge_flat_wrt_time(
                     + FullDataPathSuffix
                 )
                 key = (f"T{T}", f"{rin}R{rout}")
-                tmp = hdf5_load(loadPath)
-                dataDict.update(tmp)
+                try:
+                    tmp = hdf5_load(loadPath)
+                    dataDict.update(tmp)
+                except Exception as e:
+                    print(f"[Multi Halo Merge Time]: WARNING! {e}")
+                    pass
 
         print("LOADED")
 
@@ -5017,7 +5045,7 @@ def multi_halo_merge_flat_wrt_time(
         print("PAD")
         for selectKey in dataDict.keys():
             for key in ["id", "prid", "trid"]:
-
+                if dataDict[selectKey][key].size == 0 : continue
                 if key == "trid":
                     # print("Check trids are unique!")
                     u, c = np.unique(
@@ -5073,6 +5101,7 @@ def multi_halo_merge_flat_wrt_time(
                     )
 
                     for key in dataDict[selectKey].keys():
+                        if dataDict[selectKey][key].size == 0 : continue
                         if key in loadParams:
                             if selectKey in list(mergedDict.keys()):
                                 if key in list(mergedDict[selectKey].keys()):
@@ -5108,6 +5137,7 @@ def multi_halo_merge_flat_wrt_time(
             else:
                 for selectKey in dataDict.keys():
                     for key in dataDict[selectKey].keys():
+                        if dataDict[selectKey][key].size == 0 : continue
                         if key in loadParams:
                             if selectKey in list(mergedDict.keys()):
                                 if key in list(mergedDict[selectKey].keys()):
@@ -5137,6 +5167,9 @@ def multi_halo_merge_flat_wrt_time(
         else:
             for selectKey in dataDict.keys():
                 for key in dataDict[selectKey].keys():
+                    if dataDict[selectKey][key].size == 0 :
+                        print(f"foo - {selectKey} {key} {dataDict[selectKey][key].size} ")
+                        continue
 
                     if selectKey in list(mergedDict.keys()):
                         if key in list(mergedDict[selectKey].keys()):
@@ -5220,6 +5253,11 @@ def multi_halo_statistics(
                 timeIndex = np.where(np.array(snapRange) == snap)[0]
                 # print(f"Taking {snap} temporal Subset...")
                 timeDat = {}
+                try:
+                    tmp = dataDict[selectKey]
+                    del tmp
+                except:
+                    continue
                 for param, values in dataDict[selectKey].items():
                     if np.shape(np.shape(values))[0] > 1:
                         timeDat.update({param: values[timeIndex].flatten()})
