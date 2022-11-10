@@ -1104,7 +1104,6 @@ def sfr_pdf_versus_time_plot(
 
             delta = np.mean(np.diff(xBins))
 
-            # Create a plot for each Temperature
             skipBool = False
             try:
                 plotData = simDict[xParam].copy()
