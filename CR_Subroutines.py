@@ -670,8 +670,22 @@ def map_params_to_types(snap, degeneracyBool = False):
     ADJUSTMENTFACTOR= 15
 
     #Unsorted unique using pandas!!
-    types = pd.unique(snap.data["type"])
-    lenTypes = [np.shape(np.where(snap.data["type"]==tp)[0])[0] for tp in types]
+    snapType = False
+    try:
+        types = pd.unique(snap.data["type"])
+        snapType = True
+    except:
+        try:
+            types = pd.unique(snap["type"])
+        except:
+            raise Exception("[@remove_selection]: Unrecognised data format input! Data was neither Arepo snapshot format or Dictionary format!")
+        snapType = False
+
+    if snapType is True:
+        lenTypes = [np.shape(np.where(snap.data["type"]==tp)[0])[0] for tp in types]
+    else:
+        lenTypes = [np.shape(np.where(snap["type"]==tp)[0])[0] for tp in types]
+
     possibleTypesCombos = []
     for jj in range(1,len(types)+1):
         possibleTypesCombos += list(combinations(types,r=jj))
@@ -688,7 +702,13 @@ def map_params_to_types(snap, degeneracyBool = False):
     possibleValueLengthsSumTot = np.array(possibleValueLengthsSumTot)
 
     paramToTypeMap = {}
-    for key, value in snap.data.items():
+
+    if snapType is True:
+        itrr = snap.data.items()
+    else:
+        itrr = snap.items()
+
+    for key, value in itrr:
         if value is not None:
             whereValueShape = np.where(possibleValueLengthsSumTot == value.shape[0])[0]
             paramToTypeMap.update({
@@ -716,8 +736,14 @@ def map_params_to_types(snap, degeneracyBool = False):
                 nUnique = len(np.unique(typeAdjustments))
 
             for ii,tp in enumerate(types):
-                whereType = np.where(snap.data["type"]==tp)[0]
-                for jj,(key, value) in enumerate(snap.data.items()):
+                if snapType is True:
+                    whereType = np.where(snap.data["type"]==tp)[0]
+                    itrr = snap.data.items()
+                else:
+                    itrr = snap.items()
+                    whereType = np.where(snap["type"]==tp)[0]
+
+                for jj,(key, value) in enumerate(itrr):
                     if tp in paramToTypeMap[key]:
 
                         locOffset= np.array([jj for jj,tt in enumerate(types[:ii]) if tt not in paramToTypeMap[key]])
@@ -739,7 +765,10 @@ def map_params_to_types(snap, degeneracyBool = False):
                             else:
                                 value = np.insert(value,whereAdd,tp,axis=0)
                         # print(np.shape(newValue))
-                        snap.data[key] = value
+                        if snapType is True:
+                            snap.data[key] = value
+                        else:
+                            snap[key] = value
             #Recursive call to rerun this mapping and degeneracy detection
             snap,paramToTypeMap,degeneracyBool = map_params_to_types(snap,degeneracyBool = True)
 
@@ -754,7 +783,19 @@ def remove_selection(
 
     import copy
     import pandas as pd
-    types = pd.unique(snap.data["type"])
+
+    snapType = False
+    try:
+        types = pd.unique(snap.data["type"])
+        snapType = True
+        if DEBUG: print("[@remove_selection]: snapshot type detected!")
+    except:
+        try:
+            types = pd.unique(snap["type"])
+        except:
+            raise Exception("[@remove_selection]: Unrecognised data format input! Data was neither Arepo snapshot format or Dictionary format!")
+        snapType = False
+        if DEBUG: print("[@remove_selection]: dictionary type detected!")
 
     snap, paramToTypeMap, degeneracyBool = map_params_to_types(snap)
 
@@ -782,9 +823,16 @@ def remove_selection(
 
     for ii,tp in enumerate(types):
         if DEBUG is True: print(f" DEBUG! Type {tp}")
-        if DEBUG is True: print(f" DEBUG! START Shape of Type {np.shape(np.where(snap.data['type']==tp)[0])}")
-        if(tp in typeCombosArray):
+        if snapType is True:
             whereType = np.where(snap.data["type"]==tp)[0]
+        else:
+            whereType = np.where(snap["type"]==tp)[0]
+        if DEBUG is True: print(f" DEBUG! START Shape of Type {np.shape(whereType)}")
+        if(tp in typeCombosArray):
+            if snapType is True:
+                whereType = np.where(snap.data["type"]==tp)[0]
+            else:
+                whereType = np.where(snap["type"]==tp)[0]
             whereTypeInTypes = np.where(types==tp)[0][0]
             if DEBUG: print("whereTypeInTypes",whereTypeInTypes)
             locTypesOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes])])# if tt not in typeCombosArray])
@@ -797,11 +845,21 @@ def remove_selection(
             if DEBUG: print("locTypesOffset",locTypesOffset)
             # Type specific removal which adjusts for any type in types that
             # aren't part of those included in removalConditionMask
-            if DEBUG: print(np.where(snap.data["type"]==tp)[0])
-            whereToRemove = np.where(removalConditionMask[np.where(snap.data["type"]==tp)[0]-typesOffset])[0] + typesOffset
+            if snapType is True:
+                whereType = np.where(snap.data["type"]==tp)[0]
+            else:
+                whereType = np.where(snap["type"]==tp)[0]
+            if DEBUG:
+                print(whereType)
+
+            whereToRemove = np.where(removalConditionMask[whereType-typesOffset])[0] + typesOffset
             if DEBUG: print(typesOffset)
             if DEBUG: print(whereToRemove)
-            for jj,(key, value) in enumerate(snap.data.items()):
+            if snapType is True:
+                itrr = snap.data.items()
+            else:
+                itrr = snap.items()
+            for jj,(key, value) in enumerate(itrr):
                 if tp in paramToTypeMap[key]:
                     if value is not None:
                         if DEBUG: print(f"{jj}, {key}")
@@ -850,10 +908,16 @@ def remove_selection(
 
                             newvalue = np.delete(value,whereToRemoveForKey,axis=0)
                             if newvalue.shape[0]>0:
-                                snap.data[key] = newvalue
+                                if snapType is True:
+                                    snap.data[key] = newvalue
+                                else:
+                                    snap[key] = newvalue
                             else:
                                 # If no more data, set to None for cleaning
-                                snap.data[key] = None
+                                if snapType is True:
+                                    snap.data[key] = None
+                                else:
+                                    snap[key] = None
 
                                 # If no dara for this type and key, remove this
                                 # type from relevant to key mapping dict
@@ -875,7 +939,12 @@ def remove_selection(
             # continue
         # typeCombosArray = np.delete(typeCombosArray,np.where(typeCombosArray==tp)[0])
         #update length of types
-        paramToTypeMap["lty"][ii] = (np.where(snap.data["type"]==tp)[0]).shape[0]
+        if snapType is True:
+            whereType = np.where(snap.data["type"]==tp)[0]
+        else:
+            whereType = np.where(snap["type"]==tp)[0]
+
+        paramToTypeMap["lty"][ii] = whereType.shape[0]
         if DEBUG: print("paramToTypeMap['lty'][ii]",paramToTypeMap["lty"][ii])
 
 
@@ -893,20 +962,42 @@ def remove_selection(
 
     snap = clean_snap_nones(snap)
 
-    nData = np.shape(snap.data["type"])[0]
+    if snapType is True:
+        nData = np.shape(snap.data["type"])[0]
+    else:
+        nData = np.shape(snap["type"])[0]
     assert nData > 0,f"[@remove_selection]: FAILURE! CRITICAL!"+"\n"+f"Error String: {errorString} returned an empty snapShot!"
 
     return snap
 
 def clean_snap_nones(snap):
     deleteKeys = []
-    for key, value in snap.data.items():
+
+    snapType = False
+    try:
+        types = pd.unique(snap.data["type"])
+        snapType = True
+    except:
+        try:
+            types = pd.unique(snap["type"])
+        except:
+            raise Exception("[@clean_snap_nones]: Unrecognised data format input! Data was neither Arepo snapshot format or Dictionary format!")
+        snapType = False
+
+
+    if snapType is True:
+        itrr = snap.data.items()
+    else:
+        itrr = snap.items()
+    for key, value in itrr:
         if value is None:
             deleteKeys.append(key)
 
     for key in deleteKeys:
-        del snap.data[key]
-
+        if snapType is True:
+            del snap.data[key]
+        else:
+            del snap[key]
     return snap
 
 def cr_calculate_projections(

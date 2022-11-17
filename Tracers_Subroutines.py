@@ -1142,9 +1142,10 @@ def t3000_save_cells_data(snapGas, snapNumber, saveParams, saveTracersOnly):
 # ------------------------------------------------------------------------------#
 # FvdV weighted percentile code:
 # ------------------------------------------------------------------------------#
-def weighted_percentile(data, weights, perc, key):
+def weighted_percentile(data, weights, perc, key="Unspecified Error key..."):
     """
-    Find the weighted Percentile of the data.
+    Find the weighted Percentile of the data. perc should be given in
+    ercentage NOT in decimal!
     Returns a zero value and warning if all Data (or all weights) are NaN
     """
 
@@ -1408,7 +1409,7 @@ def calculate_tracked_parameters(
     GyrToSeconds = 365.25 * 24.0 * 60.0 * 60.0 * 1e9
 
     if np.any(
-        np.isin(np.array(["tcool", "tcool_tff", "theat"]),
+        np.isin(np.array(["tcool", "tcool_tff", "theat", "cool_length"]),
                 np.array(paramsOfInterest))
     ) | (len(paramsOfInterest) == 0):
         snapGas.data["tcool"] = (
@@ -1533,14 +1534,14 @@ def calculate_tracked_parameters(
         if genLogParameters:
             logParameters.append("P_kinetic")
 
-    if np.any(np.isin(np.array(["csound", "tcross"]), np.array(paramsOfInterest))) | (
+    if np.any(np.isin(np.array(["csound", "tcross","cool_length"]), np.array(paramsOfInterest))) | (
         len(paramsOfInterest) == 0
     ):
-        # Sound Speed [(erg K^-1 K ??? g^-1)^1/2 = (g cm^2 s^-2 g^-1)^(1/2) = km s^-1]
+        # Sound Speed [(erg K^-1 K ??? g^-1)^1/2 = (g cm^2 s^-2 g^-1)^(1/2) = cm s^-1 * (1e-5 cmToKm) = Km s^-1]
         snapGas.data["csound"] = np.sqrt(
             ((5.0 / 3.0) * c.KB * snapGas.data["T"][whereGas])
-            / (meanweight * c.amu * 1e5)
-        )
+            / (meanweight * c.amu)
+        )*(1e-5)
         if genLogParameters:
             logParameters.append("csound")
 
@@ -1549,12 +1550,21 @@ def calculate_tracked_parameters(
     ):
         # [cm kpc^-1 kpc cm^-1 s^1 = s / GyrToSeconds = Gyr]
         snapGas.data["tcross"] = (
-            (KpcTokm * 1e3 / GyrToSeconds)
+            (KpcTokm / GyrToSeconds)
             * (snapGas.data["vol"][whereGas]) ** (1.0 / 3.0)
             / snapGas.data["csound"][whereGas]
         )
         if genLogParameters:
             logParameters.append("tcross")
+
+    if np.any(np.isin(np.array(["cool_length"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
+        # [((km s^-1) / (KpcTokm) = kpc s^-1 )*(Gyr*GyrToSeconds = s ) = kpc]
+        snapGas.data["cool_length"] = (snapGas.data["csound"]/KpcTokm)*(snapGas.data["tcool"]*GyrToSeconds)
+
+        if genLogParameters:
+            logParameters.append("cool_length")
 
     if np.any(np.isin(np.array(["tff", "tcool_tff"]), np.array(paramsOfInterest))) | (
         len(paramsOfInterest) == 0
