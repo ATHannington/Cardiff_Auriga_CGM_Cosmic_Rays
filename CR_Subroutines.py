@@ -771,6 +771,13 @@ def map_params_to_types(snap, degeneracyBool = False):
                             snap[key] = value
             #Recursive call to rerun this mapping and degeneracy detection
             snap,paramToTypeMap,degeneracyBool = map_params_to_types(snap,degeneracyBool = True)
+        # You may be tempted to add the following:
+        #else:
+        #    degeneracyBool = False
+        # DO NOT DO THIS! We want Degeneracy Bool to be "sitcky" such that if a degeneracy
+        # is found, certain functions will complain! This is intentional to prevent, for example,
+        # removal criteria being set on degenerate numbers of data for multiple types
+        # where removal will fail!
 
     return snap, paramToTypeMap, degeneracyBool
 
@@ -783,6 +790,11 @@ def remove_selection(
 
     import copy
     import pandas as pd
+
+    nRemovals = np.shape(np.where(removalConditionMask==True)[0])[0]
+    if nRemovals==0:
+        print("[@remove_selection]: Number of data points to remove is zero! Skipping...")
+        return snap
 
     snapType = False
     try:
@@ -802,7 +814,7 @@ def remove_selection(
     if degeneracyBool is True:
         raise Exception(f"[remove_selection]: FAILURE! CRITICAL! Snapshot type lengths have been detected as degenerate by map_params_to_types() call in remove_selection()."+"\n"+"map_params_to_types() must be called seperately, prior to the evaluation of removalConditionMask in this call to remove_selection()"+"\n"+f"This error came from errorString {errorString} call to remove_selection()!")
 
-    removedTruthy = np.full(types.shape,fill_value=True)
+    removedTruthy = np.full(types.shape,fill_value=False)
     if DEBUG is True: print("DEBUG!",errorString)
 
     # Find possible value length total that matches removalConditionMask
@@ -822,6 +834,7 @@ def remove_selection(
 
 
     for ii,tp in enumerate(types):
+        skipBool = False
         if DEBUG is True: print(f" DEBUG! Type {tp}")
         if snapType is True:
             whereType = np.where(snap.data["type"]==tp)[0]
@@ -853,6 +866,8 @@ def remove_selection(
                 print(whereType)
 
             whereToRemove = np.where(removalConditionMask[whereType-typesOffset])[0] + typesOffset
+
+
             if DEBUG: print(typesOffset)
             if DEBUG: print(whereToRemove)
             if snapType is True:
@@ -907,6 +922,10 @@ def remove_selection(
                             whereToRemoveForKey = copy.copy(whereToRemove) - removalOffset
 
                             newvalue = np.delete(value,whereToRemoveForKey,axis=0)
+                            if len(whereToRemoveForKey)>0: 
+                                removedTruthy[ii] = True
+                            else:
+                                removedTruthy[ii] = False
                             if newvalue.shape[0]>0:
                                 if snapType is True:
                                     snap.data[key] = newvalue
@@ -919,13 +938,14 @@ def remove_selection(
                                 else:
                                     snap[key] = None
 
-                                # If no dara for this type and key, remove this
+                                # If no data for this type and key, remove this
                                 # type from relevant to key mapping dict
                                 remainingTypes = [tt for tt in paramToTypeMap[f"{key}"] if tt!=tp]
 
                                 paramToTypeMap[f"{key}"] = copy.deepcopy(remainingTypes)
 
                         except Exception as e:
+                            removedTruthy[ii] = False
                             if DEBUG:
                                 print(f"[remove_selection]: DEBUG! Shape key: {np.shape(value)}")
                                 print(f"[remove_selection]: DEBUG! WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}")
