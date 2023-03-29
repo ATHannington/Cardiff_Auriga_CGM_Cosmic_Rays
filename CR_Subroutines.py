@@ -787,7 +787,25 @@ def remove_selection(
     errorString = "NOT SET",
     DEBUG = False,
     ):
+    """
+    This function accepts as an input either an Arepo snapshot instance, or a dictionary along with a numpy boolean array of where to remove. It then
+    removes from the data ~for ALL Arepo particle types~ whichever entries are True in this array.
+    This function (and the function map_params_to_types) works on a combinatorics assumption. We assume that for every Arepo particle type, the number
+    of data-points is unique. Ergo, for any given property of our data, we can infer which particle types have that property (e.g. position, age, etc)
+    by producing every combination of sums of the number of data-points associated with each particle type and comparing it to the number of data-points
+    for that property.
+    This function ~does not care which Arepo particle types you have loaded into memory, nor their order~ but it ~does~ modify the data in the order
+    of the types loaded in. Thus, much of the work of removing, for example, data of particle type 1 from loaded types [0, 1, 4] is involved with 
+    determining the location of type 1 in the current parameter being modified, and adjusting the indices to be deleted accordingly.
+    If a property has associated types [0,1] then we account for the length of type 0 before removing indices. 
+    We modify the data of a property associated with types [0, 1] for example, by first removing the type 0 entries flagged for removal, and then
+    the type 1 entries flagged for removal. Note: our function must keep track of the changes in shapes of each property and particle type as they
+    are editted through the loops in this function.
 
+    On a final note: we have included a (hopefully, rarely needed) degeneracy breaking functionality. It works by adding a small amount of data
+    to any particle types that have equal number of data-points, such that the number of data-points of each type becomes unique again. This
+    data is mostly in NaN form (with appropriate adjustment for dtypes where NaN isn't possible) and is removed at the end of this function
+    """
     import copy
     import pandas as pd
 
