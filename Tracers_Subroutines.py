@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use("Agg")  # For suppressing plotting on clusters
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib.ticker import AutoMinorLocator
 import const as c
 from gadget import *
 from gadget_subfind import *
@@ -1284,7 +1285,8 @@ def calculate_tracked_parameters(
     """
     print(f"[@{snapNumber}]: Calculate Tracked Parameters!")
 
-    DataSavepath += f"Snap{int(snapNumber)}_"
+    if snapNumber is not None:
+        DataSavepath += f"Snap{int(snapNumber)}_"
 
     if len(logParameters) == 0:
         genLogParameters = True
@@ -1672,7 +1674,7 @@ def calculate_tracked_parameters(
                 logParameters.append("P_CR")
 
     except Exception as e:
-        print(f"[@calculate_tracked_parameters]: P_CR {str(e)}")
+        print(f"[@calculate_tracked_parameters]: Warning! Param not found: P_CR {str(e)}")
     try:
         if np.any(np.isin(np.array(["PCR_Pthermal"]), np.array(paramsOfInterest))) | (
             len(paramsOfInterest) == 0
@@ -1684,7 +1686,7 @@ def calculate_tracked_parameters(
                 logParameters.append("PCR_Pthermal")
 
     except Exception as e:
-        print(f"[@calculate_tracked_parameters]: PCR_Pthermal {str(e)}")
+        print(f"[@calculate_tracked_parameters]: Warning! Param not found: PCR_Pthermal {str(e)}")
 
     try:
         if np.any(
@@ -1708,7 +1710,7 @@ def calculate_tracked_parameters(
 
             )
     except Exception as e:
-        print(f"[@calculate_tracked_parameters]: Grad_P_CR {str(e)}")
+        print(f"[@calculate_tracked_parameters]: Warning! Param not found: Grad_P_CR {str(e)}")
 
     try:
         if np.any(np.isin(np.array(["gah"]), np.array(paramsOfInterest))) | (
@@ -1738,12 +1740,12 @@ def calculate_tracked_parameters(
                 logParameters.append("gah")
 
     except Exception as e:
-        print(f"[@calculate_tracked_parameters]: gah {str(e)}")
+        print(f"[@calculate_tracked_parameters]: Warning! Param not found: gah {str(e)}")
 
     try:
         if np.any(
             np.isin(
-                np.array(["P_CR", "PCR_Pthermal", "Grad_P_CR", "gah"]),
+                np.array(["Grad_P_CR", "gah"]),
                 np.array(paramsOfInterest),
             )
         ) | (len(paramsOfInterest) == 0):
@@ -1751,7 +1753,7 @@ def calculate_tracked_parameters(
                 snapGas.data["Grad_P_CR"], axis=1
             )
     except Exception as e:
-        print(f"[@calculate_tracked_parameters]: Norm Grad_P_CR {str(e)}")
+        print(f"[@calculate_tracked_parameters]: Warning! Param not found: Norm Grad_P_CR {str(e)}")
 
     return snapGas
 
@@ -3339,13 +3341,13 @@ def save_statistics_csv(
                 continue
             dat = statsData[key].copy()
             datDF = pd.DataFrame(dat)
-            datDF["Log10(T)"] = float(T)
-            datDF["R_inner"] = float(rin)
-            datDF["R_outer"] = float(rout)
+            datDF["Log10(T) [K]"] = float(T)
+            datDF["R_inner [kpc]"] = float(rin)
+            datDF["R_outer [kpc]"] = float(rout)
             datDF["Snap Number"] = snapRange
 
             # Re-order the columns for easier reading...
-            frontCols = ["Log10(T)", "R_inner", "R_outer", "Snap Number"]
+            frontCols = ["Log10(T) [K]", "R_inner [kpc]", "R_outer [kpc]", "Snap Number"]
             cols = list(datDF.columns)
             for col in frontCols:
                 cols.remove(col)
@@ -3598,7 +3600,7 @@ def plot_projections(
     pixreslos=0.2,
     DPI=200,
     CMAP=None,
-    numThreads=10,
+    numthreads=10,
 ):
     print(f"[@{int(snapNumber)}]: Starting Projections Video Plots!")
 
@@ -3641,7 +3643,7 @@ def plot_projections(
         boxz=boxlos,
         axes=Axes,
         proj=True,
-        numthreads=numThreads,
+        numthreads=numthreads,
     )
 
     print("\n" + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}")
@@ -3656,7 +3658,7 @@ def plot_projections(
         boxz=boxlos,
         axes=Axes,
         proj=True,
-        numthreads=numThreads,
+        numthreads=numthreads,
     )
 
     print("\n" + f"[@{int(snapNumber)}]: Projection 3 of {nprojections}")
@@ -3671,7 +3673,7 @@ def plot_projections(
         boxz=boxlos,
         axes=Axes,
         proj=True,
-        numthreads=numThreads,
+        numthreads=numthreads,
     )
 
     print("\n" + f"[@{int(snapNumber)}]: Projection 4 of {nprojections}")
@@ -3686,7 +3688,7 @@ def plot_projections(
         boxz=boxlos,
         axes=Axes,
         proj=True,
-        numthreads=numThreads,
+        numthreads=numthreads,
     )
 
     print("\n" + f"[@{int(snapNumber)}]: Projection 5 of {nprojections}")
@@ -3701,7 +3703,7 @@ def plot_projections(
         boxz=boxlos,
         axes=Axes,
         proj=True,
-        numthreads=numThreads,
+        numthreads=numthreads,
     )
 
     # ------------------------------------------------------------------------------#
@@ -3739,7 +3741,10 @@ def plot_projections(
     fig, axes = plt.subplots(
         nrows=2, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
     )
-
+    for axis in axes:
+        axis.xaxis.set_minor_locator(AutoMinorLocator())
+        axis.yaxis.set_minor_locator(AutoMinorLocator())
+        axis.tick_params(bottom=True, top=True, left=True, right=True, which="both", direction="in")
     if titleBool is True:
         # Add overall figure plot
         TITLE = (
@@ -3947,7 +3952,7 @@ def tracer_plot(
     pixreslos=4,
     DPI=200,
     CMAP=None,
-    numThreads=4,
+    numthreads=4,
     MaxSubset=100,
     lazyLoadBool=True,
     tailsLength=3,
@@ -3958,6 +3963,8 @@ def tracer_plot(
         cmap = plt.get_cmap("inferno")
     else:
         cmap = CMAP
+
+    random.seed(1337)
 
     # Axes Labels to allow for adaptive axis selection
     AxesLabels = ["y", "z", "x"]
@@ -3970,7 +3977,7 @@ def tracer_plot(
     # Set plot figure sizes of trio
     # ===============#
 
-    xParam = 3.0  # Base equal aspect ratio image size
+    xParam = 4.0  # Base equal aspect ratio image size
     deltaX = 1.4  # Single Margin in x direc
     fracX = 0.90  # How much margin (deltaX) to leave on left
     # How much space (%) to leave for title and colourbar (split)
@@ -4098,6 +4105,10 @@ def tracer_plot(
             figi, axi = plt.subplots(
                 nrows=1, ncols=3, figsize=(xsizeTrio, ysizeTrio), dpi=DPI, sharey=True
             )
+            for axis in axi:
+                axis.xaxis.set_minor_locator(AutoMinorLocator())
+                axis.yaxis.set_minor_locator(AutoMinorLocator())
+                axis.tick_params(bottom=True, top=True, left=True, right=True, axis="both",which="both", direction="in",labelsize=fontsize)
             figureList.append(figi)
             axisList.append(axi)
         figureArray.append(figureList)
@@ -4300,7 +4311,7 @@ def tracer_plot(
             boxz=boxlos,
             axes=Axes,
             proj=True,
-            numthreads=numThreads,
+            numthreads=numthreads,
         )
 
         print("\n" + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}")
@@ -4315,7 +4326,7 @@ def tracer_plot(
             boxz=boxlos,
             axes=Axes,
             proj=True,
-            numthreads=numThreads,
+            numthreads=numthreads,
         )
 
         # ==============================================================================#
@@ -4437,7 +4448,9 @@ def tracer_plot(
                 fig, axes = plt.subplots(
                     nrows=1, ncols=1, figsize=(xsize, ysize), dpi=DPI
                 )
-
+                axes.xaxis.set_minor_locator(AutoMinorLocator())
+                axes.yaxis.set_minor_locator(AutoMinorLocator())
+                axes.tick_params(bottom=True, top=True, left=True, right=True, axis="both",which="both", direction="in",labelsize=fontsize)
                 if titleBool is True:
                     # Add overall figure plot
                     TITLE = (
@@ -4723,10 +4736,13 @@ def tracer_plot(
                     else:
                         plt.sca(axOuter)
                         plt.xticks(fullTicks)
-                    ax1.tick_params(axis="both", which="both",
-                                    labelsize=fontsize)
-                    axOuter.tick_params(
-                        axis="both", which="both", labelsize=fontsize)
+                    ax1.xaxis.set_minor_locator(AutoMinorLocator())
+                    ax1.yaxis.set_minor_locator(AutoMinorLocator())
+                    ax1.tick_params(bottom=True, top=True, left=True, right=True, axis="both",which="both", direction="in",labelsize=fontsize)
+
+                    axOuter.xaxis.set_minor_locator(AutoMinorLocator())
+                    axOuter.yaxis.set_minor_locator(AutoMinorLocator())
+                    axOuter.tick_params(bottom=True, top=True, left=True, right=True, axis="both",which="both", direction="in",labelsize=fontsize)
                 fig.tight_layout()
                 if titleBool is True:
                     fig.subplots_adjust(
@@ -4934,8 +4950,8 @@ def multi_halo_merge(
                         {selectKey: {key: dataDict[selectKey][key]}})
 
         print("MERGED")
-        print("debug", "mergedDict[selectKey]['id']",
-              mergedDict[selectKey]["id"])
+        #print("debug", "mergedDict[selectKey]['id']",
+        #      mergedDict[selectKey]["id"])
 
     ### Check all sims contained same params ###
     paramFreqDict = collections.Counter(saveParams)
@@ -5204,8 +5220,8 @@ def multi_halo_merge_flat_wrt_time(
                             {selectKey: {key: dataDict[selectKey][key]}})
 
         print("MERGED")
-        print("debug", "mergedDict[selectKey]['trid']",
-              mergedDict[selectKey]["trid"])
+        #print("debug", "mergedDict[selectKey]['trid']",
+        #      mergedDict[selectKey]["trid"])
 
     ### Check all sims contained same params ###
     paramFreqDict = collections.Counter(saveParams)
