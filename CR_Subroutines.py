@@ -15,7 +15,7 @@ import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
-from CR_Plotting_Tools import cr_plot_projections
+from Plotting_tools import *
 import h5py
 import json
 import copy
@@ -26,9 +26,10 @@ DEBUG = False
 def cr_analysis_radial(
     snapNumber,
     CRPARAMS,
+    ylabel,
+    xlimDict,
     DataSavepathBase,
     FullDataPathSuffix=".h5",
-    logParameters = [],
     rotation_matrix=None
 ):
     analysisType = CRPARAMS["analysisType"]
@@ -43,7 +44,7 @@ def cr_analysis_radial(
         )
     out = {}
 
-    saveDir = ( DataSavepathBase+f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}/"
+    saveDir = ( DataSavepathBase+f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}/"
     )
 
     # Generate halo directory
@@ -64,7 +65,7 @@ def cr_analysis_radial(
 
     print("")
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}"
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Starting Snap {snapNumber}"
     )
 
     loadpath = CRPARAMS["simfile"]
@@ -82,6 +83,8 @@ def cr_analysis_radial(
         loadonlytype=[0, 1, 4],
         lazy_load=False,
         subfind=snap_subfind,
+        loadonlyhalo=int(CRPARAMS["HaloID"]),
+
     )
 
     # # load in the subfind group files
@@ -106,6 +109,7 @@ def cr_analysis_radial(
         loadonlytype=[4],
         lazy_load=False,
         subfind=snap_subfind,
+        loadonlyhalo=int(CRPARAMS["HaloID"]),
     )
 
     snapGas.calc_sf_indizes(snap_subfind, halolist=[int(CRPARAMS["HaloID"])])
@@ -150,7 +154,7 @@ def cr_analysis_radial(
     # del tmp
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
     )
 
     # --------------------------#
@@ -163,6 +167,7 @@ def cr_analysis_radial(
     snapGas.vol *= 1e9  # [kpc^3]
     snapGas.mass *= 1e10  # [Msol]
     snapGas.hrgm *= 1e10  # [Msol]
+    snapGas.gima *= 1e10  # [Msol]
 
     snapStars.pos *= 1e3  # [kpc]
     snapStars.mass *= 1e10  # [Msol]
@@ -172,7 +177,7 @@ def cr_analysis_radial(
     snapStars.data["R"] = np.linalg.norm(snapStars.data["pos"], axis=1)
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select stars..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select stars..."
     )
 
 
@@ -197,7 +202,7 @@ def cr_analysis_radial(
 
     if analysisType == "cgm":
         print(
-            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the CGM..."
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']},@{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the CGM..."
         )
         whereNotCGM = (snapGas.data["R"] > CRPARAMS["Router"])
 
@@ -224,7 +229,7 @@ def cr_analysis_radial(
 
     elif analysisType == "ism":
         print(
-            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select the ISM..."
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the ISM..."
         )
 
         whereNotISM = (snapGas.data["sfr"] < 0.0) \
@@ -254,7 +259,7 @@ def cr_analysis_radial(
     elif analysisType == "all":
 
         print(
-            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select all of the halo..."
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select all of the halo..."
         )
 
         whereOutsideSelection = (snapGas.data["R"] > CRPARAMS["Router"])
@@ -281,7 +286,7 @@ def cr_analysis_radial(
 
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Select within R_virial..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select within R_virial..."
     )
 
     Rvir = (snap_subfind.data["frc2"] * 1e3)[int(CRPARAMS["HaloID"])]
@@ -318,47 +323,47 @@ def cr_analysis_radial(
         oc.Zsolar,
         oc.omegabaryon0,
         snapNumber,
-        logParameters = logParameters,
+        logParameters = CRPARAMS['logParameters'],
         paramsOfInterest=CRPARAMS["saveParams"],
         mappingBool=True,
         box=box,
-        numthreads=CRPARAMS["numThreads"],
+        numthreads=CRPARAMS["numthreads"],
         DataSavepath = DataSavepath,
         verbose = DEBUG,
     )
     # snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
     quadPlotDict = cr_calculate_projections(
         snapGas,
-        snapNumber,
         CRPARAMS,
+        ylabel,
+        xlimDict,
         Axes=CRPARAMS["Axes"],
-        zAxis=CRPARAMS["zAxis"],
         boxsize=CRPARAMS["boxsize"],
         boxlos=CRPARAMS["boxlos"],
         pixres=CRPARAMS["pixres"],
         pixreslos=CRPARAMS["pixreslos"],
-        numThreads=CRPARAMS["numThreads"],
+        numthreads=CRPARAMS["numthreads"],
     )
 
     if CRPARAMS["QuadPlotBool"] is True:
         cr_plot_projections(
             quadPlotDict,
             CRPARAMS,
+            ylabel,
+            xlimDict,
             Axes=CRPARAMS["Axes"],
-            zAxis=CRPARAMS["zAxis"],
             boxsize=CRPARAMS["boxsize"],
             boxlos=CRPARAMS["boxlos"],
             pixres=CRPARAMS["pixres"],
             pixreslos=CRPARAMS["pixreslos"],
             fontsize = CRPARAMS["fontsize"],
-            fontsizeTitle = CRPARAMS["fontsizeTitle"],
             DPI=CRPARAMS["DPI"],
-            numThreads=CRPARAMS["numThreads"],
-            savePathKeyword = f"{int(snapNumber)}",
+            numthreads=CRPARAMS["numthreads"],
+            savePathKeyword = snapNumber,
         )
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Delete Dark Matter..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Delete Dark Matter..."
     )
 
     whereDM = snapGas.data["type"] == 1
@@ -412,6 +417,12 @@ def cr_analysis_radial(
         0
     ]  # [Gyrs]
 
+    print( 
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Ages: get_lookback_time_from_a() ..."
+    )
+    ages = snapStars.cosmology_get_lookback_time_from_a(snapStars.data["age"],is_flat=True)
+    snapStars.data["age"] = ages
+
     snapGas.data["Redshift"] = np.array([redshift])
     snapGas.data["Lookback"] = np.array([lookback])
     snapGas.data["Snap"] = np.array([snapNumber])
@@ -423,7 +434,7 @@ def cr_analysis_radial(
     snapStars.data["Rvir"] = np.array([Rvir])
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary and Trim ..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary and Trim ..."
     )
     # Make normal dictionary form of snapGas
     inner = {}
@@ -446,7 +457,7 @@ def cr_analysis_radial(
         {
             (
                 f"{CRPARAMS['resolution']}",
-                f"{CRPARAMS['CR_indicator']}",
+                f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
                 f"{int(snapNumber)}",
             ): inner
         }
@@ -456,7 +467,7 @@ def cr_analysis_radial(
         {
             (
                 f"{CRPARAMS['resolution']}",
-                f"{CRPARAMS['CR_indicator']}",
+                f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
                 f"{int(snapNumber)}",
                 "Stars",
             ): innerStars
@@ -465,13 +476,13 @@ def cr_analysis_radial(
 
     quadPlotDictOut = { (
             f"{CRPARAMS['resolution']}",
-            f"{CRPARAMS['CR_indicator']}",
+            f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
             f"{int(snapNumber)}",
         ): quadPlotDict
     }
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}, @{int(snapNumber)}]: Finishing process..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Finishing process..."
     )
     return out, rotation_matrix , quadPlotDictOut
 
@@ -485,6 +496,12 @@ def cr_parameters(CRPARAMSMASTER, simDict):
     else:
         CRPARAMS["CR_indicator"] = "no_CRs"
 
+    if CRPARAMS["no-alfven"] is True:
+        CRPARAMS["no-alfven_indicator"] = "_no_Alfven"
+    else:
+        CRPARAMS["no-alfven_indicator"] = ""
+
+
     return CRPARAMS
 
 
@@ -495,10 +512,11 @@ def cr_flatten_wrt_time(dataDict, CRPARAMS, snapRange):
 
     print("Gas...")
     tmp = {}
-    newKey = (f"{CRPARAMS['resolution']}", f"{CRPARAMS['CR_indicator']}")
+    newKey = (f"{CRPARAMS['resolution']}",
+              f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
     selectKey0 = (
         f"{CRPARAMS['resolution']}",
-        f"{CRPARAMS['CR_indicator']}",
+        f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
         f"{int(snapRange[0])}",
     )
 
@@ -510,7 +528,7 @@ def cr_flatten_wrt_time(dataDict, CRPARAMS, snapRange):
         for snapNumber in snapRange:
             selectKey = (
                 f"{CRPARAMS['resolution']}",
-                f"{CRPARAMS['CR_indicator']}",
+                f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
                 f"{int(snapNumber)}",
             )
             concatenateList.append(dataDict[selectKey][subkey].copy())
@@ -525,10 +543,12 @@ def cr_flatten_wrt_time(dataDict, CRPARAMS, snapRange):
 
     print("Stars...")
     tmp = {}
-    newKey = (f"{CRPARAMS['resolution']}", f"{CRPARAMS['CR_indicator']}", "Stars")
+    newKey = (f"{CRPARAMS['resolution']}", 
+              f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+              "Stars")
     selectKey0 = (
         f"{CRPARAMS['resolution']}",
-        f"{CRPARAMS['CR_indicator']}",
+        f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
         f"{int(snapRange[0])}",
         "Stars",
     )
@@ -541,7 +561,7 @@ def cr_flatten_wrt_time(dataDict, CRPARAMS, snapRange):
         for snapNumber in snapRange:
             selectKey = (
                 f"{CRPARAMS['resolution']}",
-                f"{CRPARAMS['CR_indicator']}",
+                f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
                 f"{int(snapNumber)}",
                 "Stars",
             )
@@ -1039,24 +1059,39 @@ def clean_snap_nones(snap):
     return snap
 
 def cr_calculate_projections(
-    snapGas,
-    snapNumber,
+    snap,
     CRPARAMS,
-    Axes=[0, 1],
-    zAxis=[2],
+    ylabel,
+    xlimDict,
+    snapNumber=None,
+    params = ["T","n_H", "B", "gz"],
+    xsize = 5.0,
+    ysize = 5.0,
+    fontsize=13,
+    Axes=[0,1],
     boxsize=400.0,
-    boxlos=20.0,
-    pixres=0.2,
-    pixreslos=0.2,
-    numThreads=8,
-):
+    boxlos=50.0,
+    pixreslos=0.3,
+    pixres=0.3,
+    projection=False,
+    DPI=200,
+    CMAP="inferno",
+    numthreads=10,
+    savePathBase = "./Plots/Slices/",
+ ):
 
-    for param in ["Tdens", "rho_rhomean", "n_H", "B", "gz"]:
+    keys = list(CRPARAMS.keys())
+    selectKey0 = keys[0]
+
+    savePathBase = f"./Plots/{CRPARAMS['halo']}/{CRPARAMS['analysisType']}/Images/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}/"
+
+
+    for param in params+["Tdens", "rho_rhomean"]:
         try:
-            tmp = snapGas.data[param]
+            tmp = snap.data[param]
         except:
-            snapGas = calculate_tracked_parameters(
-                snapGas,
+            snap = calculate_tracked_parameters(
+                snap,
                 oc.elements,
                 oc.elements_Z,
                 oc.elements_mass,
@@ -1066,109 +1101,37 @@ def cr_calculate_projections(
                 snapNumber,
                 paramsOfInterest=[param],
                 mappingBool=True,
-                numthreads=CRPARAMS["numThreads"],
-                verbose = True,
+                numthreads=numthreads,
+                verbose = False,
             )
 
-    # Axes Labels to allow for adaptive axis selection
-    AxesLabels = ["x", "y", "z"]
+    out = {}
 
-    # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
-    imgcent = [0.0, 0.0, 0.0]
-    # PLOTTING TIME
-    # Set plot figure sizes
-    xsize = 10.0
-    ysize = 10.0
-    # Define halfsize for histogram ranges which are +/-
-    halfbox = boxsize / 2.0
+    for sliceParam in params:
+        tmpout = plot_slices(snap,
+            ylabel,
+            xlimDict,
+            logParameters = CRPARAMS['logParameters'],
+            snapNumber=snapNumber,
+            sliceParam = sliceParam,
+            xsize = xsize,
+            ysize = ysize,
+            fontsize=fontsize,
+            Axes=Axes,
+            boxsize=boxsize,
+            boxlos=boxlos,
+            pixreslos=pixreslos,
+            pixres=pixres,
+            projection=projection,
+            DPI=DPI,
+            CMAP=CMAP,
+            numthreads=numthreads,
+            savePathBase = savePathBase,
+            saveFigure = False,
+        )
+        out.update(tmpout)
 
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    # slice_nH    = snap.get_Aslice("n_H", box = [boxsize,boxsize],\
-    #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
-    #  axes = Axes, proj = False, numthreads=16)
-    #
-    # slice_B   = snap.get_Aslice("B", box = [boxsize,boxsize],\
-    #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
-    #  axes = Axes, proj = False, numthreads=16)
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    nprojections = 5
-    # print(np.unique(snapGas.type))
-    print("\n" + f"[@{int(snapNumber)}]: Projection 1 of {nprojections}")
-
-    proj_T = snapGas.get_Aslice(
-        "Tdens",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numThreads,
-    )
-
-    print("\n" + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}")
-
-    proj_dens = snapGas.get_Aslice(
-        "rho_rhomean",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numThreads,
-    )
-
-    print("\n" + f"[@{int(snapNumber)}]: Projection 3 of {nprojections}")
-
-    proj_nH = snapGas.get_Aslice(
-        "n_H",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numThreads,
-    )
-
-    print("\n" + f"[@{int(snapNumber)}]: Projection 4 of {nprojections}")
-
-    proj_B = snapGas.get_Aslice(
-        "B",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numThreads,
-    )
-
-    print("\n" + f"[@{int(snapNumber)}]: Projection 5 of {nprojections}")
-
-    proj_gz = snapGas.get_Aslice(
-        "gz",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numThreads,
-    )
-
-    return {"T":copy.deepcopy(proj_T), "dens":copy.deepcopy(proj_dens), "n_H":copy.deepcopy(proj_nH), "gz":copy.deepcopy(proj_gz), "B":copy.deepcopy(proj_B)}
+    return out
 
 def cr_quad_plot_averaging(
     quadPlotDict,
@@ -1182,10 +1145,11 @@ def cr_quad_plot_averaging(
     flatData = {}
 
     tmp = {}
-    newKey = (f"{CRPARAMS['resolution']}", f"{CRPARAMS['CR_indicator']}")
+    newKey = (f"{CRPARAMS['resolution']}", 
+              f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
     selectKey0 = (
         f"{CRPARAMS['resolution']}",
-        f"{CRPARAMS['CR_indicator']}",
+        f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
         f"{int(snapRange[0])}",
     )
 
@@ -1198,12 +1162,13 @@ def cr_quad_plot_averaging(
             for snapNumber in snapRange:
                 selectKey = (
                     f"{CRPARAMS['resolution']}",
-                    f"{CRPARAMS['CR_indicator']}",
+                    f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
                     f"{int(snapNumber)}",
                 )
                 stackList.append(quadPlotDict[selectKey][param][key].copy())
             outvals = np.stack(stackList, axis=-1)
             innertmp.update({key : outvals})
+            innertmp.update({"type": None})
         tmp.update({param: innertmp})
     flatData.update({newKey: tmp})
 
@@ -1213,7 +1178,9 @@ def cr_quad_plot_averaging(
             tmp.update({arg : np.nanmedian(flatData[newKey][param][arg],axis=-1)})
 
         tmp.update({"grid" : np.nansum(flatData[newKey][param]["grid"],axis=-1)/float(len(snapRange))})
+        tmp.update({"type" : None})
         quadPlotDictAveraged.update({param : tmp})
+        
 
     print("...averaging done!")
     # STOP1080

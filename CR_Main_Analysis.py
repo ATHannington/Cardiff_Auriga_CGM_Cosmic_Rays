@@ -11,7 +11,7 @@ from gadget import *
 from gadget_subfind import *
 from Tracers_Subroutines import *
 from CR_Subroutines import *
-from CR_Plotting_Tools import *
+from Plotting_tools import *
 import h5py
 import json
 import copy
@@ -21,8 +21,24 @@ KnownAnalysisType = ["cgm", "ism", "all"]
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
 
+ageWindow = None #(Gyr) before current snapshot SFR evaluation
+windowBins = 0.100 #(Gyr) size of ageWindow Bins. Ignored if ageWindow is None
+Nbins = 250
+DEBUG = False
+forceLogMass = False
+DPI = 200
+pixres = 0.1
+pixreslos = 0.1
+pixresproj = 0.2
+pixreslosproj = 0.2
+numthreads = 18
+rvirFrac = 1.20
+rvirFracImages = 1.00
+
 colourmapMain = "plasma"
 CRPARAMSPATHMASTER = "CRParams.json"
+
+
 CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, "r"))
 # =============================================================================#
 #
@@ -37,6 +53,11 @@ FullDataPathSuffix = f".h5"
 
 CRSELECTEDHALOESPATH = "CRSelectedHaloes.json"
 CRSELECTEDHALOES = json.load(open(CRSELECTEDHALOESPATH, "r"))
+
+if ageWindow is not None:
+    SFRBins = int(math.floor(ageWindow/windowBins))
+else:
+    SFRBins = Nbins
 
 ylabel = {
     "T": r"Temperature (K)",
@@ -73,17 +94,19 @@ ylabel = {
     "dens": r"Density (g cm$^{-3}$)",
     "ndens": r"Number density (cm$^{-3}$)",
     "mass": r"Mass (M$_{\odot}$)",
+    "vol": r"Volume (kpc$^{3}$)",
+    "age": "Lookback Time (Gyr)",
+    "cool_length" : "Cooling Length (kpc)",
 }
-
 xlimDict = {
     "R": {"xmin": 0.0, "xmax": CRPARAMSMASTER["Router"]},
     # "mass": {"xmin": 5.0, "xmax": 9.0},
     "L": {"xmin": 3.0, "xmax": 4.5},
-    "T": {"xmin": 3.75, "xmax": 6.5},
+    "T": {"xmin": 3.75, "xmax": 7.0},
     "n_H": {"xmin": -5.5, "xmax": -0.5},
-    "B": {"xmin": -2.5, "xmax": 1.0},
+    "B": {"xmin": -2.5, "xmax": 2.5},
     "vrad": {"xmin": -150.0, "xmax": 150.0},
-    "gz": {"xmin": -1.5, "xmax": 0.5},
+    "gz": {"xmin": -1.5, "xmax": 1.5},
     "P_thermal": {"xmin": 0.5, "xmax": 3.5},
     "P_CR": {"xmin": -1.5, "xmax": 5.5},
     "PCR_Pthermal": {"xmin": -2.0, "xmax": 2.0},
@@ -150,7 +173,7 @@ if __name__ == "__main__":
                 CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
                 CRPARAMS.update({'halo': halo})
                 selectKey = (f"{CRPARAMS['resolution']}",
-                             f"{CRPARAMS['CR_indicator']}")
+                             f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
                 CRPARAMSHALO.update({selectKey: CRPARAMS})
             try:
                 print("Restart Flag True! Will try to recover previous analysis data products.")
@@ -213,8 +236,8 @@ if __name__ == "__main__":
             for sim, simDict in allSimsDict.items():
                 CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
                 CRPARAMS.update({'halo': halo})
-                selectKey = (f"{CRPARAMS['resolution']}",
-                             f"{CRPARAMS['CR_indicator']}")
+                selectKey = (f"{CRPARAMS['resolution']}", 
+                             f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
                 CRPARAMSHALO.update({selectKey: CRPARAMS})
                 if CRPARAMS['simfile'] is not None:
                     out = {}
@@ -224,9 +247,10 @@ if __name__ == "__main__":
                         tmpOut, rotation_matrix, tmpquadPlotDict = cr_analysis_radial(
                             snapNumber=snapNumber,
                             CRPARAMS=CRPARAMS,
+                            ylabel=ylabel,
+                            xlimDict=xlimDict,
                             DataSavepathBase=DataSavepathBase,
                             FullDataPathSuffix=FullDataPathSuffix,
-                            logParameters=CRPARAMSMASTER["logParameters"],
                             rotation_matrix=rotation_matrix,
                         )
                         out.update(tmpOut)
@@ -258,18 +282,18 @@ if __name__ == "__main__":
 
                     cr_plot_projections(
                         quadPlotDictAveraged,
-                        CRPARAMS,
+                        CRPARAMS,        
+                        ylabel,
+                        xlimDict,
                         Axes=CRPARAMS["Axes"],
-                        zAxis=CRPARAMS["zAxis"],
                         boxsize=CRPARAMS["boxsize"],
                         boxlos=CRPARAMS["boxlos"],
                         pixres=CRPARAMS["pixres"],
                         pixreslos=CRPARAMS["pixreslos"],
                         fontsize = CRPARAMS["fontsize"],
-                        fontsizeTitle = CRPARAMS["fontsizeTitle"],
                         DPI=CRPARAMS["DPI"],
-                        numThreads=CRPARAMS["numThreads"],
-                        savePathKeyword = f"Averaged",
+                        numthreads=CRPARAMS["numthreads"],
+                        savePathKeyword = "Averaged",
                     )
             # # #----------------------------------------------------------------------#
             # # #      Calculate Radius xmin
@@ -301,7 +325,7 @@ if __name__ == "__main__":
                     print("Calculate Statistics...")
                     print("Gas...")
                     selectKey = (f"{CRPARAMS['resolution']}",
-                                 f"{CRPARAMS['CR_indicator']}")
+                                 f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
 
                     tmpCRPARAMS = copy.deepcopy(CRPARAMS)
                     tmpCRPARAMS['saveParams'] = tmpCRPARAMS['saveParams'] + ["mass"]
@@ -331,7 +355,8 @@ if __name__ == "__main__":
 
                     print("Stars...")
                     selectKey = (f"{CRPARAMS['resolution']}",
-                                 f"{CRPARAMS['CR_indicator']}", "Stars")
+                                 f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+                                 "Stars")
 
                     dat = cr_calculate_statistics(
                         dataDict=starsDict[selectKey],
@@ -389,10 +414,9 @@ if __name__ == "__main__":
         print(f"Medians vs {CRPARAMSMASTER['xParam']} Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        medians_versus_plot(
+        cr_medians_versus_plot(
             statsDict=statsDict,
             CRPARAMSHALO=CRPARAMSHALO,
-            halo=halo,
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
@@ -405,63 +429,123 @@ if __name__ == "__main__":
         print(f"Mass PDF Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        mass_pdf_versus_by_radius_plot(
-            dataDict=dataDict,
+        cr_pdf_versus_plot(
+            dataDict,
             CRPARAMSHALO=CRPARAMSHALO,
-            halo=halo,
             ylabel=ylabel,
             xlimDict=xlimDict,
-            snapRange=snapRange,
-            densityBool=True,
-            colourmapMain=colourmapMain,
+            weightKeys = ['mass'],
+            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
+            axisLimsBool = True,
+            titleBool=False,
+            DPI=150,
+            xsize=6.0,
+            ysize=6.0,
+            fontsize=13,
+            fontsizeTitle=14,
+            Nbins=250,
+            ageWindow=None,
+            cumulative = False,
+            saveCurve = True,
+            SFR = False,
+            byType = False,
+            forceLogMass = False,
+            normalise = False,
+            DEBUG = DEBUG,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
 
         print("")
-        print(f"Mass vs Plot Gas!")
+        print(f"Cumulative Mass PDF Plot!")
 
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cumulative_mass_versus_plot(
-            dataDict=dataDict,
+        cr_pdf_versus_plot(
+            dataDict,
             CRPARAMSHALO=CRPARAMSHALO,
-            halo=halo,
             ylabel=ylabel,
-            xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
-            colourmapMain=colourmapMain,
+            weightKeys = ['mass'],
+            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
+            axisLimsBool = True,
+            titleBool=False,
+            DPI=150,
+            xsize=6.0,
+            ysize=6.0,
+            fontsize=13,
+            fontsizeTitle=14,
+            Nbins=250,
+            ageWindow=None,
+            cumulative = True,
+            saveCurve = True,
+            SFR = False,
+            byType = False,
+            forceLogMass = False,
+            normalise = False,
+            DEBUG = DEBUG,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
 
         print("")
-        print(f"Mass vs Plot Stars!")
+        print(f"PDF Plot Stars!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cumulative_mass_versus_plot(
-            dataDict=starsDict,
+        cr_pdf_versus_plot(
+            starsDict,
             CRPARAMSHALO=CRPARAMSHALO,
-            halo=halo,
             ylabel=ylabel,
-            xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
-            colourmapMain=colourmapMain,
+            weightKeys = ['mass'],
+            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
+            axisLimsBool = True,
+            titleBool=False,
+            DPI=150,
+            xsize=6.0,
+            ysize=6.0,
+            fontsize=13,
+            fontsizeTitle=14,
+            Nbins=250,
+            ageWindow=None,
+            cumulative = False,
+            saveCurve = True,
+            SFR = False,
+            byType = False,
+            forceLogMass = False,
+            normalise = False,
+            DEBUG = DEBUG,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
-
+        
         print("")
-        print(f"Phases Plot!")
+        print(f"Cumulative PDF Plot Stars!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        phases_plot(
-            dataDict=dataDict,
+        cr_pdf_versus_plot(
+            starsDict,
             CRPARAMSHALO=CRPARAMSHALO,
-            halo=halo,
             ylabel=ylabel,
             xlimDict=xlimDict,
-            colourmapMain=colourmapMain,
+            weightKeys = ['mass'],
+            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
+            axisLimsBool = True,
+            titleBool=False,
+            DPI=150,
+            xsize=6.0,
+            ysize=6.0,
+            fontsize=13,
+            fontsizeTitle=14,
+            Nbins=250,
+            ageWindow=None,
+            cumulative = True,
+            saveCurve = True,
+            SFR = False,
+            byType = False,
+            forceLogMass = False,
+            normalise = False,
+            DEBUG = DEBUG,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
@@ -470,13 +554,86 @@ if __name__ == "__main__":
         print(f"SFR Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        sfr_pdf_versus_time_plot(
+        cr_pdf_versus_plot(
             dataDict=lastSnapDict,
             CRPARAMSHALO=CRPARAMSHALO,
-            halo=halo,
-            snapRange=snapRange,
             ylabel=ylabel,
-            colourmapMain=colourmapMain,
+            xlimDict=xlimDict,
+            axisLimsBool = True,
+            titleBool=False,
+            DPI=150,
+            xsize=6.0,
+            ysize=6.0,
+            fontsize=13,
+            fontsizeTitle=14,
+            Nbins=250,
+            ageWindow=None,
+            cumulative = False,
+            saveCurve = True,
+            SFR = True,
+            byType = False,
+            forceLogMass = False,
+            normalise = False,
+            DEBUG = DEBUG,
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
+
+        print("")
+        print(f"Cumulative SFR Plot!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        cr_pdf_versus_plot(
+            dataDict=lastSnapDict,
+            CRPARAMSHALO=CRPARAMSHALO,
+            ylabel=ylabel,
+            xlimDict=xlimDict,
+            axisLimsBool = True,
+            titleBool=False,
+            DPI=150,
+            xsize=6.0,
+            ysize=6.0,
+            fontsize=13,
+            fontsizeTitle=14,
+            Nbins=250,
+            ageWindow=None,
+            cumulative = True,
+            saveCurve = True,
+            SFR = True,
+            byType = False,
+            forceLogMass = False,
+            normalise = False,
+            DEBUG = DEBUG,
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+        print("")
+        print(f"Phases Plot!")
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+        cr_hist_plot_xyz(
+            dataDict=dataDict,
+            CRPARAMSHALO=CRPARAMSHALO,
+            ylabel=ylabel,
+            xlimDict=xlimDict,
+            colourmapMain=colourmapMain,
+            yParams = ["T","gz","B"],
+            xParams = ["rho_rhomean","R"],
+            weightKeys = ["mass","vol"],
+            axisLimsBool = True,
+            fontsize=13,
+            fontsizeTitle=14,
+            titleBool=True,
+            DPI=200,
+            xsize=8.0,
+            ysize=8.0, #lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
+            Nbins=250,
+            saveCurve = True,
+            savePathBase = "./",
+            DEBUG = DEBUG,
+        )
+        matplotlib.rc_file_defaults()
+        plt.close("all")
+
+
