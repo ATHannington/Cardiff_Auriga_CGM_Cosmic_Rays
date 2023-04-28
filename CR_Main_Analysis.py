@@ -9,9 +9,9 @@ import const as c
 import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
-from Tracers_Subroutines import *
-from CR_Subroutines import *
-from Plotting_tools import *
+import Tracers_Subroutines as tr
+import CR_Subroutines as cr
+import Plotting_tools as apt
 import h5py
 import json
 import copy
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         if CRPARAMSMASTER["restartFlag"] is True:
             CRPARAMSHALO = {}
             for sim, simDict in allSimsDict.items():
-                CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+                CRPARAMS = cr.cr_parameters(CRPARAMSMASTER, simDict)
                 CRPARAMS.update({'halo': halo})
                 selectKey = (f"{CRPARAMS['resolution']}",
                              f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
@@ -196,19 +196,19 @@ if __name__ == "__main__":
                         )
 
                         loadPath = DataSavepath + "lastSnapDict.h5"
-                        lastSnapDict = hdf5_load(loadPath)
+                        lastSnapDict = tr.hdf5_load(loadPath)
 
                         loadPath = DataSavepath + "statsDict.h5"
-                        statsDict = hdf5_load(loadPath)
+                        statsDict = tr.hdf5_load(loadPath)
 
                         loadPath = DataSavepath + "statsDictStars.h5"
-                        statsDictStars = hdf5_load(loadPath)
+                        statsDictStars = tr.hdf5_load(loadPath)
 
                         loadPath = DataSavepath + "starsDict.h5"
-                        starsDict = hdf5_load(loadPath)
+                        starsDict = tr.hdf5_load(loadPath)
 
                         loadPath = DataSavepath + "dataDict.h5"
-                        dataDict = hdf5_load(loadPath)
+                        dataDict = tr.hdf5_load(loadPath)
 
 
 
@@ -234,7 +234,7 @@ if __name__ == "__main__":
             #   MAIN ANALYSIS
             # =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
             for sim, simDict in allSimsDict.items():
-                CRPARAMS = cr_parameters(CRPARAMSMASTER, simDict)
+                CRPARAMS = cr.cr_parameters(CRPARAMSMASTER, simDict)
                 CRPARAMS.update({'halo': halo})
                 selectKey = (f"{CRPARAMS['resolution']}", 
                              f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
@@ -244,7 +244,7 @@ if __name__ == "__main__":
                     quadPlotDict = {}
                     rotation_matrix = None
                     for snapNumber in snapRange:
-                        tmpOut, rotation_matrix, tmpquadPlotDict = cr_analysis_radial(
+                        tmpOut, rotation_matrix, tmpquadPlotDict = cr.cr_analysis_radial(
                             snapNumber=snapNumber,
                             CRPARAMS=CRPARAMS,
                             ylabel=ylabel,
@@ -264,7 +264,7 @@ if __name__ == "__main__":
                             if key[-2] == f"{int(snapRange[-1])}":
                                 lastSnapDict.update({key : copy.deepcopy(val)})
 
-                    flatDict = cr_flatten_wrt_time(out, CRPARAMS, snapRange)
+                    flatDict = cr.cr_flatten_wrt_time(out, CRPARAMS, snapRange)
 
                     for key, val in flatDict.items():
                         if key[-1] == "Stars":
@@ -274,13 +274,13 @@ if __name__ == "__main__":
 
                     del out, flatDict
 
-                    quadPlotDictAveraged = cr_quad_plot_averaging(
+                    quadPlotDictAveraged = cr.cr_quad_plot_averaging(
                         quadPlotDict,
                         CRPARAMS,
                         snapRange,
                     )
 
-                    cr_plot_projections(
+                    apt.cr_plot_projections(
                         quadPlotDictAveraged,
                         CRPARAMS,        
                         ylabel,
@@ -343,7 +343,7 @@ if __name__ == "__main__":
 
                     print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
                           xlimDict["R"]['xmax'])
-                    dat = cr_calculate_statistics(
+                    dat = cr.cr_calculate_statistics(
                         dataDict=dataDict[selectKey],
                         CRPARAMS=tmpCRPARAMS,
                         xParam=CRPARAMSMASTER["xParam"],
@@ -358,7 +358,7 @@ if __name__ == "__main__":
                                  f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
                                  "Stars")
 
-                    dat = cr_calculate_statistics(
+                    dat = cr.cr_calculate_statistics(
                         dataDict=starsDict[selectKey],
                         CRPARAMS=tmpCRPARAMS,
                         xParam=CRPARAMSMASTER["xParam"],
@@ -370,6 +370,8 @@ if __name__ == "__main__":
             # ----------------------------------------------------------------------#
             # Save output ...
             # ----------------------------------------------------------------------#
+            print("")
+            print("***")
             print("Saving data products...")
             for sim, CRPARAMS in CRPARAMSHALO.items():
                 if CRPARAMS['simfile'] is not None:
@@ -388,20 +390,22 @@ if __name__ == "__main__":
                     )
 
                     savePath = DataSavepath + "dataDict.h5"
-                    hdf5_save(savePath,dataDict)
+                    tr.hdf5_save(savePath,dataDict)
 
                     savePath = DataSavepath + "starsDict.h5"
-                    hdf5_save(savePath,starsDict)
+                    tr.hdf5_save(savePath,starsDict)
 
                     savePath = DataSavepath + "lastSnapDict.h5"
-                    hdf5_save(savePath,lastSnapDict)
+                    tr.hdf5_save(savePath,lastSnapDict)
 
                     savePath = DataSavepath + "statsDict.h5"
-                    hdf5_save(savePath,statsDict)
+                    tr.hdf5_save(savePath,statsDict)
 
                     savePath = DataSavepath + "statsDictStars.h5"
-                    hdf5_save(savePath,statsDictStars)
+                    tr.hdf5_save(savePath,statsDictStars)
             print("...done!")
+            print("***")
+            print("")
         # ----------------------------------------------------------------------#
         #  Plots...
         # ----------------------------------------------------------------------#
@@ -414,12 +418,13 @@ if __name__ == "__main__":
         print(f"Medians vs {CRPARAMSMASTER['xParam']} Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_medians_versus_plot(
+        apt.cr_medians_versus_plot(
             statsDict=statsDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
+            snapNumber = "Averaged",
             colourmapMain=colourmapMain,
         )
         matplotlib.rc_file_defaults()
@@ -429,7 +434,7 @@ if __name__ == "__main__":
         print(f"Mass PDF Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_pdf_versus_plot(
+        apt.cr_pdf_versus_plot(
             dataDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
@@ -461,7 +466,7 @@ if __name__ == "__main__":
 
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_pdf_versus_plot(
+        apt.cr_pdf_versus_plot(
             dataDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
@@ -492,7 +497,7 @@ if __name__ == "__main__":
         print(f"PDF Plot Stars!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_pdf_versus_plot(
+        apt.cr_pdf_versus_plot(
             starsDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
@@ -523,7 +528,7 @@ if __name__ == "__main__":
         print(f"Cumulative PDF Plot Stars!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_pdf_versus_plot(
+        apt.cr_pdf_versus_plot(
             starsDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
@@ -554,7 +559,7 @@ if __name__ == "__main__":
         print(f"SFR Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_pdf_versus_plot(
+        apt.cr_pdf_versus_plot(
             dataDict=lastSnapDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
@@ -583,7 +588,7 @@ if __name__ == "__main__":
         print(f"Cumulative SFR Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_pdf_versus_plot(
+        apt.cr_pdf_versus_plot(
             dataDict=lastSnapDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
@@ -612,7 +617,7 @@ if __name__ == "__main__":
         print(f"Phases Plot!")
         matplotlib.rc_file_defaults()
         plt.close("all")
-        cr_hist_plot_xyz(
+        apt.cr_hist_plot_xyz(
             dataDict=dataDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
@@ -633,6 +638,7 @@ if __name__ == "__main__":
             savePathBase = "./",
             DEBUG = DEBUG,
         )
+
         matplotlib.rc_file_defaults()
         plt.close("all")
 

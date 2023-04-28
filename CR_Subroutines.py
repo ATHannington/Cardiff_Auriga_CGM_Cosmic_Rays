@@ -14,8 +14,8 @@ import const as c
 import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
-from Tracers_Subroutines import *
-from Plotting_tools import *
+import Tracers_Subroutines as tr
+import Plotting_tools as apt
 import h5py
 import json
 import copy
@@ -314,7 +314,7 @@ def cr_analysis_radial(
     box = [boxmax, boxmax, boxmax]
 
     # Calculate New Parameters and Load into memory others we want to track
-    snapGas = calculate_tracked_parameters(
+    snapGas = tr.calculate_tracked_parameters(
         snapGas,
         oc.elements,
         oc.elements_Z,
@@ -331,7 +331,7 @@ def cr_analysis_radial(
         DataSavepath = DataSavepath,
         verbose = DEBUG,
     )
-    # snapGas = calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
+    # snapGas = tr.calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
     quadPlotDict = cr_calculate_projections(
         snapGas,
         CRPARAMS,
@@ -346,7 +346,7 @@ def cr_analysis_radial(
     )
 
     if CRPARAMS["QuadPlotBool"] is True:
-        cr_plot_projections(
+        apt.cr_plot_projections(
             quadPlotDict,
             CRPARAMS,
             ylabel,
@@ -616,46 +616,51 @@ def cr_calculate_statistics(
         xBins = np.logspace(
             start=xlimDict[xParam]["xmin"],
             stop=xlimDict[xParam]["xmax"],
-            num=Nbins,
+            num=Nbins+1,
             base=10.0,
         )
     else:
         xBins = np.linspace(
-            start=xlimDict[xParam]["xmin"], stop=xlimDict[xParam]["xmax"], num=Nbins
+            start=xlimDict[xParam]["xmin"], stop=xlimDict[xParam]["xmax"], num=Nbins+1
         )
 
+    xmin, xmax = np.nanmin(xBins), np.nanmax(xBins)
+
+    where_within = np.where((dataDict[xParam] >= xmin) & (dataDict[xParam] < xmax))[0]
+
+    sort_ind = np.argsort(dataDict[xParam][where_within],axis=0)
+
+    sortedData ={}
+    print("[@cr_calculate_statistics]: Sort data by xParam")
+    for param, values in dataDict.items():
+        if (param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]) & (
+            param not in exclusions
+        ):
+            sortedData.update({param: copy.deepcopy(values[where_within][sort_ind])})
+
     xData = []
-    whereList = []
+    datList = []
     printcount = 0.0
     # print(xBins)
-    print("[@cr_calculate_statistics]: Generate where in bins")
+    print("[@cr_calculate_statistics]: Calculate statistics from binned data")
     for (ii, (xmin, xmax)) in enumerate(zip(xBins[:-1], xBins[1:])):
         # print(xmin,xParam,xmax)
         percentage = (float(ii) / float(len(xBins[:-1]))) * 100.0
         if percentage >= printcount:
-            print(f"{percentage:0.02f}% bins assigned!")
+            print(f"{percentage:0.02f}% of statistics calculated!")
             printcount += printpercent
         xData.append((float(xmax) + float(xmin)) / 2.0)
-        whereList.append(
-            np.where((dataDict[xParam] >= xmin) & (dataDict[xParam] < xmax))[0]
-        )
+        whereData = np.where((sortedData[xParam] >= xmin) & (sortedData[xParam] < xmax))[0]
 
-    print("[@cr_calculate_statistics]: Bin data and calculate statistics")
-    statsData = {}
-    printcount = 0.0
-    for ii, whereData in enumerate(whereList):
-        percentage = (float(ii) / float(len(whereList))) * 100.0
-        if percentage >= printcount:
-            print(f"{percentage:0.02f}% data processed!")
-            printcount += printpercent
         binnedData = {}
-        for param, values in dataDict.items():
+        for param, values in sortedData.items():
             if (param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]) & (
                 param not in exclusions
             ):
                 binnedData.update({param: values[whereData]})
+                sortedData.update({param: np.delete(values,whereData,axis=0)})
 
-        dat = calculate_statistics(
+        dat = tr.calculate_statistics(
             binnedData,
             TRACERSPARAMS=CRPARAMS,
             saveParams=CRPARAMS["saveParams"],
@@ -663,22 +668,15 @@ def cr_calculate_statistics(
         )
 
         # Fix values to arrays to remove concat error of 0D arrays
-        for k, val in dat.items():
-            dat[k] = np.array([val]).flatten()
+        dat = {key : val for key, val in dat.items()}
+        datList.append(dat)
 
-        for subkey, vals in dat.items():
-            if subkey in list(statsData.keys()):
-
-                statsData[subkey] = np.concatenate(
-                    (statsData[subkey], dat[subkey]), axis=0
-                )
-            else:
-                statsData.update({subkey: dat[subkey]})
+    statsData = {key: np.asarray([dd[key] for dd in datList if key in dd.keys()]) for key in datList[0].keys()}
 
     for param in exclusions:
         statsData.update({param: copy.deepcopy(dataDict[param])})
 
-    statsData.update({f"{xParam}": xData})
+    statsData.update({f"{xParam}": np.asarray(xData)})
     return statsData
 
 def map_params_to_types(snap, degeneracyBool = False):
@@ -805,6 +803,7 @@ def remove_selection(
     snap,
     removalConditionMask,
     errorString = "NOT SET",
+    hush = False,
     DEBUG = False,
     ):
     """
@@ -831,7 +830,7 @@ def remove_selection(
 
     nRemovals = np.shape(np.where(removalConditionMask==True)[0])[0]
     if nRemovals==0:
-        print("[@remove_selection]: Number of data points to remove is zero! Skipping...")
+        if not hush: print("[@remove_selection]: Number of data points to remove is zero! Skipping...")
         return snap
 
     snapType = False
@@ -1077,20 +1076,18 @@ def cr_calculate_projections(
     DPI=200,
     CMAP="inferno",
     numthreads=10,
-    savePathBase = "./Plots/Slices/",
  ):
 
     keys = list(CRPARAMS.keys())
     selectKey0 = keys[0]
 
-    savePathBase = f"./Plots/{CRPARAMS['halo']}/{CRPARAMS['analysisType']}/Images/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}/"
 
 
     for param in params+["Tdens", "rho_rhomean"]:
         try:
             tmp = snap.data[param]
         except:
-            snap = calculate_tracked_parameters(
+            snap = tr.calculate_tracked_parameters(
                 snap,
                 oc.elements,
                 oc.elements_Z,
@@ -1108,7 +1105,7 @@ def cr_calculate_projections(
     out = {}
 
     for sliceParam in params:
-        tmpout = plot_slices(snap,
+        tmpout = apt.plot_slices(snap,
             ylabel,
             xlimDict,
             logParameters = CRPARAMS['logParameters'],
@@ -1126,7 +1123,6 @@ def cr_calculate_projections(
             DPI=DPI,
             CMAP=CMAP,
             numthreads=numthreads,
-            savePathBase = savePathBase,
             saveFigure = False,
         )
         out.update(tmpout)
