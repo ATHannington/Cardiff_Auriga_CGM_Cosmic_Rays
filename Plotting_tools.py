@@ -12,8 +12,8 @@ import const as c
 import OtherConstants as oc
 from gadget import *
 from gadget_subfind import *
-from Tracers_Subroutines import *
-from CR_Subroutines import *
+import Tracers_Subroutines as tr
+import CR_Subroutines as cr
 import h5py
 import json
 import copy
@@ -142,17 +142,18 @@ def hist_plot_xyz(
                 #   Figure 1: Full Cells Data
                 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
                 try:
-                    tmpdataDict, paramToTypeMap, _ = map_params_to_types(simDict)
+                    tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(simDict)
                     typesUsedData = paramToTypeMap[xParam]
 
                     whereNotType = np.isin(simDict["type"],typesUsedData)==False
                     if DEBUG:
                         print(f"[@hist_plot_xyz]: typesUsedData {typesUsedData}")
                         print(f"[@hist_plot_xyz]: pd.unique(simDict['type']) {pd.unique(simDict['type'])}")
-                    tmpdataDict = remove_selection(
+                    tmpdataDict = cr.remove_selection(
                         tmpdataDict,
                         removalConditionMask = whereNotType,
                         errorString = "Remove types not applicable to xParam",
+                        hush = True,
                         DEBUG = DEBUG,
                     )
 
@@ -160,34 +161,39 @@ def hist_plot_xyz(
                         xx = np.log10(tmpdataDict[xParam])
                     else:
                         xx = tmpdataDict[xParam]
-                except:
+                except Exception as e:
+                    # raise Exception(e)
+                    print(f"{str(e)}")
                     print("\n"+f"xParam of {xParam} data not found! Skipping...")
                     skipBool = True
                     continue
 
                 try:
-                    tmpdataDict, paramToTypeMap, _ = map_params_to_types(tmpdataDict)
+                    tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(tmpdataDict)
                     typesUsedData = paramToTypeMap[yParam]
 
                     whereNotType = np.isin(tmpdataDict["type"],typesUsedData)==False
                     if DEBUG:
                         print(f"[@hist_plot_xyz]: typesUsedData {typesUsedData}")
                         print(f"[@hist_plot_xyz]: pd.unique(tmpdataDict['type']) {pd.unique(tmpdataDict['type'])}")
-                    tmpdataDict = remove_selection(
+                    tmpdataDict = cr.remove_selection(
                         tmpdataDict,
                         removalConditionMask = whereNotType,
                         errorString = "Remove types not applicable to yParam",
+                        hush = True,
                         DEBUG = DEBUG,
                     )
                     if yParam in logParameters:
                         yy = np.log10(tmpdataDict[yParam])
                     else:
                         yy = tmpdataDict[yParam]
-                except:
+                except Exception as e:
+                    # raise Exception(e)
+                    print(f"{str(e)}")
                     print("\n"+f"yParam of {yParam} data not found! Skipping...")
                     skipBool = True
                     continue
-
+                
                 try:
                     xmin, xmax =(
                         zlimDict[xParam]["xmin"], zlimDict[xParam]["xmax"]
@@ -219,7 +225,8 @@ def hist_plot_xyz(
                         [0]] * massCells
                     )
                     skipBool = False
-                except:
+                except Exception as e:
+                    print(f"{str(e)}")
                     print(
                         f"Variable {weightKey} not found. Skipping plot..."
                     )
@@ -244,7 +251,8 @@ def hist_plot_xyz(
                 try:
                     if weightKey in logParameters:
                         finalHistCells = np.log10(finalHistCells)
-                except:
+                except Exception as e:
+                    print(f"{str(e)}")
                     print(f"Variable {weightKey} not found. Skipping plot...")
                     skipBool = True
                     continue
@@ -311,7 +319,8 @@ def hist_plot_xyz(
                 if skipBool == True:
                     try:
                         tmp = finalHistCells
-                    except:
+                    except Exception as e:
+                        print(f"{str(e)}")
                         print(
                             f"Variable {weightKey} not found. Skipping plot..."
                         )
@@ -361,7 +370,7 @@ def hist_plot_xyz(
 
                 if saveCurve is True:
                     out = {"data":{"x" : xcells, "y" : ycells, "hist": finalHistCells}}
-                    hdf5_save(opslaan+"_data.h5",out)
+                    tr.hdf5_save(opslaan+"_data.h5",out)
 
     return
 
@@ -424,10 +433,11 @@ def pdf_versus_plot(
             print("Starting type ",tp)
             whereNotType = dataDict["type"] != tp
 
-            tpData = remove_selection(
+            tpData = cr.remove_selection(
                 copy.deepcopy(dataDict),
                 removalConditionMask = whereNotType,
                 errorString = "byType PDF whereNotType",
+                hush = True,
                 DEBUG = DEBUG,
                 )
 
@@ -477,21 +487,22 @@ def pdf_versus_plot(
             # Create a plot for each Temperature
             skipBool = False
             try:
-                tmpdataDict, paramToTypeMap, _ = map_params_to_types(dataDict)
+                tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(dataDict)
                 typesUsedData = paramToTypeMap[analysisParam]
                 if DEBUG:
                     print(f"[@pdf_versus_plot]: typesUsedData {typesUsedData}")
                     print(f"[@pdf_versus_plot]: pd.unique(dataDict['type']) {pd.unique(dataDict['type'])}")
                 whereNotType = np.isin(dataDict["type"],typesUsedData)==False
 
-                tmpdataDict = remove_selection(
+                tmpdataDict = cr.remove_selection(
                     tmpdataDict,
                     removalConditionMask = whereNotType,
                     errorString = "Remove types not applicable to analysisParam",
+                    hush = True,
                     DEBUG = DEBUG,
                 )
 
-                tmpdataDict, paramToTypeMap, _ = map_params_to_types(tmpdataDict)
+                tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(tmpdataDict)
                 typesUsedWeights = paramToTypeMap[weightKey]
                 
                 if DEBUG:
@@ -499,10 +510,11 @@ def pdf_versus_plot(
                     print(f"[@pdf_versus_plot]: pd.unique(tmpdataDict['type']) {pd.unique(tmpdataDict['type'])}")
                 whereNotTypeWeights = np.isin(tmpdataDict["type"],typesUsedWeights)==False
 
-                tmpdataDict = remove_selection(
+                tmpdataDict = cr.remove_selection(
                     tmpdataDict,
                     removalConditionMask = whereNotTypeWeights,
                     errorString = "Remove types not applicable to weightKey",
+                    hush = True,
                     DEBUG = DEBUG,
                 )
                 
@@ -510,6 +522,7 @@ def pdf_versus_plot(
                 weightsData = tmpdataDict[weightKey]
                 skipBool = False
             except Exception as e:
+                # raise Exception(e)
                 print(f"{str(e)}")
                 print(
                     f"Variable {analysisParam} not found. Skipping plot..."
@@ -581,7 +594,8 @@ def pdf_versus_plot(
                 xmin = np.nanmin(plotData)
                 xmax = np.nanmax(plotData)
                 skipBool = False
-            except:
+            except Exception as e:
+                print(f"{str(e)}")
                 print(
                     f"Variable {analysisParam} not found. Skipping plot...")
                 skipBool = True
@@ -650,7 +664,8 @@ def pdf_versus_plot(
                 ymin = np.nanmin(hist[np.isfinite(hist)])
                 ymax = np.nanmax(hist[np.isfinite(hist)])
                 skipBool = False
-            except:
+            except Exception as e:
+                print(f"{str(e)}")
                 print(
                     f"Variable {analysisParam} not found. Skipping plot...")
                 skipBool = True
@@ -790,7 +805,7 @@ def pdf_versus_plot(
 
             if saveCurve is True:
                 out = {"data":{"x" : xFromBins, "y" : hist}}
-                hdf5_save(opslaan+"_data.h5",out)
+                tr.hdf5_save(opslaan+"_data.h5",out)
     return
 
 def plot_slices(snap,
@@ -1837,7 +1852,6 @@ def hy_plot_projections(snap,
 def cr_medians_versus_plot(
     statsDict,
     CRPARAMSHALO,
-    halo,
     ylabel,
     xlimDict,
     snapNumber = None,
@@ -1849,9 +1863,8 @@ def cr_medians_versus_plot(
     ysize=6.0,
     opacityPercentiles=0.25,
     colourmapMain="tab10",
-    savePathBase ="./",
-    savePathKeyword = "Averaged",
-):
+    savePathBase ="./"
+    ):
 
     keys = list(CRPARAMSHALO.keys())
     selectKey0 = keys[0]
@@ -1864,10 +1877,35 @@ def cr_medians_versus_plot(
     fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
     fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
 
+    savePath = savePathBase + f"Plots/{CRPARAMSHALO[selectKey0]['halo']}/{CRPARAMSHALO[selectKey0]['analysisType']}/Plots/Medians/"
+    tmp = "./"
+
+    for savePathChunk in savePath.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+
     for analysisParam in plotParams:
         if analysisParam != xParam:
             print("")
             print(f"Starting {analysisParam} plots!")
+  
+            fig, ax = plt.subplots(
+
+            nrows=1,
+            ncols=1,
+            sharex=True,
+            sharey=True,
+            figsize=(xsize, ysize),
+            dpi=DPI,
+            )
+
+            yminlist = []
+            ymaxlist = []
+            patchList = []
+            labelList = []
 
             Nkeys = len(list(statsDict.items()))
             for (ii, (selectKey, simDict)) in enumerate(statsDict.items()):
@@ -1879,31 +1917,6 @@ def cr_medians_versus_plot(
                 loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
                 if loadpath is not None:
                     print(f"{CRPARAMSHALO[selectKeyShort]['resolution']}, {CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}")                    # Create a plot for each Temperature
-
-                    savePath = savePathBase + f"Plots/{CRPARAMSHALO[selectKeyShort]['halo']}/{CRPARAMSHALO[selectKeyShort]['analysisType']}/{CRPARAMSHALO[selectKeyShort]['resolution']}/{CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}/Plots/Medians/"
-                    tmp = "./"
-
-                    for savePathChunk in savePath.split("/")[1:-1]:
-                        tmp += savePathChunk + "/"
-                        try:
-                            os.mkdir(tmp)
-                        except:
-                            pass
-
-                    fig, ax = plt.subplots(
-
-                    nrows=1,
-                    ncols=1,
-                    sharex=True,
-                    sharey=True,
-                    figsize=(xsize, ysize),
-                    dpi=DPI,
-                    )
-
-                    yminlist = []
-                    ymaxlist = []
-                    patchList = []
-                    labelList = []
 
                     plotData = simDict.copy()
                     xData = np.array(simDict[xParam].copy())
@@ -1919,7 +1932,8 @@ def cr_medians_versus_plot(
                             analysisParam + "_" + str(percentile) + "%"
                             for percentile in CRPARAMSHALO[selectKeyShort]["percentiles"]
                         ]
-                    except:
+                    except Exception as e:
+                        print(f"{str(e)}")
                         print(
                             f"Variable {analysisParam} not found. Skipping plot..."
                         )
@@ -1947,7 +1961,8 @@ def cr_medians_versus_plot(
                             plotData[LO][np.isfinite(plotData[LO])])
                         ymax = np.nanmax(
                             plotData[UP][np.isfinite(plotData[UP])])
-                    except:
+                    except Exception as e:
+                        print(f"{str(e)}")
                         print(
                             f"Variable {analysisParam} not found. Skipping plot...")
                         continue
@@ -2012,75 +2027,87 @@ def cr_medians_versus_plot(
                                 fontsize=fontsizeTitle,
                             )
 
-                    ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
+            ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
 
-                    # try:
-                    #     finalymin = min(np.nanmin(yminlist),xlimDict[analysisParam]['xmin'])
-                    #     finalymax = max(np.nanmax(ymaxlist),xlimDict[analysisParam]['xmax'])
-                    # except:
-                    #     finalymin = np.nanmin(yminlist)
-                    #     finalymax = np.nanmax(ymaxlist)
-                    # else:
-                    #     pass
-                    if (len(yminlist) == 0) | (len(ymaxlist) == 0):
-                        print(
-                            f"Variable {analysisParam} not found. Skipping plot..."
-                        )
-                        continue
+            if (len(yminlist) == 0) | (len(ymaxlist) == 0):
+                print(
+                    f"Variable {analysisParam} not found. Skipping plot..."
+                )
+                continue
 
-                    finalymin = np.nanmin(yminlist)
-                    finalymax = np.nanmax(ymaxlist)
+            try:
+                xmin, xmax =(
+                xlimDict[xParam]["xmin"], xlimDict[xParam]["xmax"]
+                )
+            except:
+                xmin, xmax, = ( np.nanmin(xData), np.nanmax(xData))
 
-                    if (
-                        (np.isinf(finalymin) == True)
-                        or (np.isinf(finalymax) == True)
-                        or (np.isnan(finalymin) == True)
-                        or (np.isnan(finalymax) == True)
-                    ):
-                        print("Data All Inf/NaN! Skipping entry!")
-                        continue
+            try:
+                finalymin, finalymax =(
+                xlimDict[analysisParam]["xmin"], xlimDict[analysisParam]["xmax"]
+                )
+            except:
+                finalymin, finalymax, = ( np.nanmin(yminlist), np.nanmax(ymaxlist))
 
-                    custom_ylim = (finalymin, finalymax)
 
-                    # xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
-                    # custom_xlim = (min(xData),max(xData)*1.05)
-                    # if xParam == "R":
-                    #     if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
-                    #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
-                    #         custom_xlim = (0,max(xData)*1.05)
-                    #     else:
-                    #         custom_xlim = (0,max(xData)*1.05)
-                    # ax.set_xticks(xticks)
-                    ax.legend(loc="best", fontsize=fontsize)
+            if (
+                (np.isinf(finalymin) == True)
+                or (np.isinf(finalymax) == True)
+                or (np.isnan(finalymin) == True)
+                or (np.isnan(finalymax) == True)
+            ):
+                print("Data All Inf/NaN! Skipping entry!")
+                continue
 
-                    plt.setp(
-                        ax,
-                        ylim=custom_ylim
-                        # ,xlim=custom_xlim
-                    )
-                    # plt.tight_layout()
-                    if titleBool is True:
-                        plt.subplots_adjust(top=0.875, hspace=0.1, left=0.15)
-                    else:
-                        plt.subplots_adjust(hspace=0.1, left=0.15)
+            custom_xlim = (xmin, xmax)
+            custom_ylim = (finalymin, finalymax)
+            # xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
+            # custom_xlim = (min(xData),max(xData)*1.05)
+            # if xParam == "R":
+            #     if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
+            #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+            #         custom_xlim = (0,max(xData)*1.05)
+            #     else:
+            #         custom_xlim = (0,max(xData)*1.05)
+            # ax.set_xticks(xticks)
+            ax.legend(loc="best", fontsize=fontsize)
 
-                    if selectKey[-1] == "Stars":
-                        opslaan = savePath + \
-                            f"Stellar-{analysisParam}_Medians.pdf"
-                    else:
-                        opslaan = savePath + f"{analysisParam}_Medians.pdf"
-                    plt.savefig(opslaan, dpi=DPI, transparent=False)
-                    matplotlib.rc_file_defaults()
-                    plt.close("all")
-                    print(opslaan)
-                    plt.close()
+            plt.setp(
+                ax,
+                ylim=custom_ylim,
+                xlim=custom_xlim
+            )
+            # plt.tight_layout()
+
+            if snapNumber is not None:
+                if type(snapNumber) == int:
+                    SaveSnapNumber = "_" + str(snapNumber).zfill(4)
+                else:
+                    SaveSnapNumber = "_" + str(snapNumber)
+            else:
+                SaveSnapNumber = ""
+
+            if titleBool is True:
+                plt.subplots_adjust(top=0.875, hspace=0.1, left=0.15)
+            else:
+                plt.subplots_adjust(hspace=0.1, left=0.15)
+
+            if selectKey[-1] == "Stars":
+                opslaan = savePath + \
+                    f"Stellar-{analysisParam}_Medians{SaveSnapNumber}.pdf"
+            else:
+                opslaan = savePath + f"{analysisParam}_Medians{SaveSnapNumber}.pdf"
+            plt.savefig(opslaan, dpi=DPI, transparent=False)
+            matplotlib.rc_file_defaults()
+            plt.close("all")
+            print(opslaan)
+            plt.close()
 
     return
 
 def cr_pdf_versus_plot(
     dataDict,
     CRPARAMSHALO,
-    halo,
     ylabel,
     xlimDict,
     weightKeys = ['mass'],
@@ -2251,6 +2278,7 @@ def cr_hist_plot_xyz(
                 DEBUG=DEBUG,
 
             )
+
     return
 
 def cr_plot_projections(
