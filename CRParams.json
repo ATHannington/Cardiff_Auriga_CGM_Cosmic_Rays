@@ -1,7 +1,7 @@
 {
     "analysisType" : "all",
 
-    "restartFlag" : false,
+    "restartFlag" : true,
 
     "savepath" : "/home/universe/c1838736/Cosmic_Rays/V4-0/",
 
