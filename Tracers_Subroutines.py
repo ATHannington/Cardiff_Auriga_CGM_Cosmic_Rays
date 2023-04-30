@@ -1755,6 +1755,13 @@ def calculate_tracked_parameters(
     except Exception as e:
         print(f"[@calculate_tracked_parameters]: Warning! Param not found: Norm Grad_P_CR {str(e)}")
 
+    if np.any(np.isin(np.array(["rho"]), np.array(paramsOfInterest))) | (
+        len(paramsOfInterest) == 0
+    ):
+        snapGas.data["rho"] *= 10.0 # (1e10 M_sol /1e9 (Mpc/Kpc)**3)
+
+        if genLogParameters:
+            logParameters.append("rho")
     return snapGas
 
 
