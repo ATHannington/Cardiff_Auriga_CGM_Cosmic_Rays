@@ -16,30 +16,21 @@ import h5py
 import json
 import copy
 import os
+import math
 
 KnownAnalysisType = ["cgm", "ism", "all"]
 
 matplotlib.use("Agg")  # For suppressing plotting on clusters
 
-ageWindow = None #(Gyr) before current snapshot SFR evaluation
-windowBins = 0.100 #(Gyr) size of ageWindow Bins. Ignored if ageWindow is None
-Nbins = 250
 DEBUG = False
-forceLogMass = False
-DPI = 200
-pixres = 0.1
-pixreslos = 0.1
-pixresproj = 0.2
-pixreslosproj = 0.2
-numthreads = 18
-rvirFrac = 1.20
-rvirFracImages = 1.00
-
-colourmapMain = "plasma"
 CRPARAMSPATHMASTER = "CRParams.json"
 
-
 CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, "r"))
+
+if CRPARAMSMASTER["ageWindow"] is not None:
+    CRPARAMSMASTER["SFRBins"] = int(math.floor(CRPARAMSMASTER["ageWindow"]/CRPARAMSMASTER["windowBins"]))
+else:
+    CRPARAMSMASTER["SFRBins"]  = CRPARAMSMASTER["Nbins"] 
 # =============================================================================#
 #
 #               USER DEFINED PARAMETERS
@@ -53,11 +44,6 @@ FullDataPathSuffix = f".h5"
 
 CRSELECTEDHALOESPATH = "CRSelectedHaloes.json"
 CRSELECTEDHALOES = json.load(open(CRSELECTEDHALOESPATH, "r"))
-
-if ageWindow is not None:
-    SFRBins = int(math.floor(ageWindow/windowBins))
-else:
-    SFRBins = Nbins
 
 ylabel = {
     "T": r"Temperature (K)",
@@ -93,6 +79,7 @@ ylabel = {
     "rho_rhomean": r"$\rho / \langle \rho \rangle$",
     "dens": r"Density (g cm$^{-3}$)",
     "ndens": r"Number density (cm$^{-3}$)",
+    "rho": r"Density (M$_{\odot}$ kpc$^{-3}$)",
     "mass": r"Mass (M$_{\odot}$)",
     "vol": r"Volume (kpc$^{3}$)",
     "age": "Lookback Time (Gyr)",
@@ -120,9 +107,9 @@ xlimDict = {
     "tcool_tff": {"xmin": -2.5, "xmax": 2.0},
     "rho_rhomean": {"xmin": 1.5, "xmax": 6.0},
     "dens": {"xmin": -30.0, "xmax": -22.0},
-    "ndens": {"xmin": -6.0, "xmax": 2.0},
-}
-
+    "ndens": {"xmin": -6.0, "xmax": 1.0},
+    "rho": {"xmin": 2.0, "xmax": 8.0},
+    }
 
 for entry in CRPARAMSMASTER["logParameters"]:
     ylabel[entry] = r"$Log_{10}$" + ylabel[entry]
@@ -285,6 +272,9 @@ if __name__ == "__main__":
                         CRPARAMS,        
                         ylabel,
                         xlimDict,
+                        xsize = CRPARAMS["xsizeImages"],
+                        ysize = CRPARAMS["ysizeImages"],
+                        projection=CRPARAMS["projection"],
                         Axes=CRPARAMS["Axes"],
                         boxsize=CRPARAMS["boxsize"],
                         boxlos=CRPARAMS["boxlos"],
@@ -294,6 +284,7 @@ if __name__ == "__main__":
                         DPI=CRPARAMS["DPI"],
                         numthreads=CRPARAMS["numthreads"],
                         savePathKeyword = "Averaged",
+                        DEBUG = DEBUG,
                     )
             # # #----------------------------------------------------------------------#
             # # #      Calculate Radius xmin
@@ -422,224 +413,390 @@ if __name__ == "__main__":
             statsDict=statsDict,
             CRPARAMSHALO=CRPARAMSHALO,
             ylabel=ylabel,
+            yParam=CRPARAMSMASTER['mediansParams'],
             xParam=CRPARAMSMASTER["xParam"],
             xlimDict=xlimDict,
+            titleBool=CRPARAMSMASTER["titleBool"],
+            DPI=CRPARAMSMASTER["DPI"],
+            xsize=CRPARAMSMASTER["xsize"],
+            ysize=CRPARAMSMASTER["ysize"],
+            fontsize=CRPARAMSMASTER["fontsize"],
+            fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+            opacityPercentiles=0.25,
             snapNumber = "Averaged",
-            colourmapMain=colourmapMain,
+            colourmapMain=CRPARAMSMASTER['colourmapMain'],
         )
         matplotlib.rc_file_defaults()
         plt.close("all")
 
-        print("")
-        print(f"Mass PDF Plot!")
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        apt.cr_pdf_versus_plot(
-            dataDict,
-            CRPARAMSHALO=CRPARAMSHALO,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            weightKeys = ['mass'],
-            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
-            axisLimsBool = True,
-            titleBool=False,
-            DPI=150,
-            xsize=6.0,
-            ysize=6.0,
-            fontsize=13,
-            fontsizeTitle=14,
-            Nbins=250,
-            ageWindow=None,
-            cumulative = False,
-            saveCurve = True,
-            SFR = False,
-            byType = False,
-            forceLogMass = False,
-            normalise = False,
-            DEBUG = DEBUG,
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
+        #print("")
+        #print(f"Mass PDF Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_pdf_versus_plot(
+        #    dataDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = CRPARAMSMASTER["pdfParams"],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    Nbins=CRPARAMSMASTER["Nbins"],
+        #    ageWindow=None,
+        #    cumulative = False,
+        #    saveCurve = True,
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #)
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
 
-        print("")
-        print(f"Cumulative Mass PDF Plot!")
+        #print("")
+        #print(f"Combined Mass PDF Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_combined_pdf_versus_plot(
+        #    dataDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = CRPARAMSMASTER["pdfParams"],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    cumulative = False,
+        #    savePathBase = "./",
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #    )
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
 
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        apt.cr_pdf_versus_plot(
-            dataDict,
-            CRPARAMSHALO=CRPARAMSHALO,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            weightKeys = ['mass'],
-            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
-            axisLimsBool = True,
-            titleBool=False,
-            DPI=150,
-            xsize=6.0,
-            ysize=6.0,
-            fontsize=13,
-            fontsizeTitle=14,
-            Nbins=250,
-            ageWindow=None,
-            cumulative = True,
-            saveCurve = True,
-            SFR = False,
-            byType = False,
-            forceLogMass = False,
-            normalise = False,
-            DEBUG = DEBUG,
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
+        #print("")
+        #print(f"Cumulative Mass PDF Plot!")
 
-        print("")
-        print(f"PDF Plot Stars!")
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        apt.cr_pdf_versus_plot(
-            starsDict,
-            CRPARAMSHALO=CRPARAMSHALO,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            weightKeys = ['mass'],
-            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
-            axisLimsBool = True,
-            titleBool=False,
-            DPI=150,
-            xsize=6.0,
-            ysize=6.0,
-            fontsize=13,
-            fontsizeTitle=14,
-            Nbins=250,
-            ageWindow=None,
-            cumulative = False,
-            saveCurve = True,
-            SFR = False,
-            byType = False,
-            forceLogMass = False,
-            normalise = False,
-            DEBUG = DEBUG,
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_pdf_versus_plot(
+        #    dataDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = CRPARAMSMASTER["pdfParams"],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    Nbins=CRPARAMSMASTER["Nbins"],
+        #    ageWindow=None,
+        #    cumulative = True,
+        #    saveCurve = True,
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #)
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+
+        #print("")
+        #print(f"Combined Cumulative Mass PDF Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_combined_pdf_versus_plot(
+        #    dataDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = CRPARAMSMASTER["pdfParams"],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    cumulative = True,
+        #    savePathBase = "./",
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #    )
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+
+        #print("")
+        #print(f"PDF Plot Stars!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_pdf_versus_plot(
+        #    starsDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = CRPARAMSMASTER["pdfParams"],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    Nbins=CRPARAMSMASTER["Nbins"],
+        #    ageWindow=None,
+        #    cumulative = False,
+        #    saveCurve = True,
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #)
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
         
-        print("")
-        print(f"Cumulative PDF Plot Stars!")
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        apt.cr_pdf_versus_plot(
-            starsDict,
-            CRPARAMSHALO=CRPARAMSHALO,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            weightKeys = ['mass'],
-            xParams = [CRPARAMSMASTER["xParam"],"T", "gz", "B", "n_H"],
-            axisLimsBool = True,
-            titleBool=False,
-            DPI=150,
-            xsize=6.0,
-            ysize=6.0,
-            fontsize=13,
-            fontsizeTitle=14,
-            Nbins=250,
-            ageWindow=None,
-            cumulative = True,
-            saveCurve = True,
-            SFR = False,
-            byType = False,
-            forceLogMass = False,
-            normalise = False,
-            DEBUG = DEBUG,
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
+        #print("")
+        #print(f"Combined PDF Plot Stars!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_combined_pdf_versus_plot(
+        #    starsDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = [CRPARAMSMASTER["xParam"]],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    cumulative = False,
+        #    savePathBase = "./",
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #    )
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
 
-        print("")
-        print(f"SFR Plot!")
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        apt.cr_pdf_versus_plot(
-            dataDict=lastSnapDict,
-            CRPARAMSHALO=CRPARAMSHALO,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            axisLimsBool = True,
-            titleBool=False,
-            DPI=150,
-            xsize=6.0,
-            ysize=6.0,
-            fontsize=13,
-            fontsizeTitle=14,
-            Nbins=250,
-            ageWindow=None,
-            cumulative = False,
-            saveCurve = True,
-            SFR = True,
-            byType = False,
-            forceLogMass = False,
-            normalise = False,
-            DEBUG = DEBUG,
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
 
-        print("")
-        print(f"Cumulative SFR Plot!")
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        apt.cr_pdf_versus_plot(
-            dataDict=lastSnapDict,
-            CRPARAMSHALO=CRPARAMSHALO,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            axisLimsBool = True,
-            titleBool=False,
-            DPI=150,
-            xsize=6.0,
-            ysize=6.0,
-            fontsize=13,
-            fontsizeTitle=14,
-            Nbins=250,
-            ageWindow=None,
-            cumulative = True,
-            saveCurve = True,
-            SFR = True,
-            byType = False,
-            forceLogMass = False,
-            normalise = False,
-            DEBUG = DEBUG,
-        )
-        matplotlib.rc_file_defaults()
-        plt.close("all")
+        #print("")
+        #print(f"Cumulative PDF Plot Stars!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_pdf_versus_plot(
+        #    starsDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = [CRPARAMSMASTER["xParam"]],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    Nbins=CRPARAMSMASTER["Nbins"],
+        #    ageWindow=None,
+        #    cumulative = True,
+        #    saveCurve = True,
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #)
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
 
-        print("")
-        print(f"Phases Plot!")
-        matplotlib.rc_file_defaults()
-        plt.close("all")
-        apt.cr_hist_plot_xyz(
-            dataDict=dataDict,
-            CRPARAMSHALO=CRPARAMSHALO,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            colourmapMain=colourmapMain,
-            yParams = ["T","gz","B"],
-            xParams = ["rho_rhomean","R"],
-            weightKeys = ["mass","vol"],
-            axisLimsBool = True,
-            fontsize=13,
-            fontsizeTitle=14,
-            titleBool=True,
-            DPI=200,
-            xsize=8.0,
-            ysize=8.0, #lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
-            Nbins=250,
-            saveCurve = True,
-            savePathBase = "./",
-            DEBUG = DEBUG,
-        )
+        #print("")
+        #print(f"Combined Cumulative PDF Plot Stars!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_combined_pdf_versus_plot(
+        #    starsDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    weightKeys = ['mass'],
+        #    xParams = [CRPARAMSMASTER["xParam"]],
+        #    titleBool=False,
+        #    DPI=150,
+        #    xsize=6.0,
+        #    ysize=6.0,
+        #    fontsize=13,
+        #    fontsizeTitle=14,
+        #    cumulative = True,
+        #    savePathBase = "./",
+        #    SFR = False,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #    )
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
 
-        matplotlib.rc_file_defaults()
-        plt.close("all")
+        #print("")
+        #print(f"SFR Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_pdf_versus_plot(
+        #    dataDict=lastSnapDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    Nbins=CRPARAMSMASTER["SFRBins"],
+        #    ageWindow=None,
+        #    cumulative = False,
+        #    saveCurve = True,
+        #    SFR = True,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #)
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+
+        #print("")
+        #print(f"Combined SFR Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_combined_pdf_versus_plot(
+        #    dataDict=lastSnapDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    cumulative = False,
+        #    savePathBase = "./",
+        #    SFR = True,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #    )
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+
+        #print("")
+        #print(f"Cumulative SFR Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_pdf_versus_plot(
+        #    dataDict=lastSnapDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    Nbins=CRPARAMSMASTER["SFRBins"],
+        #    ageWindow=None,
+        #    cumulative = True,
+        #    saveCurve = True,
+        #    SFR = True,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #)
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+
+        #print("")
+        #print(f"Combined Cumulative SFR Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_combined_pdf_versus_plot(
+        #    dataDict=lastSnapDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    cumulative = True,
+        #    savePathBase = "./",
+        #    SFR = True,
+        #    byType = False,
+        #    forceLogMass = False,
+        #    normalise = False,
+        #    DEBUG = DEBUG,
+        #    )
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+
+        #print("")
+        #print(f"Phases Plot!")
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
+        #apt.cr_hist_plot_xyz(
+        #    dataDict=dataDict,
+        #    CRPARAMSHALO=CRPARAMSHALO,
+        #    ylabel=ylabel,
+        #    xlimDict=xlimDict,
+        #    colourmapMain=CRPARAMSMASTER["colourmapMain"],
+        #    yParams = CRPARAMSMASTER["phasesyParams"],
+        #    xParams = CRPARAMSMASTER["phasesxParams"],
+        #    weightKeys = CRPARAMSMASTER["phasesWeightParams"],
+        #    titleBool=CRPARAMSMASTER["titleBool"],
+        #    DPI=CRPARAMSMASTER["DPI"],
+        #    xsize=CRPARAMSMASTER["xsize"],
+        #    ysize=CRPARAMSMASTER["ysize"],
+        #    fontsize=CRPARAMSMASTER["fontsize"],
+        #    fontsizeTitle=CRPARAMSMASTER["fontsizeTitle"],
+        #    Nbins=CRPARAMSMASTER["Nbins"],
+        #    saveCurve = True,
+        #    savePathBase = "./",
+        #    DEBUG = DEBUG,
+        #)
+
+        #matplotlib.rc_file_defaults()
+        #plt.close("all")
 
 
