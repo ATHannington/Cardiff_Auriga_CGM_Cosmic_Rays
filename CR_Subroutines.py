@@ -337,12 +337,18 @@ def cr_analysis_radial(
         CRPARAMS,
         ylabel,
         xlimDict,
+        xsize = CRPARAMS["xsizeImages"],
+        ysize = CRPARAMS["ysizeImages"],
+        projection=CRPARAMS["projection"],
         Axes=CRPARAMS["Axes"],
         boxsize=CRPARAMS["boxsize"],
         boxlos=CRPARAMS["boxlos"],
         pixres=CRPARAMS["pixres"],
         pixreslos=CRPARAMS["pixreslos"],
+        fontsize = CRPARAMS["fontsize"],
+        DPI=CRPARAMS["DPI"],
         numthreads=CRPARAMS["numthreads"],
+        DEBUG = DEBUG,
     )
 
     if CRPARAMS["QuadPlotBool"] is True:
@@ -351,6 +357,9 @@ def cr_analysis_radial(
             CRPARAMS,
             ylabel,
             xlimDict,
+            xsize = CRPARAMS["xsizeImages"],
+            ysize = CRPARAMS["ysizeImages"],
+            projection=CRPARAMS["projection"],
             Axes=CRPARAMS["Axes"],
             boxsize=CRPARAMS["boxsize"],
             boxlos=CRPARAMS["boxlos"],
@@ -359,6 +368,7 @@ def cr_analysis_radial(
             fontsize = CRPARAMS["fontsize"],
             DPI=CRPARAMS["DPI"],
             numthreads=CRPARAMS["numthreads"],
+            DEBUG = DEBUG,
             savePathKeyword = snapNumber,
         )
 
