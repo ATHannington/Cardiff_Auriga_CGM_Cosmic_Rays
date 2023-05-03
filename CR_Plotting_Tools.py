@@ -179,7 +179,7 @@ def cr_medians_versus_plot(
                         plotData[median],
                         label=f"{CRPARAMSHALO[selectKeyShort]['resolution']}: {CRPARAMSHALO[selectKeyShort]['CR_indicator']}",
                         color=colour,
-                        lineStyle=lineStyle,
+                        linestyle=lineStyle,
                     )
 
                     currentAx.xaxis.set_minor_locator(AutoMinorLocator())
