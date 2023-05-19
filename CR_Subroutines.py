@@ -20,8 +20,10 @@ import h5py
 import json
 import copy
 import os
-
-DEBUG = False
+import time
+import multiprocessing as mp
+import psutil
+import math
 
 def cr_analysis_radial(
     snapNumber,
@@ -187,7 +189,7 @@ def cr_analysis_radial(
         snapGas,
         removalConditionMask = whereWind,
         errorString = "Remove Wind from Gas",
-        DEBUG = DEBUG,
+        verbose = verbose,
         )
 
     whereWindStars = snapStars.data["age"] < 0.0
@@ -196,7 +198,7 @@ def cr_analysis_radial(
         snapStars,
         removalConditionMask = whereWindStars,
         errorString = "Remove Wind from Stars",
-        DEBUG = DEBUG,
+        verbose = verbose,
         )
 
 
@@ -210,7 +212,7 @@ def cr_analysis_radial(
             snapGas,
             removalConditionMask = whereNotCGM,
             errorString = "Remove NOT CGM from Gas",
-            DEBUG = DEBUG,
+            verbose = verbose,
             )
 
         # select the CGM, acounting for variable ISM extent
@@ -224,7 +226,7 @@ def cr_analysis_radial(
             snapStars,
             removalConditionMask = whereNotCGMstars,
             errorString = "Remove NOT CGM from Stars",
-            DEBUG = DEBUG,
+            verbose = verbose,
             )
 
     elif analysisType == "ism":
@@ -239,7 +241,7 @@ def cr_analysis_radial(
             snapGas,
             removalConditionMask = whereNotISM,
             errorString = "Remove NOT ISM from Gas",
-            DEBUG = DEBUG,
+            verbose = verbose,
             )
 
 
@@ -253,7 +255,7 @@ def cr_analysis_radial(
             snapStars,
             removalConditionMask = whereNotISMstars,
             errorString = "Remove NOT ISM from Stars",
-            DEBUG = DEBUG,
+            verbose = verbose,
             )
 
     elif analysisType == "all":
@@ -268,7 +270,7 @@ def cr_analysis_radial(
             snapGas,
             removalConditionMask = whereOutsideSelection,
             errorString = "Remove ALL Outside Selection from Gas",
-            DEBUG = DEBUG,
+            verbose = verbose,
             )
 
         # select the CGM, acounting for variable ISM extent
@@ -281,7 +283,7 @@ def cr_analysis_radial(
             snapStars,
             removalConditionMask = whereOutsideSelectionStars,
             errorString = "Remove ALL Outside Selection from Stars",
-            DEBUG = DEBUG,
+            verbose = verbose,
             )
 
 
@@ -297,7 +299,7 @@ def cr_analysis_radial(
         snapStars,
         removalConditionMask = whereOutsideVirialStars,
         errorString = "Remove Outside Virial from Stars",
-        DEBUG = DEBUG,
+        verbose = verbose,
         )
 
     whereOutsideVirial = snapGas.data["R"] > Rvir
@@ -306,7 +308,7 @@ def cr_analysis_radial(
         snapGas,
         removalConditionMask = whereOutsideVirial,
         errorString = "Remove Outside Virial from Gas",
-        DEBUG = DEBUG,
+        verbose = verbose,
         )
 
     rmax = np.max(CRPARAMS["Router"])
@@ -329,34 +331,56 @@ def cr_analysis_radial(
         box=box,
         numthreads=CRPARAMS["numthreads"],
         DataSavepath = DataSavepath,
-        verbose = DEBUG,
+        verbose = verbose,
     )
     # snapGas = tr.calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
-    quadPlotDict = cr_calculate_projections(
-        snapGas,
-        CRPARAMS,
-        ylabel,
-        xlimDict,
-        xsize = CRPARAMS["xsizeImages"],
-        ysize = CRPARAMS["ysizeImages"],
-        projection=CRPARAMS["projection"],
-        Axes=CRPARAMS["Axes"],
-        boxsize=CRPARAMS["boxsize"],
-        boxlos=CRPARAMS["boxlos"],
-        pixres=CRPARAMS["pixres"],
-        pixreslos=CRPARAMS["pixreslos"],
-        fontsize = CRPARAMS["fontsize"],
-        DPI=CRPARAMS["DPI"],
-        numthreads=CRPARAMS["numthreads"],
-        DEBUG = DEBUG,
-    )
+    if ("n_HI_col" in CRPARAMS["saveParams"])|("n_HI_col" in CRPARAMS["imageParams"]):
 
-    if CRPARAMS["QuadPlotBool"] is True:
-        apt.cr_plot_projections(
-            quadPlotDict,
+       
+        ## Calculate n_HI_col for use as saveParam or image Param
+        
+        CRPARAMS["saveEssentials"].append("n_HI_colx")
+        CRPARAMS["saveEssentials"].append("n_HI_coly")
+        tmpdict = cr_calculate_projections(
+            snapGas,
             CRPARAMS,
             ylabel,
             xlimDict,
+            snapNumber=snapNumber,
+            params = ["n_HI_col"],
+            xsize = CRPARAMS["xsizeImages"],
+            ysize = CRPARAMS["ysizeImages"],
+            projection=True,
+            Axes=CRPARAMS["Axes"],
+            boxsize=CRPARAMS["boxsize"],
+            boxlos=CRPARAMS["coldenslos"],
+            pixres=CRPARAMS["pixres"],
+            pixreslos=CRPARAMS["pixreslos"],
+            fontsize = CRPARAMS["fontsize"],
+            DPI=CRPARAMS["DPI"],
+            numthreads=CRPARAMS["numthreads"],
+            verbose = verbose,
+        )
+
+        ## Convert n_HI_col to per cm^-2 
+
+        KpcTocm = 1e3 * c.parsec
+        convert = float(CRPARAMS["pixreslos"])*KpcTocm
+        snapGas.data["n_HI_col"] = copy.deepcopy(tmpdict["n_HI_col"]["grid"])*convert
+        snapGas.data["n_HI_colx"] = copy.deepcopy(tmpdict["n_HI_col"]["x"])
+        snapGas.data["n_HI_coly"] = copy.deepcopy(tmpdict["n_HI_col"]["y"])
+
+        ## If n_HI_col in imageParams, remove it so we can calculate all others with none coldenslos, normal boxlos instead
+        tmpimageParams = copy.deepcopy(CRPARAMS["imageParams"])
+        tmpimageParams.pop("n_HI_col")
+
+        quadPlotDict = cr_calculate_projections(
+            snapGas,
+            CRPARAMS,
+            ylabel,
+            xlimDict,
+            snapNumber=snapNumber,
+            params = tmpimageParams,
             xsize = CRPARAMS["xsizeImages"],
             ysize = CRPARAMS["ysizeImages"],
             projection=CRPARAMS["projection"],
@@ -368,9 +392,81 @@ def cr_analysis_radial(
             fontsize = CRPARAMS["fontsize"],
             DPI=CRPARAMS["DPI"],
             numthreads=CRPARAMS["numthreads"],
-            DEBUG = DEBUG,
-            savePathKeyword = snapNumber,
+            verbose = verbose,
         )
+
+        ## If n_HI_col in imageParams, add it back in to be plotted and tracked for average plots
+        ##   ~NOTE~ : boxlos is ignored after cr_calculate_projections call above, as code is configured such that when
+        ##            apt.plot_slices receives a precalculated image dictionary (not Arepo snapshot) it will plot the
+        ##            dictionary's contents without recalculating them, so pixres, boxlos, pixreslos etc are ignored.
+        if ("n_HI_col" in CRPARAMS["imageParams"]):
+            quadPlotDict.update(copy.deepcopy(tmpdict))
+
+        if CRPARAMS["QuadPlotBool"] is True:
+            apt.cr_plot_projections(
+                quadPlotDict,
+                CRPARAMS,
+                ylabel,
+                xlimDict,
+                xsize = CRPARAMS["xsizeImages"],
+                ysize = CRPARAMS["ysizeImages"],
+                projection=CRPARAMS["projection"],
+                Axes=CRPARAMS["Axes"],
+                boxsize=CRPARAMS["boxsize"],
+                boxlos=CRPARAMS["boxlos"],
+                pixres=CRPARAMS["pixres"],
+                pixreslos=CRPARAMS["pixreslos"],
+                fontsize = CRPARAMS["fontsize"],
+                DPI=CRPARAMS["DPI"],
+                numthreads=CRPARAMS["numthreads"],
+                verbose = verbose,
+                savePathKeyword = snapNumber,
+            )
+
+        del tmpdict
+
+    else:
+        quadPlotDict = cr_calculate_projections(
+            snapGas,
+            CRPARAMS,
+            ylabel,
+            xlimDict,
+            snapNumber=snapNumber,
+            params = CRPARAMS["imageParams"],
+            xsize = CRPARAMS["xsizeImages"],
+            ysize = CRPARAMS["ysizeImages"],
+            projection=CRPARAMS["projection"],
+            Axes=CRPARAMS["Axes"],
+            boxsize=CRPARAMS["boxsize"],
+            boxlos=CRPARAMS["boxlos"],
+            pixres=CRPARAMS["pixres"],
+            pixreslos=CRPARAMS["pixreslos"],
+            fontsize = CRPARAMS["fontsize"],
+            DPI=CRPARAMS["DPI"],
+            numthreads=CRPARAMS["numthreads"],
+            verbose = verbose,
+        )
+
+        if CRPARAMS["QuadPlotBool"] is True:
+            apt.cr_plot_projections(
+                quadPlotDict,
+                CRPARAMS,
+                ylabel,
+                xlimDict,
+                xsize = CRPARAMS["xsizeImages"],
+                ysize = CRPARAMS["ysizeImages"],
+                projection=CRPARAMS["projection"],
+                Axes=CRPARAMS["Axes"],
+                boxsize=CRPARAMS["boxsize"],
+                boxlos=CRPARAMS["boxlos"],
+                pixres=CRPARAMS["pixres"],
+                pixreslos=CRPARAMS["pixreslos"],
+                fontsize = CRPARAMS["fontsize"],
+                DPI=CRPARAMS["DPI"],
+                numthreads=CRPARAMS["numthreads"],
+                verbose = verbose,
+                savePathKeyword = snapNumber,
+            )
 
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Delete Dark Matter..."
@@ -382,7 +478,7 @@ def cr_analysis_radial(
         snapGas,
         removalConditionMask = whereDM,
         errorString = "Remove DM from Gas",
-        DEBUG = DEBUG,
+        verbose = verbose,
         )
 
     whereStars = snapGas.data["type"] == 4
@@ -390,7 +486,7 @@ def cr_analysis_radial(
         snapGas,
         removalConditionMask = whereStars,
         errorString = "Remove Stars from Gas",
-        DEBUG = DEBUG
+        verbose = verbose
         )
 
     # whereDM = np.where(snapGas.type == 1)[0]
@@ -617,9 +713,11 @@ def cr_calculate_statistics(
         "ndens": {"xmin": -6.0, "xmax": 2.0},
     },
     printpercent=5.0,
+    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"],
+    weightedStatsBool = True,
 ):
-
-    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"]
+    if exclusions is None:
+        exclusions = []
 
     print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS["logParameters"]:
@@ -674,7 +772,7 @@ def cr_calculate_statistics(
             binnedData,
             TRACERSPARAMS=CRPARAMS,
             saveParams=CRPARAMS["saveParams"],
-            weightedStatsBool=True,
+            weightedStatsBool=weightedStatsBool,
         )
 
         # Fix values to arrays to remove concat error of 0D arrays
@@ -739,8 +837,18 @@ def map_params_to_types(snap, degeneracyBool = False):
     for key, value in itrr:
         if value is not None:
             whereValueShape = np.where(possibleValueLengthsSumTot == value.shape[0])[0]
+            try:
+                tmptypeCombos = possibleTypesCombos[whereValueShape][0]
+            except:
+                raise Exception(f"[@map_params_to_types]: FAILURE! CRITICAL! Parameter {key} could not be assigned a type!"
+                                +"\n"
+                                +"This usually means the parameter has an incorrect shape, and does not correspond to any type."
+                                +"\n"
+                                +"Check logic around parameter creation, or check that you meant to include this parameter into the data included in the call to this function."
+                                +"\n"
+                                +"e.g. you should only pass data with shapes corresponding to the included types in the passed data dict/snapshot.")
             paramToTypeMap.update({
-                key: copy.deepcopy(possibleTypesCombos[whereValueShape][0]),
+                key: copy.deepcopy(tmptypeCombos),
             })
         else:
             pass
@@ -814,7 +922,7 @@ def remove_selection(
     removalConditionMask,
     errorString = "NOT SET",
     hush = False,
-    DEBUG = False,
+    verbose = False,
     ):
     """
     This function accepts as an input either an Arepo snapshot instance, or a dictionary along with a numpy boolean array of where to remove. It then
@@ -847,14 +955,14 @@ def remove_selection(
     try:
         types = pd.unique(snap.data["type"])
         snapType = True
-        if DEBUG: print("[@remove_selection]: snapshot type detected!")
+        if verbose: print("[@remove_selection]: snapshot type detected!")
     except:
         try:
             types = pd.unique(snap["type"])
         except:
             raise Exception("[@remove_selection]: Unrecognised data format input! Data was neither Arepo snapshot format or Dictionary format!")
         snapType = False
-        if DEBUG: print("[@remove_selection]: dictionary type detected!")
+        if verbose: print("[@remove_selection]: dictionary type detected!")
 
     snap, paramToTypeMap, degeneracyBool = map_params_to_types(snap)
 
@@ -862,7 +970,7 @@ def remove_selection(
         raise Exception(f"[remove_selection]: FAILURE! CRITICAL! Snapshot type lengths have been detected as degenerate by map_params_to_types() call in remove_selection()."+"\n"+"map_params_to_types() must be called seperately, prior to the evaluation of removalConditionMask in this call to remove_selection()"+"\n"+f"This error came from errorString {errorString} call to remove_selection()!")
 
     removedTruthy = np.full(types.shape,fill_value=False)
-    if DEBUG is True: print("DEBUG!",errorString)
+    if verbose is True: print("verbose!",errorString)
 
     # Find possible value length total that matches removalConditionMask
     # shape. From this, infer which parameters are involved in this
@@ -882,19 +990,19 @@ def remove_selection(
 
     for ii,tp in enumerate(types):
         skipBool = False
-        if DEBUG is True: print(f" DEBUG! Type {tp}")
+        if verbose is True: print(f" verbose! Type {tp}")
         if snapType is True:
             whereType = np.where(snap.data["type"]==tp)[0]
         else:
             whereType = np.where(snap["type"]==tp)[0]
-        if DEBUG is True: print(f" DEBUG! START Shape of Type {np.shape(whereType)}")
+        if verbose is True: print(f" verbose! START Shape of Type {np.shape(whereType)}")
         if(tp in typeCombosArray):
             if snapType is True:
                 whereType = np.where(snap.data["type"]==tp)[0]
             else:
                 whereType = np.where(snap["type"]==tp)[0]
             whereTypeInTypes = np.where(types==tp)[0][0]
-            if DEBUG: print("whereTypeInTypes",whereTypeInTypes)
+            if verbose: print("whereTypeInTypes",whereTypeInTypes)
             locTypesOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes])])# if tt not in typeCombosArray])
 
             if (len(locTypesOffset) == 0):
@@ -902,21 +1010,21 @@ def remove_selection(
                 typesOffset = 0
             else:
                 typesOffset = np.sum(np.array(paramToTypeMap["lty"])[locTypesOffset])
-            if DEBUG: print("locTypesOffset",locTypesOffset)
+            if verbose: print("locTypesOffset",locTypesOffset)
             # Type specific removal which adjusts for any type in types that
             # aren't part of those included in removalConditionMask
             if snapType is True:
                 whereType = np.where(snap.data["type"]==tp)[0]
             else:
                 whereType = np.where(snap["type"]==tp)[0]
-            if DEBUG:
+            if verbose:
                 print(whereType)
 
             whereToRemove = np.where(removalConditionMask[whereType-typesOffset])[0] + typesOffset
 
 
-            if DEBUG: print(typesOffset)
-            if DEBUG: print(whereToRemove)
+            if verbose: print(typesOffset)
+            if verbose: print(whereToRemove)
             if snapType is True:
                 itrr = snap.data.items()
             else:
@@ -924,7 +1032,7 @@ def remove_selection(
             for jj,(key, value) in enumerate(itrr):
                 if tp in paramToTypeMap[key]:
                     if value is not None:
-                        if DEBUG: print(f"{jj}, {key}")
+                        if verbose: print(f"{jj}, {key}")
 
                         # For the key in snapshot data, retrieve types that
                         # contain that key (i.e. the types that have values
@@ -934,8 +1042,8 @@ def remove_selection(
                         # of this unused data type (offset) from whereToRemove
 
                         locRemovalOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes]) if tt not in paramToTypeMap[key]])
-                        if DEBUG: print("locRemovalOffset",locRemovalOffset)
-                        if DEBUG:
+                        if verbose: print("locRemovalOffset",locRemovalOffset)
+                        if verbose:
                             print(tp)
                             if len(locTypesOffset)>0:
                                 print(types[locTypesOffset])
@@ -953,7 +1061,7 @@ def remove_selection(
                             removalOffset = 0
                         else:
                             removalOffset = np.sum(np.array(paramToTypeMap["lty"])[locRemovalOffset])
-                        if DEBUG:
+                        if verbose:
                             print("val",np.shape(value))
                             print("offset",removalOffset)
                             print("where",whereToRemove)
@@ -993,9 +1101,9 @@ def remove_selection(
 
                         except Exception as e:
                             removedTruthy[ii] = False
-                            if DEBUG:
-                                print(f"[remove_selection]: DEBUG! Shape key: {np.shape(value)}")
-                                print(f"[remove_selection]: DEBUG! WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}")
+                            if verbose:
+                                print(f"[remove_selection]: verbose! Shape key: {np.shape(value)}")
+                                print(f"[remove_selection]: verbose! WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}")
 
             # Need to remove all entries (deleted (True) or kept (False))
             # of this type so that next type has
@@ -1012,7 +1120,7 @@ def remove_selection(
             whereType = np.where(snap["type"]==tp)[0]
 
         paramToTypeMap["lty"][ii] = whereType.shape[0]
-        if DEBUG: print("paramToTypeMap['lty'][ii]",paramToTypeMap["lty"][ii])
+        if verbose: print("paramToTypeMap['lty'][ii]",paramToTypeMap["lty"][ii])
 
 
     noneRemovedTruthy = np.all(~removedTruthy)
@@ -1020,12 +1128,12 @@ def remove_selection(
     if noneRemovedTruthy is True:
         print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
 
-    elif DEBUG is True:
+    elif verbose is True:
         if np.any(~removedTruthy):
-            print(f"[@remove_selection]: WARNING! DEBUG! Selection criteria for error string = '{errorString}' not applied to particles of type:")
+            print(f"[@remove_selection]: WARNING! verbose! Selection criteria for error string = '{errorString}' not applied to particles of type:")
             print(f"{types[np.where(removedTruthy==False)[0]]}")
         else:
-            print(f"[@remove_selection]: DEBUG! Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
+            print(f"[@remove_selection]: verbose! Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
 
     snap = clean_snap_nones(snap)
 
@@ -1139,7 +1247,7 @@ def cr_calculate_projections(
 
     return out
 
-def cr_quad_plot_averaging(
+def cr_slice_averaging(
     quadPlotDict,
     CRPARAMS,
     snapRange,
@@ -1183,7 +1291,7 @@ def cr_quad_plot_averaging(
         for arg in ["x","y"]:
             tmp.update({arg : np.nanmedian(flatData[newKey][param][arg],axis=-1)})
 
-        tmp.update({"grid" : np.nansum(flatData[newKey][param]["grid"],axis=-1)/float(len(snapRange))})
+        tmp.update({"grid" : np.nanmedian(flatData[newKey][param]["grid"],axis=-1)})
         tmp.update({"type" : None})
         quadPlotDictAveraged.update({param : tmp})
         
@@ -1191,6 +1299,185 @@ def cr_quad_plot_averaging(
     print("...averaging done!")
     # STOP1080
     return quadPlotDictAveraged
+
+#def _map_cart_grid_to_cells_2d(pos_array, xx, yy):
+#    nn = xx.shape[0]
+#    return np.array(
+#        [
+#            np.ravel_multi_index(
+#                [
+#                    np.argmin(np.abs(xx - pos[0])),
+#                    np.argmin(np.abs(yy - pos[1])),
+#                ],
+#                (nn, nn),
+#            )
+#            for pos in pos_array
+#        ]
+#    ).flatten()
+
+#def _wrapper_map_cart_grid_to_cell_2d(pos_array, boxsize, gridres, center):
+
+#    v_map_cart_grid_to_cells_2d = np.vectorize(
+#        _map_cart_grid_to_cells_2d, signature="(m,2),(n),(n)->(m)"
+#    )
+
+#    halfbox = copy.copy(boxsize) / 2.0
+#    coord_spacings = np.linspace(-1.0 * halfbox, halfbox, gridres)
+#    xx = coord_spacings + center[0]
+#    yy = coord_spacings + center[1]
+#    #zz = coord_spacings + center[2]
+#    out = v_map_cart_grid_to_cells_2d(pos_array, xx, yy)
+
+#    return out
+
+#def map_cart_grid_to_cells_2d(
+#    snap,
+#    param,
+#    grid,
+#    boxsize,
+#    axes,
+#    mapping=None,
+#    ptype=0,
+#    center=False,
+#    box=None,
+#    use_only_cells=None,
+#    numthreads=8,
+#    box_gt_one_mpc=False,
+#    verbose=False,
+#    nParentProcesses=1,
+#    ):
+#    import pylab
+
+#    if use_only_cells is None:
+#        use_only_cells = np.where(snap.type == ptype)[0]
+
+#    if type(center) == list:
+#        center = pylab.array(center)
+#    elif type(center) != np.ndarray:
+#        center = snap.center
+
+#    if box is None:
+#        if snap.boxsize >= 1.0:
+#            print(f"[@map_cart_grid_to_cells_2d]: a maximum half box size (given by snap.boxsize) of {snap.boxsize:.5f} [Mpc] was detected." +
+#                  "\n"+"User has not indicated box_gt_one_mpc so we are limiting to boxsize of 500 kpc (half box of 250 kpc). Remaining data will be NaN...")
+#            box = np.array([0.5, 0.5, 0.5])
+#        else:
+#            bb = (snap.boxsize*2.)
+#            box = pylab.array([bb for ii in range(0, 3)])
+#    elif np.all(box == box[0]) is False:
+#        raise Exception(
+#            f"[@map_cart_grid_to_cells_2d]: WARNING! CRITICAL! FAILURE!"
+#            + "\n"
+#            + "Box not False, None, or all elements equal."
+#            + "\n"
+#            + "function @map_cart_grid_to_cells_2d not adapted for non-cube boxes."
+#            + "\n"
+#            + "All box sides must be equal, or snap.boxsize [Mpc] will be used."
+#        )
+#    elif (type(box) == list) | (type(box) == np.ndarray):
+#        if (type(box) == list):
+#            box = np.array(box)
+#        if box_gt_one_mpc is False:
+#            maxval = np.nanmax(box)
+#            if maxval >= 1.0:
+#                print(f"[@map_cart_grid_to_cells_2d]: a maximum box size of {maxval} was detected."+"\n" +
+#                      "User has not indicated box_gt_one_mpc so we are assuming the box size has been given in kpc."+"\n"+"We will adjust to Mpc and continue...")
+#                box = pylab.array([(bb*2.) / (1e3) for bb in box])
+#            else:
+#                box = pylab.array([(bb*2.) for bb in box])
+#        else:
+#            box = pylab.array([(bb*2.) for bb in box])
+#    boxsize = box[0]
+
+#    pos = snap.pos[use_only_cells, :].astype("float64").copy() / 1e3
+#    px = np.abs(pos[:, 0] - center[0])
+#    py = np.abs(pos[:, 1] - center[1])
+#    pz = np.abs(pos[:, 2] - center[2])
+
+#    (pp,) = np.where((px <= 0.5*box[0]) &
+#                     (py <= 0.5*box[1]) & (pz <= 0.5*box[2]))
+#    if verbose:
+#        print("Selected %d of %d particles." % (pp.size, snap.npart))
+
+    
+#    #------------------------------------------------------------#    
+#    #       Sort by image cart grid axis ordering and drop
+#    #           projection axis from posdata
+#    #------------------------------------------------------------#
+
+#    posdata = pos[pp][:,tuple(axes)]
+
+
+#    whereCGM = np.where((snap.data["R"][use_only_cells][pp] <= (boxsize/2.)*1e3) & (
+#        snap.data["type"][use_only_cells][pp] == 0) & (snap.data["sfr"][use_only_cells][pp] <= 0.0))[0]
+
+#    avgCellLength = (np.nanmean(
+#        snap.data["vol"][use_only_cells][pp][whereCGM])/1e9)**(1/3)  # [Mpc]
+
+#    gridres = int(math.floor(boxsize/avgCellLength))
+
+#    #------------------------------------------------------------#
+    
+
+#    splitPos = np.array_split(posdata, numthreads)
+
+#    args_list = [
+#        [posSubset, boxsize, gridres, center]
+#        for posSubset in splitPos
+#    ]
+
+#    if verbose:
+#        print("Map...")
+#    start = time.time()
+
+#    if nParentProcesses > 1:
+#        if verbose:
+#            print("Daemon processes cannot spawn children...")
+#            print("Starting single CPU analysis...")
+#        output = _wrapper_map_cart_grid_to_cell_2d(
+#            posdata, boxsize, gridres, center)
+#        mapping = output.astype(np.int32)
+#    else:
+#        if verbose:
+#            print(
+#                f"Starting numthreads = {numthreads} mp pool with data split into {numthreads} chunks..."
+#            )
+#        pool = mp.Pool(processes=numthreads)
+#        outputtmp = [pool.apply_async(_wrapper_map_cart_grid_to_cell_2d,
+#                                        args=args, error_callback=tr.err_catcher) for args in args_list
+#                        ]
+#        pool.close()
+#        pool.join()
+#        output = [out.get() for out in outputtmp]
+#        mapping = np.concatenate(
+#            tuple(output), axis=0
+#        ).astype(np.int32)
+
+#    stop = time.time()
+
+#    if verbose:
+#        print("...done!")
+#    if verbose:
+#        print(f"Mapping took {stop-start:.2f}s")
+
+#    oldshape = np.shape(snap.data["R"])[0]
+#    # Perform mapping from Cart Grid back to approx. cells
+    
+#    tmp = ((grid.reshape(-1))[mapping]).copy()
+
+#    snap.data[param] = snap.data[param].reshape(-1)
+
+#    snap.data[param] = np.full(oldshape, fill_value=np.nan)
+
+#    snap.data[param][use_only_cells[pp]] = tmp.copy()
+
+#    del tmp
+
+#    assert (
+#        np.shape(snap.data[param])[0] == oldshape
+#    ), f"[@map_cart_grid_to_cells_2d]: WARNING! CRITICAL! FAILURE! Output from Gradient Calc and subsequent mapping not equal in shape to input data! Check Logic!"
+
+#    return snap, mapping
 
 # def cr_histogram_dd_summarise():
 #
