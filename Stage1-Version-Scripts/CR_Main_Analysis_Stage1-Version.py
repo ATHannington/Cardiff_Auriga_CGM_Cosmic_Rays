@@ -84,7 +84,9 @@ ylabel = {
     "vol": r"Volume (kpc$^{3}$)",
     "age": "Lookback Time (Gyr)",
     "cool_length" : "Cooling Length (kpc)",
+    "e_CR": r"Cosmic Ray Energy Density (erg cm$^{-3}$)",
 }
+
 xlimDict = {
     "R": {"xmin": 0.0, "xmax": CRPARAMSMASTER["Router"]},
     # "mass": {"xmin": 5.0, "xmax": 9.0},
@@ -109,6 +111,7 @@ xlimDict = {
     "dens": {"xmin": -30.0, "xmax": -22.0},
     "ndens": {"xmin": -6.0, "xmax": 1.0},
     "rho": {"xmin": 2.0, "xmax": 8.0},
+    "e_CR": {},
     }
 
 for entry in CRPARAMSMASTER["logParameters"]:
