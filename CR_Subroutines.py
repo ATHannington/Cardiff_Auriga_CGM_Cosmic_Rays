@@ -31,8 +31,11 @@ def cr_analysis_radial(
     ylabel,
     xlimDict,
     DataSavepathBase,
+    FigureSavepathBase,
+    colImagexlimDict = None,
     FullDataPathSuffix=".h5",
-    rotation_matrix=None
+    rotation_matrix=None,
+    verbose = False,
 ):
     analysisType = CRPARAMS["analysisType"]
 
@@ -45,12 +48,21 @@ def cr_analysis_radial(
             + f"Availble analysis types: {KnownAnalysisType}"
         )
     out = {}
+    starsout = {}
+    colout = {}
+    quadPlotDict = {}
 
-    saveDir = ( DataSavepathBase+f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}/"
-    )
+    if colImagexlimDict is None:
+        colImagexlimDict = copy.copy(xlimDict)
+
+
+    saveDir = ( DataSavepathBase + f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}/"
+        )
+    saveDirFigures = ( FigureSavepathBase + f"type-{analysisType}/{CRPARAMS['halo']}/"+f"{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}/"
+        )
 
     # Generate halo directory
-    tmp = "/"
+    tmp = ""
     for savePathChunk in saveDir.split("/")[1:-1]:
         tmp += savePathChunk + "/"
         try:
@@ -60,10 +72,19 @@ def cr_analysis_radial(
         else:
             pass
 
-    DataSavepath = (
-        saveDir + "CR_"
-    )
+    tmp = ""
+    for savePathChunk in saveDirFigures.split("/")[1:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+        
+    DataSavepath = saveDir
 
+    FiguresSavepath = saveDirFigures
 
     print("")
     print(
@@ -78,14 +99,14 @@ def cr_analysis_radial(
     # load in the gas particles mass and position only for HaloID 0.
     #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
     #       gas and stars (type 0 and 4) MUST be loaded first!!
-    snapGas = gadget_readsnap(
+    snap = gadget_readsnap(
         snapNumber,
         loadpath,
         hdf5=True,
         loadonlytype=[0, 1, 4],
-        lazy_load=False,
+        lazy_load=True,
         subfind=snap_subfind,
-        loadonlyhalo=int(CRPARAMS["HaloID"]),
+        #loadonlyhalo=int(CRPARAMS["HaloID"]),
 
     )
 
@@ -95,7 +116,7 @@ def cr_analysis_radial(
     # # load in the gas particles mass and position only for HaloID 0.
     # #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
     # #       gas and stars (type 0 and 4) MUST be loaded first!!
-    # snapGas = gadget_readsnap(100,"/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",hdf5=True,loadonlytype=[0, 1, 4],lazy_load=True,subfind=snap_subfind)
+    # snap = gadget_readsnap(100,"/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",hdf5=True,loadonlytype=[0, 1, 4],lazy_load=True,subfind=snap_subfind)
     # snapStars = gadget_readsnap(
     #     100,
     #     "/home/universe/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",
@@ -104,59 +125,33 @@ def cr_analysis_radial(
     #     lazy_load=True,
     #     subfind=snap_subfind,
     # )
-    snapStars = gadget_readsnap(
-        snapNumber,
-        loadpath,
-        hdf5=True,
-        loadonlytype=[4],
-        lazy_load=False,
-        subfind=snap_subfind,
-        loadonlyhalo=int(CRPARAMS["HaloID"]),
-    )
 
-    snapGas.calc_sf_indizes(snap_subfind, halolist=[int(CRPARAMS["HaloID"])])
+    snap.calc_sf_indizes(snap_subfind)
     if rotation_matrix is None:
-        rotation_matrix = snapGas.select_halo(snap_subfind, do_rotation=True)
+        rotation_matrix = snap.select_halo(snap_subfind, do_rotation=True)
+        rotationsavepath = DataSavepathBase + "rotation_matrix.h5"
+        tr.hdf5_save(rotationsavepath,{(f"{CRPARAMS['resolution']}",
+        f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}") : {"rotation_matrix" : rotation_matrix}})
+        ## If we don't want to use the same rotation matrix for all snapshots, set rotation_matrix back to None
+        if (CRPARAMS["constantRotationMatrix"] == False):
+            rotation_matrix = None
     else:
-        snapGas.select_halo(snap_subfind, do_rotation=False)
-        snapGas.rotateto(
+        snap.select_halo(snap_subfind, do_rotation=False)
+        snap.rotateto(
             rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2]
         )
-
-    snapStars.calc_sf_indizes(snap_subfind, halolist=[int(CRPARAMS["HaloID"])])
-    if rotation_matrix is None:
-        rotation_matrix = snapStars.select_halo(snap_subfind, do_rotation=True)
-    else:
-        snapStars.select_halo(snap_subfind, do_rotation=False)
-        snapStars.rotateto(
-            rotation_matrix[0], dir2=rotation_matrix[1], dir3=rotation_matrix[2]
-        )
-
-    # Load Cell Other params - avoids having to turn lazy_load off...
-    # for snap in [snapGas,snapStars]:
-    #     # for param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-    #     for param in snap.data.keys():
-    #         try:
-    #             tmp = snap.data[param]
-    #         except:
-    #             pass
-    # tmp = snapGas.data["id"]
-    # tmp = snapGas.data["sfr"]
-    # tmp = snapGas.data["hrgm"]
-    # tmp = snapGas.data["mass"]
-    # tmp = snapGas.data["pos"]
-    # tmp = snapGas.data["vol"]
-    #
-    # tmp = snapStars.data["mass"]
-    # tmp = snapStars.data["pos"]
-    # tmp = snapStars.data["age"]
-    # tmp = snapStars.data["gima"]
-    # tmp = snapStars.data["gz"]
-
-    # del tmp
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snapGas.redshift:0.05e}"
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Clean SnapShot parameters..."
+    )
+
+    snap = clean_snap_params(
+        snap,
+        paramsOfInterest = CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]
+    )
+
+    print(
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: SnapShot loaded at RedShift z={snap.redshift:0.05e}"
     )
 
     # --------------------------#
@@ -165,159 +160,50 @@ def cr_analysis_radial(
 
     # Convert Units
     ## Make this a seperate function at some point??
-    snapGas.pos *= 1e3  # [kpc]
-    snapGas.vol *= 1e9  # [kpc^3]
-    snapGas.mass *= 1e10  # [Msol]
-    snapGas.hrgm *= 1e10  # [Msol]
-    snapGas.gima *= 1e10  # [Msol]
+    snap.pos *= 1e3  # [kpc]
+    snap.vol *= 1e9  # [kpc^3]
+    snap.mass *= 1e10  # [Msol]
+    snap.hrgm *= 1e10  # [Msol]
+    snap.gima *= 1e10  # [Msol]
 
-    snapStars.pos *= 1e3  # [kpc]
-    snapStars.mass *= 1e10  # [Msol]
-    snapStars.gima *= 1e10  # [Msol]
+    snap.data["R"] = np.linalg.norm(snap.data["pos"], axis=1)
+    rvir = (snap_subfind.data["frc2"] * 1e3)[int(0)]
 
-    snapGas.data["R"] = np.linalg.norm(snapGas.data["pos"], axis=1)
-    snapStars.data["R"] = np.linalg.norm(snapStars.data["pos"], axis=1)
+    boxmax = max([CRPARAMS['boxsize'],CRPARAMS['boxlos'],CRPARAMS['coldenslos']])
 
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select stars..."
     )
 
+    print(
+        f"[@{int(snapNumber)}]: Remove beyond {boxmax:2.2f} kpc..."
+    )
 
-    whereWind = snapGas.data["age"] < 0.0
+    whereOutsideBox = np.abs(snap.data["pos"]) > boxmax
 
-    snapGas = remove_selection(
-        snapGas,
+    snap = remove_selection(
+        snap,
+        removalConditionMask = whereOutsideBox,
+        errorString = "Remove Outside Box",
+        verbose = verbose,
+        )
+
+    whereWind = snap.data["age"] < 0.0
+
+    snap = remove_selection(
+        snap,
         removalConditionMask = whereWind,
         errorString = "Remove Wind from Gas",
         verbose = verbose,
         )
 
-    whereWindStars = snapStars.data["age"] < 0.0
-
-    snapStars = remove_selection(
-        snapStars,
-        removalConditionMask = whereWindStars,
-        errorString = "Remove Wind from Stars",
-        verbose = verbose,
-        )
-
-
-    if analysisType == "cgm":
-        print(
-            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']},@{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the CGM..."
-        )
-        whereNotCGM = (snapGas.data["R"] > CRPARAMS["Router"])
-
-        snapGas = remove_selection(
-            snapGas,
-            removalConditionMask = whereNotCGM,
-            errorString = "Remove NOT CGM from Gas",
-            verbose = verbose,
-            )
-
-        # select the CGM, acounting for variable ISM extent
-        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
-        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-
-        whereNotCGMstars = (snapStars.data['age'] >= 0.0) \
-            & (snapStars.data["R"] > CRPARAMS["Router"])
-
-        snapStars = remove_selection(
-            snapStars,
-            removalConditionMask = whereNotCGMstars,
-            errorString = "Remove NOT CGM from Stars",
-            verbose = verbose,
-            )
-
-    elif analysisType == "ism":
-        print(
-            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the ISM..."
-        )
-
-        whereNotISM = (snapGas.data["sfr"] < 0.0) \
-        & (snapGas.data["R"] > CRPARAMS["Rinner"])
-
-        snapGas = remove_selection(
-            snapGas,
-            removalConditionMask = whereNotISM,
-            errorString = "Remove NOT ISM from Gas",
-            verbose = verbose,
-            )
-
-
-        # select the CGM, acounting for variable ISM extent
-        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
-        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-
-        whereNotISMstars = (snapStars.data["R"] > CRPARAMS["Rinner"])
-
-        snapStars = remove_selection(
-            snapStars,
-            removalConditionMask = whereNotISMstars,
-            errorString = "Remove NOT ISM from Stars",
-            verbose = verbose,
-            )
-
-    elif analysisType == "all":
-
-        print(
-            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select all of the halo..."
-        )
-
-        whereOutsideSelection = (snapGas.data["R"] > CRPARAMS["Router"])
-
-        snapGas = remove_selection(
-            snapGas,
-            removalConditionMask = whereOutsideSelection,
-            errorString = "Remove ALL Outside Selection from Gas",
-            verbose = verbose,
-            )
-
-        # select the CGM, acounting for variable ISM extent
-        # whereISMSFR = np.where((snapGas.data["sfr"] > 0.0) & (snapGas.data["halo"]== 0) & (snapGas.data["subhalo"]== 0)) [0]
-        # maxISMRadius = np.nanpercentile(snapGas.data["R"][whereISMSFR],97.72,axis=0)
-
-        whereOutsideSelectionStars = (snapStars.data["R"] > CRPARAMS["Router"])
-
-        snapStars = remove_selection(
-            snapStars,
-            removalConditionMask = whereOutsideSelectionStars,
-            errorString = "Remove ALL Outside Selection from Stars",
-            verbose = verbose,
-            )
-
-
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select within R_virial..."
     )
 
-    Rvir = (snap_subfind.data["frc2"] * 1e3)[int(CRPARAMS["HaloID"])]
-
-    whereOutsideVirialStars = snapStars.data["R"] > Rvir
-
-    snapStars = remove_selection(
-        snapStars,
-        removalConditionMask = whereOutsideVirialStars,
-        errorString = "Remove Outside Virial from Stars",
-        verbose = verbose,
-        )
-
-    whereOutsideVirial = snapGas.data["R"] > Rvir
-
-    snapGas = remove_selection(
-        snapGas,
-        removalConditionMask = whereOutsideVirial,
-        errorString = "Remove Outside Virial from Gas",
-        verbose = verbose,
-        )
-
-    rmax = np.max(CRPARAMS["Router"])
-    boxmax = rmax
-    box = [boxmax, boxmax, boxmax]
-
     # Calculate New Parameters and Load into memory others we want to track
-    snapGas = tr.calculate_tracked_parameters(
-        snapGas,
+    snap = tr.calculate_tracked_parameters(
+        snap,
         oc.elements,
         oc.elements_Z,
         oc.elements_mass,
@@ -328,237 +214,338 @@ def cr_analysis_radial(
         logParameters = CRPARAMS['logParameters'],
         paramsOfInterest=CRPARAMS["saveParams"],
         mappingBool=True,
-        box=box,
+        box=[boxmax,boxmax,boxmax],
         numthreads=CRPARAMS["numthreads"],
         DataSavepath = DataSavepath,
         verbose = verbose,
     )
-    # snapGas = tr.calculate_tracked_parameters(snapGas,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
-    if ("n_HI_col" in CRPARAMS["saveParams"])|("n_HI_col" in CRPARAMS["imageParams"]):
+    snap.data["R"] = snap.data["R"]/rvir
+    # snap = tr.calculate_tracked_parameters(snap,oc.elements,oc.elements_Z,oc.elements_mass,oc.elements_solar,oc.Zsolar,oc.omegabaryon0,100)
+    if len(CRPARAMS["colParams"])>0:
 
-       
-        ## Calculate n_HI_col for use as saveParam or image Param
-        
-        CRPARAMS["saveEssentials"].append("n_HI_colx")
-        CRPARAMS["saveEssentials"].append("n_HI_coly")
-        tmpdict = cr_calculate_projections(
-            snapGas,
-            CRPARAMS,
-            ylabel,
-            xlimDict,
-            snapNumber=snapNumber,
-            params = ["n_HI_col"],
-            xsize = CRPARAMS["xsizeImages"],
-            ysize = CRPARAMS["ysizeImages"],
-            projection=True,
-            Axes=CRPARAMS["Axes"],
-            boxsize=CRPARAMS["boxsize"],
-            boxlos=CRPARAMS["coldenslos"],
-            pixres=CRPARAMS["pixres"],
-            pixreslos=CRPARAMS["pixreslos"],
-            fontsize = CRPARAMS["fontsize"],
-            DPI=CRPARAMS["DPI"],
-            numthreads=CRPARAMS["numthreads"],
-            verbose = verbose,
-        )
+        # Create variant of xlimDict specifically for images of col params
+        tmpxlimDict = copy.deepcopy(xlimDict)
 
-        ## Convert n_HI_col to per cm^-2 
+        # Add the col param specific limits to the xlimDict variant
+        for key, value in colImagexlimDict.items():
+            tmpxlimDict[key] = value
 
-        KpcTocm = 1e3 * c.parsec
-        convert = float(CRPARAMS["pixreslos"])*KpcTocm
-        snapGas.data["n_HI_col"] = copy.deepcopy(tmpdict["n_HI_col"]["grid"])*convert
-        snapGas.data["n_HI_colx"] = copy.deepcopy(tmpdict["n_HI_col"]["x"])
-        snapGas.data["n_HI_coly"] = copy.deepcopy(tmpdict["n_HI_col"]["y"])
+        #---------------#
+        # Check for any none-position-based parameters we need to track for col params:
+        #       Start with mass (always needed!) and xParam:
+        additionalColParams = ["mass"]
+        if np.any(np.isin(np.asarray([CRPARAMS["xParam"]]),np.array(["R","x","y","z","pos"]))) == False:
+            additionalColParams.append(CRPARAMS["xParam"])
 
-        ## If n_HI_col in imageParams, remove it so we can calculate all others with none coldenslos, normal boxlos instead
-        tmpimageParams = copy.deepcopy(CRPARAMS["imageParams"])
-        tmpimageParams.pop("n_HI_col")
+        #       Now add in anything we needed to track for weights of col params in statistics
+        cols = CRPARAMS["colParams"]
+        for param in cols:
+            additionalParam = CRPARAMS["nonMassWeightDict"][param]
+            if (np.any(np.isin(np.asarray([additionalParam]),np.asarray(additionalColParams))) == False) \
+            & (additionalParam is not None):
+                additionalColParams.append(additionalParam)
+        #---------------#
 
-        quadPlotDict = cr_calculate_projections(
-            snapGas,
-            CRPARAMS,
-            ylabel,
-            xlimDict,
-            snapNumber=snapNumber,
-            params = tmpimageParams,
-            xsize = CRPARAMS["xsizeImages"],
-            ysize = CRPARAMS["ysizeImages"],
-            projection=CRPARAMS["projection"],
-            Axes=CRPARAMS["Axes"],
-            boxsize=CRPARAMS["boxsize"],
-            boxlos=CRPARAMS["boxlos"],
-            pixres=CRPARAMS["pixres"],
-            pixreslos=CRPARAMS["pixreslos"],
-            fontsize = CRPARAMS["fontsize"],
-            DPI=CRPARAMS["DPI"],
-            numthreads=CRPARAMS["numthreads"],
-            verbose = verbose,
-        )
+        # If there are other params to be tracked for col params, we need to create a projection
+        # of them so as to be able to map these projection values back to the col param maps.
+        # A side effect of this is that we will create "images" of any of these additional params.
+        # Thus, we want to provide empty limits for the colourbars of these images as they will almost
+        # certainly require different limits to those provided for the PDF plots, for example. 
+        # In particular, params like mass will need very different limits to those used in the
+        # PDF plots. We have left this side effect in this code version as it provides a useful
+        # way of testing whether making a projection of unusual params to image (e.g. mass, or volume)
+        # provide sensible, physical results.
+        for key in additionalColParams:
+            tmpxlimDict[key] = {}
 
-        ## If n_HI_col in imageParams, add it back in to be plotted and tracked for average plots
-        ##   ~NOTE~ : boxlos is ignored after cr_calculate_projections call above, as code is configured such that when
-        ##            apt.plot_slices receives a precalculated image dictionary (not Arepo snapshot) it will plot the
-        ##            dictionary's contents without recalculating them, so pixres, boxlos, pixreslos etc are ignored.
-        if ("n_HI_col" in CRPARAMS["imageParams"]):
-            quadPlotDict.update(copy.deepcopy(tmpdict))
-
-        if CRPARAMS["QuadPlotBool"] is True:
-            apt.cr_plot_projections(
-                quadPlotDict,
-                CRPARAMS,
-                ylabel,
-                xlimDict,
-                xsize = CRPARAMS["xsizeImages"],
-                ysize = CRPARAMS["ysizeImages"],
-                projection=CRPARAMS["projection"],
-                Axes=CRPARAMS["Axes"],
-                boxsize=CRPARAMS["boxsize"],
-                boxlos=CRPARAMS["boxlos"],
-                pixres=CRPARAMS["pixres"],
-                pixreslos=CRPARAMS["pixreslos"],
-                fontsize = CRPARAMS["fontsize"],
-                DPI=CRPARAMS["DPI"],
-                numthreads=CRPARAMS["numthreads"],
-                verbose = verbose,
-                savePathKeyword = snapNumber,
+        innerColout = {}
+        cols = CRPARAMS["colParams"]+additionalColParams
+        for param in cols:
+            print(
+                "\n"+f"[@{int(snapNumber)}]: Calculate {param} map..."
             )
 
-        del tmpdict
-
-    else:
-        quadPlotDict = cr_calculate_projections(
-            snapGas,
-            CRPARAMS,
-            ylabel,
-            xlimDict,
-            snapNumber=snapNumber,
-            params = CRPARAMS["imageParams"],
-            xsize = CRPARAMS["xsizeImages"],
-            ysize = CRPARAMS["ysizeImages"],
-            projection=CRPARAMS["projection"],
-            Axes=CRPARAMS["Axes"],
-            boxsize=CRPARAMS["boxsize"],
-            boxlos=CRPARAMS["boxlos"],
-            pixres=CRPARAMS["pixres"],
-            pixreslos=CRPARAMS["pixreslos"],
-            fontsize = CRPARAMS["fontsize"],
-            DPI=CRPARAMS["DPI"],
-            numthreads=CRPARAMS["numthreads"],
-            verbose = verbose,
-        )
-
-        if CRPARAMS["QuadPlotBool"] is True:
-            apt.cr_plot_projections(
-                quadPlotDict,
-                CRPARAMS,
-                ylabel,
-                xlimDict,
+            # By default, we set projection here to False. This ensures any weighting maps are
+            # slices (projection versions were found to produce unphysical and unreliable results).
+            # However, any _col parameters are forced into Projection=True inside apt.plot_slices().
+            tmpdict = apt.plot_slices(snap,
+                ylabel=ylabel,
+                xlimDict=tmpxlimDict,
+                logParameters = CRPARAMS["logParameters"],
+                snapNumber=snapNumber,
+                sliceParam = param,
+                Axes=CRPARAMS["Axes"],
                 xsize = CRPARAMS["xsizeImages"],
                 ysize = CRPARAMS["ysizeImages"],
-                projection=CRPARAMS["projection"],
-                Axes=CRPARAMS["Axes"],
+                colourmapMain=CRPARAMS["colourmapMain"],
                 boxsize=CRPARAMS["boxsize"],
-                boxlos=CRPARAMS["boxlos"],
-                pixres=CRPARAMS["pixres"],
-                pixreslos=CRPARAMS["pixreslos"],
-                fontsize = CRPARAMS["fontsize"],
-                DPI=CRPARAMS["DPI"],
+                boxlos=CRPARAMS["coldenslos"],
+                pixreslos=CRPARAMS["coldenspixreslos"],
+                pixres=CRPARAMS["pixresproj"],
+                projection = False,
+                DPI = CRPARAMS["DPIimages"],
                 numthreads=CRPARAMS["numthreads"],
-                verbose = verbose,
-                savePathKeyword = snapNumber,
+                savePathBase = FiguresSavepath,
+                savePathBaseFigureData = DataSavepath,
+                saveFigureData = True,
+                saveFigure = CRPARAMS["SaveImages"],
+                inplace = False,
             )
+
+            if tmpdict is not None:
+                innerColout.update({param: (copy.deepcopy(tmpdict[param]["grid"])).reshape(-1)})
+                
+                # !!
+                # You !! MUST !! provide type data for data that is no longer snapshot associated and thus
+                # no longer has type data associated with it. This is to ensure any future selections made from
+                # the dataset do not break the type length associated logic which is engrained in all of these
+                # tools, primarily via the ' cr.remove_selection() ' function.
+                # 
+                # You may choose if you wish to discard/mask
+                # a subset of your data from future figures by setting it to a non-zero integer value for type
+                # but beware, this is an untested use-case and (especially for pre-existing types between 0-6)
+                # the tools provided here may exhibit unexpected behaviours!
+                # !!
+                newShape = np.shape(innerColout[param])
+                innerColout.update({"type": np.full(shape=newShape, fill_value=0)})
+
+                if (CRPARAMS["xParam"] == "R") & (CRPARAMS["xParam"] not in list(innerColout.keys())):
+                    xx = (copy.deepcopy(tmpdict[param]["x"])).reshape(-1)
+                    xx = np.array(
+                        [
+                            (x1 + x2) / 2.0
+                            for (x1, x2) in zip(xx[:-1], xx[1:])
+                        ]
+                    )
+                    yy = (copy.deepcopy(tmpdict[param]["y"])).reshape(-1)
+                    yy = np.array(
+                        [
+                            (x1 + x2) / 2.0
+                            for (x1, x2) in zip(yy[:-1], yy[1:])
+                        ]
+                    )
+                    values = np.linalg.norm(np.asarray(np.meshgrid(xx,yy)), axis=0).reshape(-1)
+                    innerColout.update({"R": values/rvir})
+
+    for param in CRPARAMS["imageParams"]+["Tdens", "rho_rhomean"]:
+        try:
+            tmp = snap.data[param]
+        except:
+            snap = tr.calculate_tracked_parameters(
+                snap,
+                oc.elements,
+                oc.elements_Z,
+                oc.elements_mass,
+                oc.elements_solar,
+                oc.Zsolar,
+                oc.omegabaryon0,
+                snapNumber,
+                logParameters = CRPARAMS['logParameters'],
+                paramsOfInterest=[param],
+                mappingBool=True,
+                box=[boxmax,boxmax,boxmax],
+                numthreads=CRPARAMS["numthreads"],
+                DataSavepath = DataSavepath,
+                verbose = verbose,
+            )
+
+    if np.nanmax(snap.data["R"])>=(50.0*CRPARAMS["Router"]): snap.data["R"] = snap.data["R"]/rvir
+
+    for param in CRPARAMS["imageParams"]:
+        if param == "T":
+            colourmapadjust = "_r"
+        else:
+            colourmapadjust = ""
+
+        tmpdict = apt.plot_slices(snap,
+            ylabel=ylabel,
+            xlimDict=xlimDict,
+            logParameters = CRPARAMS["logParameters"],
+            snapNumber=snapNumber,
+            sliceParam = param,
+            Axes=CRPARAMS["Axes"],
+            xsize = CRPARAMS["xsizeImages"],
+            ysize = CRPARAMS["ysizeImages"],
+            colourmapMain=CRPARAMS["colourmapMain"] + colourmapadjust,
+            boxsize=CRPARAMS["boxsize"],
+            boxlos=CRPARAMS["boxlos"],
+            pixreslos=CRPARAMS["pixreslos"],
+            pixres=CRPARAMS["pixres"],
+            projection = CRPARAMS["projections"],
+            DPI = CRPARAMS["DPIimages"],
+            numthreads=CRPARAMS["numthreads"],
+            savePathBase = FiguresSavepath,
+            savePathBaseFigureData = DataSavepath,
+            saveFigureData = True,
+            saveFigure = CRPARAMS["SaveImages"],
+            inplace = False,
+        )
+        if tmpdict is not None:
+            quadPlotDict.update(tmpdict)
 
     print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Delete Dark Matter..."
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Delete unwanted data..."
     )
 
-    whereDM = snapGas.data["type"] == 1
+    if analysisType == "cgm":
+        print(
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']},@{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the CGM..."
+        )
+        whereNotCGM = (snap.data["R"] > CRPARAMS["Router"])
 
-    snapGas = remove_selection(
-        snapGas,
-        removalConditionMask = whereDM,
-        errorString = "Remove DM from Gas",
+        snap = remove_selection(
+            snap,
+            removalConditionMask = whereNotCGM,
+            errorString = "Remove NOT CGM from Gas >Router",
+            verbose = verbose,
+            )
+
+        # whereNotCGM = (snap.data["R"] < CRPARAMS["Rinner"])
+
+        # snap = remove_selection(
+        #     snap,
+        #     removalConditionMask = whereNotCGM,
+        #     errorString = "Remove NOT CGM from Gas <Rinner",
+        #     verbose = verbose,
+        #     )
+        
+        whereNotCGM = (snap.data["sfr"] > 0.0)
+
+        snap = remove_selection(
+            snap,
+            removalConditionMask = whereNotCGM,
+            errorString = "Remove NOT CGM from Gas <Rinner",
+            verbose = verbose,
+            )
+                
+    elif analysisType == "ism":
+        print(
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the ISM..."
+        )
+
+        whereNotISM = (snap.data["sfr"] <= 0.0) & (snap.data["R"] > CRPARAMS["Rinner"])
+
+        snap = remove_selection(
+            snap,
+            removalConditionMask = whereNotISM,
+            errorString = "Remove NOT ISM from Gas",
+            verbose = verbose,
+            )
+
+    elif analysisType == "all":
+
+        print(
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select all of the halo..."
+        )
+
+        whereOutsideSelection = (snap.data["R"] > CRPARAMS["Router"])
+
+        snap = remove_selection(
+            snap,
+            removalConditionMask = whereOutsideSelection,
+            errorString = "Remove ALL Outside Selection from Gas",
+            verbose = verbose,
+            )
+
+
+    whereSatellite = np.isin(snap.data["subhalo"],np.array([-1,int(CRPARAMS["HaloID"]),np.nan]))==False
+
+    snap = remove_selection(
+        snap,
+        removalConditionMask = whereSatellite,
+        errorString = "Remove Satellites",
         verbose = verbose,
-        )
-
-    whereStars = snapGas.data["type"] == 4
-    snapGas = remove_selection(
-        snapGas,
-        removalConditionMask = whereStars,
-        errorString = "Remove Stars from Gas",
-        verbose = verbose
-        )
-
-    # whereDM = np.where(snapGas.type == 1)[0]
-    # whereGas = np.where(snapGas.type == 0)[0]
-    # NDM = len(whereDM)
-    # NGas = len(whereGas)
-    # deleteKeys = []
-    # for key, value in snapGas.data.items():
-    #     if value is not None:
-    #         # print("")
-    #         # print(key)
-    #         # print(np.shape(value))
-    #         if np.shape(value)[0] == (NGas + NDM):
-    #             # print("Gas")
-    #             snapGas.data[key] = value.copy()[whereGas]
-    #         elif np.shape(value)[0] == (NDM):
-    #             # print("DM")
-    #             deleteKeys.append(key)
-    #         else:
-    #             # print("Gas or Stars")
-    #             pass
-    #         # print(np.shape(snapGas.data[key]))
-    #
-    # for key in deleteKeys:
-    #     del snapGas.data[key]
+    )
 
     # Redshift
-    redshift = snapGas.redshift  # z
+    redshift = snap.redshift  # z
     aConst = 1.0 / (1.0 + redshift)  # [/]
 
     # Get lookback time in Gyrs
     # [0] to remove from numpy array for purposes of plot title
-    lookback = snapGas.cosmology_get_lookback_time_from_a(np.array([aConst]))[
+    lookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
         0
     ]  # [Gyrs]
 
     print( 
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Ages: get_lookback_time_from_a() ..."
     )
-    ages = snapStars.cosmology_get_lookback_time_from_a(snapStars.data["age"],is_flat=True)
-    snapStars.data["age"] = ages
-
-    snapGas.data["Redshift"] = np.array([redshift])
-    snapGas.data["Lookback"] = np.array([lookback])
-    snapGas.data["Snap"] = np.array([snapNumber])
-    snapGas.data["Rvir"] = np.array([Rvir])
-
-    snapStars.data["Redshift"] = np.array([redshift])
-    snapStars.data["Lookback"] = np.array([lookback])
-    snapStars.data["Snap"] = np.array([snapNumber])
-    snapStars.data["Rvir"] = np.array([Rvir])
+    ages = snap.cosmology_get_lookback_time_from_a(snap.data["age"],is_flat=True)
+    snap.data["age"] = ages
 
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary and Trim ..."
     )
-    # Make normal dictionary form of snapGas
-    inner = {}
-    for key, value in snapGas.data.items():
-        if key in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-            if value is not None:
-                inner.update({key: copy.deepcopy(value)})
 
-    del snapGas
 
+    # print(
+    #     f"[@{int(snapNumber)}]: Convert from SnapShot to Dictionary and Trim ..."
+    # )
+    # Make normal dictionary form of snap
     innerStars = {}
-    for key, value in snapStars.data.items():
-        if key in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
-            if value is not None:
-                innerStars.update({key: copy.deepcopy(value)})
+    for key, value in snap.data.items():
+        if value is not None:
+            innerStars.update({key: copy.deepcopy(value)})
 
-    del snapStars
-    # Add to final output
+    whereNotStars = np.isin(innerStars["type"],np.array([0,1,2,3,5,6]))==True
+
+    innerStars = remove_selection(
+        innerStars,
+        removalConditionMask = whereNotStars,
+        errorString = "Remove Not Stars Types",
+        verbose = verbose,
+        )
+
+    whereNotGas = np.isin(snap.data["type"],np.array([1,2,3,4,5,6]))==True
+
+    snap = remove_selection(
+        snap,
+        removalConditionMask = whereNotGas,
+        errorString = "Remove Not Gas Types",
+        verbose = verbose,
+        )
+
+    inner = {}
+    for key, value in snap.data.items():
+        if value is not None:
+            inner.update({key: copy.deepcopy(value)})
+
+    inner["Redshift"] = np.array([redshift])
+    inner["Lookback"] = np.array([lookback])
+    inner["Snap"] = np.array([snapNumber])
+    inner["Rvir"] = np.array([rvir])
+
+    innerStars["Redshift"] = np.array([redshift])
+    innerStars["Lookback"] = np.array([lookback])
+    innerStars["Snap"] = np.array([snapNumber])
+    innerStars["Rvir"] = np.array([rvir])
+
+    innerColout["Redshift"] = np.array([redshift])
+    innerColout["Lookback"] = np.array([lookback])
+    innerColout["Snap"] = np.array([snapNumber])
+    innerColout["Rvir"] = np.array([rvir])
+
+    quadPlotDict["Redshift"] = np.array([redshift])
+    quadPlotDict["Lookback"] = np.array([lookback])
+    quadPlotDict["Snap"] = np.array([snapNumber])
+    quadPlotDict["Rvir"] = np.array([rvir])
+    # # Make normal dictionary form of snap
+    # inner = {}
+    # for key, value in snap.data.items():
+    #     if key in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
+    #         if value is not None:
+    #             inner.update({key: copy.deepcopy(value)})
+
+    # del snap
+
+    # innerStars = {}
+    # for key, value in snapStars.data.items():
+    #     if key in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]:
+    #         if value is not None:
+    #             innerStars.update({key: copy.deepcopy(value)})
+
+    # del snapStars
+    # # Add to final output
     out.update(
         {
             (
@@ -569,14 +556,25 @@ def cr_analysis_radial(
         }
     )
 
-    out.update(
+    starsout.update(
         {
             (
                 f"{CRPARAMS['resolution']}",
                 f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
-                f"{int(snapNumber)}",
                 "Stars",
+                f"{int(snapNumber)}",
             ): innerStars
+        }
+    )
+
+    colout.update(
+        {
+            (
+                f"{CRPARAMS['resolution']}",
+                f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+                "col",
+                f"{int(snapNumber)}",
+            ): innerColout
         }
     )
 
@@ -590,7 +588,7 @@ def cr_analysis_radial(
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Finishing process..."
     )
-    return out, rotation_matrix , quadPlotDictOut
+    return out, starsout, colout, quadPlotDictOut, rotation_matrix
 
 
 def cr_parameters(CRPARAMSMASTER, simDict):
@@ -781,8 +779,10 @@ def cr_calculate_statistics(
 
     statsData = {key: np.asarray([dd[key] for dd in datList if key in dd.keys()]) for key in datList[0].keys()}
 
-    for param in exclusions:
-        statsData.update({param: copy.deepcopy(dataDict[param])})
+    # # paramsInData = list(dataDict.keys())
+    # # for param in exclusions:
+    # #     if param in paramsInData:
+    # #         statsData.update({param: copy.deepcopy(dataDict[param])})
 
     statsData.update({f"{xParam}": np.asarray(xData)})
     return statsData
@@ -954,6 +954,7 @@ def remove_selection(
     snapType = False
     try:
         types = pd.unique(snap.data["type"])
+        originalTypes, originalTypeCounts = np.unique(snap.data["type"],return_counts=True)
         snapType = True
         if verbose: print("[@remove_selection]: snapshot type detected!")
     except:
@@ -962,6 +963,7 @@ def remove_selection(
         except:
             raise Exception("[@remove_selection]: Unrecognised data format input! Data was neither Arepo snapshot format or Dictionary format!")
         snapType = False
+        originalTypes, originalTypeCounts = np.unique(snap["type"],return_counts=True)
         if verbose: print("[@remove_selection]: dictionary type detected!")
 
     snap, paramToTypeMap, degeneracyBool = map_params_to_types(snap)
@@ -970,6 +972,8 @@ def remove_selection(
         raise Exception(f"[remove_selection]: FAILURE! CRITICAL! Snapshot type lengths have been detected as degenerate by map_params_to_types() call in remove_selection()."+"\n"+"map_params_to_types() must be called seperately, prior to the evaluation of removalConditionMask in this call to remove_selection()"+"\n"+f"This error came from errorString {errorString} call to remove_selection()!")
 
     removedTruthy = np.full(types.shape,fill_value=False)
+
+   
     if verbose is True: print("verbose!",errorString)
 
     # Find possible value length total that matches removalConditionMask
@@ -1122,26 +1126,43 @@ def remove_selection(
         paramToTypeMap["lty"][ii] = whereType.shape[0]
         if verbose: print("paramToTypeMap['lty'][ii]",paramToTypeMap["lty"][ii])
 
+    try:
+        if snapType is True:
+            nData = np.shape(snap.data["type"])[0]
+        else:
+            nData = np.shape(snap["type"])[0]
+    except:
+        raise Exception(f"[@remove_selection]: FAILURE! CRITICAL!"+
+                        "\n"+f"Error String: {errorString} returned an empty snapShot!"
+                        )
 
+    #Remove None values and double check...
+    snap = clean_snap_nones(snap)
+    try:
+        if snapType is True:
+            nData = np.shape(snap.data["type"])[0]        
+            currentTypes, currentTypeCounts = np.unique(snap.data["type"],return_counts=True)
+        else:
+            nData = np.shape(snap["type"])[0]
+            currentTypes, currentTypeCounts = np.unique(snap["type"],return_counts=True)
+
+    except:
+        raise Exception(f"[@remove_selection]: FAILURE! CRITICAL!"+
+                        "\n"+f"Error String: {errorString} returned an empty snapShot!"
+                        )
+    
     noneRemovedTruthy = np.all(~removedTruthy)
 
     if noneRemovedTruthy is True:
         print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
-
-    elif verbose is True:
-        if np.any(~removedTruthy):
-            print(f"[@remove_selection]: WARNING! verbose! Selection criteria for error string = '{errorString}' not applied to particles of type:")
-            print(f"{types[np.where(removedTruthy==False)[0]]}")
-        else:
-            print(f"[@remove_selection]: verbose! Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
-
-    snap = clean_snap_nones(snap)
-
-    if snapType is True:
-        nData = np.shape(snap.data["type"])[0]
     else:
-        nData = np.shape(snap["type"])[0]
-    assert nData > 0,f"[@remove_selection]: FAILURE! CRITICAL!"+"\n"+f"Error String: {errorString} returned an empty snapShot!"
+        if np.any(~removedTruthy):
+            print(f"[@remove_selection]: WARNING! Selection criteria for error string = '{errorString}' not applied to particles of type:")
+            print(f"{types[np.where(removedTruthy==False)[0]]}")
+            print(f"Original types {originalTypes} with counts {originalTypeCounts}")
+            print(f"New/current types {currentTypes} with counts {currentTypeCounts}")
+        else:
+            print(f"[@remove_selection]: Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
 
     return snap
 
@@ -1175,85 +1196,60 @@ def clean_snap_nones(snap):
             del snap[key]
     return snap
 
-def cr_calculate_projections(
-    snap,
-    CRPARAMS,
-    ylabel,
-    xlimDict,
-    snapNumber=None,
-    params = ["T","n_H", "B", "gz"],
-    xsize = 5.0,
-    ysize = 5.0,
-    fontsize=13,
-    Axes=[0,1],
-    boxsize=400.0,
-    boxlos=50.0,
-    pixreslos=0.3,
-    pixres=0.3,
-    projection=False,
-    DPI=200,
-    CMAP="inferno",
-    numthreads=10,
- ):
+def clean_snap_params(snap,paramsOfInterest):
+    """
+    Delete unwanted paramaters of snapshot data/dictionary data, and save only paramsOfInterest.
+    """
+    deleteKeys = []
 
-    keys = list(CRPARAMS.keys())
-    selectKey0 = keys[0]
-
-
-
-    for param in params+["Tdens", "rho_rhomean"]:
+    snapType = False
+    try:
+        types = pd.unique(snap.data["type"])
+        snapType = True
+    except:
         try:
-            tmp = snap.data[param]
+            types = pd.unique(snap["type"])
         except:
-            snap = tr.calculate_tracked_parameters(
-                snap,
-                oc.elements,
-                oc.elements_Z,
-                oc.elements_mass,
-                oc.elements_solar,
-                oc.Zsolar,
-                oc.omegabaryon0,
-                snapNumber,
-                paramsOfInterest=[param],
-                mappingBool=True,
-                numthreads=numthreads,
-                verbose = False,
-            )
+            raise Exception("[@clean_snap_params]: Unrecognised data format input! Data was neither Arepo snapshot format or Dictionary format!")
+        snapType = False
 
-    out = {}
 
-    for sliceParam in params:
-        tmpout = apt.plot_slices(snap,
-            ylabel,
-            xlimDict,
-            logParameters = CRPARAMS['logParameters'],
-            snapNumber=snapNumber,
-            sliceParam = sliceParam,
-            xsize = xsize,
-            ysize = ysize,
-            fontsize=fontsize,
-            Axes=Axes,
-            boxsize=boxsize,
-            boxlos=boxlos,
-            pixreslos=pixreslos,
-            pixres=pixres,
-            projection=projection,
-            DPI=DPI,
-            CMAP=CMAP,
-            numthreads=numthreads,
-            saveFigure = False,
-        )
-        out.update(tmpout)
+    if snapType is True:
+        itrr = snap.data.items()
+    else:
+        itrr = snap.items()
+    for key, value in itrr:
+        if np.isin(np.asarray(key),np.asarray(paramsOfInterest)) == False:
+            deleteKeys.append(key)
 
-    return out
+    for key in deleteKeys:
+        if snapType is True:
+            del snap.data[key]
+        else:
+            del snap[key]
+
+    # Touch each data type we are interested in to load it into memory
+    # prevents errors when remove_selection is called later
+    if snapType is True:
+        itrr = snap.data.items()
+    else:
+        itrr = snap.items()
+
+    for key, value in itrr:
+        if snapType is True:
+            snap.data[key] *= 1
+        else:
+            snap[key] *= 1
+    return snap
 
 def cr_slice_averaging(
     quadPlotDict,
     CRPARAMS,
     snapRange,
+    averageType = 'median',
 ):
 
-    print("Quad plot averaging...")
+    print("Slice plot averaging...")
 
     quadPlotDictAveraged = {}
     flatData = {}
@@ -1289,9 +1285,20 @@ def cr_slice_averaging(
     for param in params:
         tmp ={}
         for arg in ["x","y"]:
-            tmp.update({arg : np.nanmedian(flatData[newKey][param][arg],axis=-1)})
+            if averageType == "median":
+               tmp.update({arg : np.nanmedian(flatData[newKey][param][arg],axis=-1)})
+            elif averageType == "mean":
+                tmp.update({arg : np.nanmean(flatData[newKey][param][arg],axis=-1)})
+            else:
+                raise Exception(f"[@cr_slice_averaging]: FAILURE! cr_slice_averaging given unknown averageType of {averageType}.")
+        
+        if averageType == "median":
+            tmp.update({"grid" : np.nanmedian(flatData[newKey][param]["grid"],axis=-1)})
+        elif averageType == "mean":
+            tmp.update({"grid" : np.nanmean(flatData[newKey][param]["grid"],axis=-1)})
+        else:
+            raise Exception(f"[@cr_slice_averaging]: FAILURE! cr_slice_averaging given unknown averageType of {averageType}.")
 
-        tmp.update({"grid" : np.nanmedian(flatData[newKey][param]["grid"],axis=-1)})
         tmp.update({"type" : None})
         quadPlotDictAveraged.update({param : tmp})
         
