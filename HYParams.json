@@ -1,0 +1,121 @@
+{
+  "savepathfigures": "./",
+
+  "savepathdata": "/home/universe/c1838736/Hybrid_Refinement/level4/level4_cgm/apt-figures/",
+
+  "loadRotationMatrix" : false,
+
+  "constantRotationMatrix" : true,
+
+  "saveParams": [ "T", "Tdens", "R", "nh", "n_H", "n_HI", "ndens","B", "vrad", "gz", "L"],
+
+  "saveEssentials": [ "halo", "subhalo", "Redshift", "Lookback", "Snap", "type", "mass", "pos", "vol", "hrgm", "sfr", "Rvir", "gima", "age" , "boxsize", "gmet", "ne", "rho", "u", "bfld", "vel", "gcol", "tcool", "cren"],
+
+  "snapMin": 120,
+
+  "snapMax": 127,
+
+  "percentiles": [0.13, 2.28 , 15.87, 50.0, 84.13, 97.72, 99.87],
+
+  "boxsize": 400.0,
+
+  "rvirFrac" : 1.2,
+
+  "xParam": "R",
+
+  "colParams": [ "n_H_col", "n_HI_col" ],
+
+  "imageParams": [],
+
+  "pdfParams": [ "T", "vol", "nh", "n_H", "n_HI", "ndens","B", "vrad", "gz", "L"],
+
+  "phasesxParams": [ "R", "n_H", "vol", "ndens" ],
+
+  "phasesyParams": [ "T", "n_H", "nh", "ndens","B", "vrad", "gz", "L"],
+
+  "phasesWeightParams": [ "mass" ],
+
+  "mediansParams": [ "T", "R", "nh", "n_H", "n_HI", "ndens","B", "vrad", "gz", "L"],
+
+  "NxParamBins": 100,
+
+  "Nbins": 250,
+
+  "Axes": [ 1, 0 ],
+
+  "opacityPercentiles": 0.25,
+
+  "forceLogMass": false,
+
+  "numthreads": 28,
+
+  "boxlos": 50.0,
+
+  "coldenslos": 600.0,
+
+  "pixres": 0.1,
+
+  "pixreslos": 0.1,
+
+  "pixresproj": 0.1,
+
+  "pixreslosproj": 0.1,
+
+  "coldenspixreslos": 0.1,
+
+  "HaloID": 0,
+
+  "DPI": 200,
+
+  "DPIimages" : 300,
+
+  "xsizeImages": 6.0,
+
+  "ysizeImages": 6.0,
+
+  "xsize": 8.0,
+
+  "ysize": 8.0,
+
+  "colourmapMain": "Spectral",
+
+  "titleBool": false,
+
+  "fontsize": 13,
+
+  "fontsizeTitle": 14,
+
+  "ageWindow": null,
+
+  "windowBins": 0.100,
+
+  "logParameters": [ "nh", "dens", "ndens", "rho_rhomean", "rho", "vol", "csound", "T", "n_H", "n_H_col", "n_HI", "n_HI_col", "B", "gz", "L", "P_thermal", "P_magnetic", "P_kinetic", "P_tot", "Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal", "gah", "Grad_T", "Grad_n_H", "Grad_bfld", "Grad_P_CR", "tcool", "theat", "tcross", "tff", "tcool_tff", "mass", "gima" ],
+
+  "nonMassWeightDict": {
+    "mass": "vol",
+    "nh": "vol",
+    "n_H": "vol",
+    "n_HI": "vol",
+    "n_H_col": "vol",
+    "n_HI_col": "vol",
+    "ndens": "vol",
+    "dens": "vol",
+    "rho_rhomean": "vol",
+    "rho": "vol",
+    "B": "vol",
+    "bfld": "vol",
+    "P_kinetic": "vol",
+    "P_thermal": "vol",
+    "P_magnetic": "vol",
+    "P_tot": "vol",
+    "Pthermal_Pmagnetic": "vol",
+    "P_CR": "vol",
+    "PCR_Pthermal": "vol",
+    "gah": "vol",
+    "Grad_T": "mass",
+    "Grad_n_H": "vol",
+    "Grad_bfld": "vol",
+    "Grad_P_CR": "vol"
+  }
+
+}
