@@ -1,3 +1,4 @@
+from select import select
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -20,12 +21,48 @@ import copy
 import math
 import os
 
+plt.rcParams.update(matplotlib.rcParamsDefault)
+
 #==========================================================#
 ##  General versions ...
 #==========================================================#
+def round_it(x, sig):
+    """
+        Minor adaptations made to the function taken from here https://www.delftstack.com/howto/python/round-to-significant-digits-python/
+        Accessed: 21/04/2023
+    """
+    if x != 0:
+        return round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
+    else:
+        return 0.0
 
-def hist_plot_xyz(
-    simDict,
+def check_params_are_in_xlimDict(xlimDict, params):
+
+    haslimits = []
+    for param in params:
+        try:
+            values = xlimDict[param]
+            try:
+                tmp = values['xmin']
+                tmp = values['xmax']
+                haslimits.append(True)
+            except:
+                haslimits.append(False)
+        except:
+            haslimits.append(False)
+
+    haslimits = np.asarray(haslimits)
+
+    if not np.all(haslimits):
+        raise Exception(f"[check_params_are_in_xlimDict]: FAILURE! All plotted properties must contain limits in xlimDict to allow for temporal averaging!"
+                        +"\n"
+                        +f"Properties {np.asarray(params)[np.where(haslimits==False)[0]]} do not have limits in xlimDict!"
+                        )
+
+    return
+
+def phase_plot(
+    dataDict,
     ylabel,
     xlimDict,
     logParameters,
@@ -41,9 +78,11 @@ def hist_plot_xyz(
     ysize=8.0,
     colourmapMain="plasma",
     Nbins=250,
-    saveCurve = False,
+    saveFigureData = False,
     savePathBase = "./",
-    DEBUG = False,
+    savePathBaseFigureData = "./",
+    verbose = False,
+    inplace = False,
 ):
 
     try:
@@ -53,11 +92,32 @@ def hist_plot_xyz(
 
     zlimDict = copy.deepcopy(xlimDict)
 
+    if inplace is True:
+        simDict = dataDict
+        print("\n"
+              +f"[@phase_plot]: WARNING! inplace flag set to True. This will modify the data dictionary provided to this function call."
+              +"\n"
+              +f"Call details: yParams:{yParams}, xParams:{xParams}, weightKeys:{weightKeys}"
+              +"\n"
+              )
+    else:
+        simDict = copy.deepcopy(dataDict)
 
-    savePath = savePathBase + "Plots/Phases/"
-    tmp = "./"
+    savePath = savePathBase + "/Plots/Phases/"
+    savePathFigureData = savePathBaseFigureData + "/Plots/Phases/"
 
-    for savePathChunk in savePath.split("/")[1:-1]:
+    tmp = ""
+    for savePathChunk in savePath.split("/")[:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+
+    tmp = ""
+    for savePathChunk in savePathFigureData.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -138,15 +198,15 @@ def hist_plot_xyz(
                     typesUsedData = paramToTypeMap[xParam]
 
                     whereNotType = np.isin(simDict["type"],typesUsedData)==False
-                    if DEBUG:
-                        print(f"[@hist_plot_xyz]: typesUsedData {typesUsedData}")
-                        print(f"[@hist_plot_xyz]: pd.unique(simDict['type']) {pd.unique(simDict['type'])}")
+                    if verbose:
+                        print(f"[@phase_plot]: typesUsedData {typesUsedData}")
+                        print(f"[@phase_plot]: pd.unique(simDict['type']) {pd.unique(simDict['type'])}")
                     tmpdataDict = cr.remove_selection(
                         tmpdataDict,
                         removalConditionMask = whereNotType,
                         errorString = "Remove types not applicable to xParam",
                         hush = True,
-                        DEBUG = DEBUG,
+                        verbose = verbose,
                     )
 
                     if xParam in logParameters:
@@ -154,7 +214,7 @@ def hist_plot_xyz(
                     else:
                         xx = tmpdataDict[xParam]
                 except Exception as e:
-                    # #raise Exception(e)
+                    # # raise Exception(e)
                     print(f"{str(e)}")
                     print("\n"+f"xParam of {xParam} data not found! Skipping...")
                     skipBool = True
@@ -165,22 +225,22 @@ def hist_plot_xyz(
                     typesUsedData = paramToTypeMap[yParam]
 
                     whereNotType = np.isin(tmpdataDict["type"],typesUsedData)==False
-                    if DEBUG:
-                        print(f"[@hist_plot_xyz]: typesUsedData {typesUsedData}")
-                        print(f"[@hist_plot_xyz]: pd.unique(tmpdataDict['type']) {pd.unique(tmpdataDict['type'])}")
+                    if verbose:
+                        print(f"[@phase_plot]: typesUsedData {typesUsedData}")
+                        print(f"[@phase_plot]: pd.unique(tmpdataDict['type']) {pd.unique(tmpdataDict['type'])}")
                     tmpdataDict = cr.remove_selection(
                         tmpdataDict,
                         removalConditionMask = whereNotType,
                         errorString = "Remove types not applicable to yParam",
                         hush = True,
-                        DEBUG = DEBUG,
+                        verbose = verbose,
                     )
                     if yParam in logParameters:
                         yy = np.log10(tmpdataDict[yParam])
                     else:
                         yy = tmpdataDict[yParam]
                 except Exception as e:
-                    # #raise Exception(e)
+                    # # raise Exception(e)
                     print(f"{str(e)}")
                     print("\n"+f"yParam of {yParam} data not found! Skipping...")
                     skipBool = True
@@ -209,25 +269,31 @@ def hist_plot_xyz(
                     (np.isfinite(xx)==True)&(np.isfinite(yy)==True))
                     [0]]
                 )
-                try:
-                    weightDataCells = (
-                        tmpdataDict[weightKey][
-                        np.where((xx>=xmin)&(xx<=xmax)
-                        &(yy>=ymin)&(yy<=ymax)&(np.isfinite(xx)==True)&(np.isfinite(yy)==True))
-                        [0]] * massCells
-                    )
-                    skipBool = False
-                except Exception as e:
-                    print(f"{str(e)}")
-                    print(
-                        f"Variable {weightKey} not found. Skipping plot..."
-                    )
-                    skipBool = True
-                    continue
+
+                if weightKey != "count":
+                    try:
+                        weightDataCells = (
+                            tmpdataDict[weightKey][
+                            np.where((xx>=xmin)&(xx<=xmax)
+                            &(yy>=ymin)&(yy<=ymax)&(np.isfinite(xx)==True)&(np.isfinite(yy)==True))
+                            [0]] * massCells
+                        )
+                        skipBool = False
+                    except Exception as e:
+                        print(f"{str(e)}")
+                        print(
+                            f"Variable {weightKey} not found. Skipping plot..."
+                        )
+                        skipBool = True
+                        continue
 
                 if weightKey == "mass":
                     finalHistCells, xedgeCells, yedgeCells = np.histogram2d(
                         xdataCells, ydataCells, bins=Nbins, weights=massCells
+                    )
+                elif weightKey == "count":
+                    finalHistCells, xedgeCells, yedgeCells = np.histogram2d(
+                        xdataCells, ydataCells, bins=Nbins, weights=None
                     )
                 else:
                     mhistCells, _, _ = np.histogram2d(
@@ -360,14 +426,15 @@ def hist_plot_xyz(
                 matplotlib.rc_file_defaults()
                 plt.close("all")
 
-                if saveCurve is True:
+                if saveFigureData is True:
+                    osplaanData = savePathFigureData + f"Phases-Plot_{yParam}-vs-{xParam}_weighted-by-{weightKey}{SaveSnapNumber}"
                     out = {"data":{"x" : xcells, "y" : ycells, "hist": finalHistCells}}
-                    tr.hdf5_save(opslaan+"_data.h5",out)
+                    tr.hdf5_save(osplaanData+"_data.h5",out)
 
     return
 
 def pdf_versus_plot(
-    dataDict,
+    inputDict,
     ylabel,
     xlimDict,
     logParameters,
@@ -381,15 +448,19 @@ def pdf_versus_plot(
     fontsize=13,
     fontsizeTitle=14,
     Nbins=250,
+    binByxParam = False,
+    NxParamBins = None,
     ageWindow=None,
     cumulative = False,
     savePathBase = "./",
-    saveCurve = False,
+    savePathBaseFigureData = "./",
+    saveFigureData = False,
     SFR = False,
     byType = False,
     forceLogMass = False,
     normalise = False,
-    DEBUG = False,
+    verbose = False,
+    inplace = False,
 ):
 
     try:
@@ -399,9 +470,20 @@ def pdf_versus_plot(
 
 
     savePath = savePathBase + "Plots/PDFs/"
-    tmp = "./"
+    savePathFigureData = savePathBaseFigureData + "Plots/PDFs/"
+    
+    tmp = ""
+    for savePathChunk in savePath.split("/")[:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
 
-    for savePathChunk in savePath.split("/")[1:-1]:
+    tmp = ""
+    for savePathChunk in savePathFigureData.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -414,6 +496,18 @@ def pdf_versus_plot(
         weightKeys = ["gima"]
         xParams = ["age"]
 
+    if inplace is True:
+        dataDict = inputDict
+        print("\n"
+              +f"[@pdf_versus_plot]: WARNING! inplace flag set to True. This will modify the data dictionary provided to this function call."
+              +"\n"
+              +f"Call details: xParams:{xParams}, weightKeys:{weightKeys}"
+              +"\n"
+              )
+    else:
+        dataDict = copy.deepcopy(inputDict)
+
+
     if byType is True:
         uniqueTypes = np.unique(dataDict["type"])
         for tp in uniqueTypes:
@@ -425,11 +519,11 @@ def pdf_versus_plot(
                 removalConditionMask = whereNotType,
                 errorString = "byType PDF whereNotType",
                 hush = True,
-                DEBUG = DEBUG,
+                verbose = verbose,
                 )
 
             pdf_versus_plot(
-                dataDict = tpData,
+                inputDict = tpData,
                 ylabel = ylabel,
                 xlimDict = xlimDict,
                 logParameters = logParameters,
@@ -443,18 +537,71 @@ def pdf_versus_plot(
                 fontsize = fontsize,
                 fontsizeTitle = fontsizeTitle,
                 Nbins = Nbins,
+                binByxParam = binByxParam,
+                NxParamBins = NxParamBins,
                 ageWindow = ageWindow,
                 cumulative = cumulative,
                 savePathBase = savePathBase+f"type{int(tp)}/",
-                saveCurve = saveCurve,
+                savePathBaseFigureData = savePathBaseFigureData+f"type{int(tp)}/",
+                saveFigureData = saveFigureData,
                 SFR = SFR,
                 forceLogMass = forceLogMass,
                 byType = False,
                 normalise = normalise,
-                DEBUG = DEBUG,
+                verbose = verbose,
+                inplace = False,
             )
         return
     
+    if binByxParam is True:
+        binIndices = range(0,NxParamBins+1,1)
+        for ii,(lowerIndex,upperIndex) in enumerate(zip(binIndices[1:],binIndices[:-1])):
+            print("Starting Binned PDF plot ",ii," of ",NxParamBins)
+            
+            binnedxlimDict = copy.deepcopy(xlimDict)
+            for key,value in xlimDict.items():
+                if key in xParams:
+                    
+                    bins = np.linspace(start=value["xmin"],stop=value["xmax"],num=NxParamBins,endpoint=True)
+                    binnedxlimDict.update({key:{"xmin":bins[lowerIndex],"xmax":bins[upperIndex]}})
+                else:
+                    pass
+        
+            pdf_versus_plot(
+                inputDict = inputDict,
+                ylabel = ylabel,
+                xlimDict = binnedxlimDict,
+                logParameters = logParameters,
+                snapNumber = snapNumber,
+                weightKeys = weightKeys,
+                xParams = xParams,
+                titleBool = titleBool,
+                DPI = DPI,
+                xsize = xsize,
+                ysize = ysize,
+                fontsize = fontsize,
+                fontsizeTitle = fontsizeTitle,
+                Nbins = Nbins,
+                binByxParam = False,
+                NxParamBins = NxParamBins,
+                ageWindow = ageWindow,
+                cumulative = cumulative,
+                savePathBase = savePathBase+f"type{int(tp)}/",
+                savePathBaseFigureData = savePathBaseFigureData+f"type{int(tp)}/",
+                saveFigureData = saveFigureData,
+                SFR = SFR,
+                forceLogMass = forceLogMass,
+                byType = byType,
+                normalise = normalise,
+                verbose = verbose,
+                inplace = False,
+            )
+
+
+        return
+
+
+
     for weightKey in weightKeys:
         print("-----")
         print("")
@@ -470,12 +617,12 @@ def pdf_versus_plot(
                 figsize=(xsize, ysize),
                 dpi=DPI,
             )
-            # Create a plot for each Temperature
+            
             skipBool = False
             try:
                 tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(dataDict)
                 typesUsedData = paramToTypeMap[analysisParam]
-                if DEBUG:
+                if verbose:
                     print(f"[@pdf_versus_plot]: typesUsedData {typesUsedData}")
                     print(f"[@pdf_versus_plot]: pd.unique(dataDict['type']) {pd.unique(dataDict['type'])}")
                 whereNotType = np.isin(dataDict["type"],typesUsedData)==False
@@ -485,13 +632,13 @@ def pdf_versus_plot(
                     removalConditionMask = whereNotType,
                     errorString = "Remove types not applicable to analysisParam",
                     hush = True,
-                    DEBUG = DEBUG,
+                    verbose = verbose,
                 )
 
                 tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(tmpdataDict)
                 typesUsedWeights = paramToTypeMap[weightKey]
                 
-                if DEBUG:
+                if verbose:
                     print(f"[@pdf_versus_plot]: typesUsedWeights {typesUsedWeights}")
                     print(f"[@pdf_versus_plot]: pd.unique(tmpdataDict['type']) {pd.unique(tmpdataDict['type'])}")
                 whereNotTypeWeights = np.isin(tmpdataDict["type"],typesUsedWeights)==False
@@ -501,22 +648,20 @@ def pdf_versus_plot(
                     removalConditionMask = whereNotTypeWeights,
                     errorString = "Remove types not applicable to weightKey",
                     hush = True,
-                    DEBUG = DEBUG,
+                    verbose = verbose,
                 )
                 
                 plotData = tmpdataDict[analysisParam]
                 weightsData = tmpdataDict[weightKey]
                 skipBool = False
             except Exception as e:
-                #raise Exception(e)
+                # raise Exception(e)
                 print(f"{str(e)}")
                 print(
-                    f"Variable {analysisParam} not found. Skipping plot..."
+                    f"Variable {analysisParam} data subset selection failure. Skipping plot..."
                 )
                 skipBool = True
                 continue
-
-
 
 
             colour = "blue"
@@ -576,10 +721,10 @@ def pdf_versus_plot(
                 xmax = np.nanmax(plotData)
                 skipBool = False
             except Exception as e:
-                #raise Exception(e)
+                # raise Exception(e)
                 print(f"{str(e)}")
                 print(
-                    f"Variable {analysisParam} not found. Skipping plot...")
+                    f"Variable {analysisParam} data all NaN. Skipping plot...")
                 skipBool = True
                 continue
 
@@ -647,10 +792,10 @@ def pdf_versus_plot(
                 ymax = np.nanmax(hist[np.isfinite(hist)])
                 skipBool = False
             except Exception as e:
-                #raise Exception(e)
+                # raise Exception(e)
                 print(f"{str(e)}")
                 print(
-                    f"Variable {analysisParam} not found. Skipping plot...")
+                    f"Variable {analysisParam} histogram all Inf/NaN. Skipping plot...")
                 skipBool = True
                 continue
             xFromBins = np.array(
@@ -704,19 +849,19 @@ def pdf_versus_plot(
 
             if (skipBool == True):
                 print(
-                    f"Variable {analysisParam} not found. Skipping plot...")
+                    f"Variable {analysisParam} plot failed (reason should have been printed to stdout above). Skipping plot...")
                 continue
 
-            try:
-                finalxmin = max(
-                    np.nanmin(xmin), xlimDict[analysisParam]["xmin"]
-                )
-                finalxmax = min(
-                    np.nanmax(xmax), xlimDict[analysisParam]["xmax"]
-                )
-            except:
-                finalxmin = xmin
-                finalxmax = xmax
+            #try:
+            #    finalxmin = max(
+            #        np.nanmin(xmin), xlimDict[analysisParam]["xmin"]
+            #    )
+            #    finalxmax = min(
+            #        np.nanmax(xmax), xlimDict[analysisParam]["xmax"]
+            #    )
+            #except:
+            finalxmin = xmin
+            finalxmax = xmax
 
 
             if (
@@ -757,11 +902,14 @@ def pdf_versus_plot(
 
             if normalise is True:
                 tmp2 = savePath +"Normalised-"
+                tmp2FigureData = savePathFigureData +"Normalised-"
             else:
                 tmp2 = savePath
+                tmp2FigureData = savePathFigureData
 
             if cumulative is True:
                 tmp2 = tmp2 +"Cumulative-"
+                tmp2FigureData = tmp2FigureData +"Cumulative-"
 
             if snapNumber is not None:
                 if type(snapNumber) == int:
@@ -773,9 +921,11 @@ def pdf_versus_plot(
 
             if SFRBool is True:
                 opslaan = tmp2 + f"SFR{SaveSnapNumber}"
+                opslaanFigureData = tmp2FigureData + f"SFR{SaveSnapNumber}"
 
             else:
                 opslaan = tmp2 + f"{weightKey}-{analysisParam}-PDF{SaveSnapNumber}"
+                opslaanFigureData = tmp2FigureData + f"{weightKey}-{analysisParam}-PDF{SaveSnapNumber}"
 
             plt.savefig(opslaan + ".pdf", dpi=DPI, transparent=False)
             print(opslaan)
@@ -783,9 +933,11 @@ def pdf_versus_plot(
             matplotlib.rc_file_defaults()
             plt.close("all")
 
-            if saveCurve is True:
+            if saveFigureData is True:
+                print(f"Saving Figure Data as {opslaanFigureData}")
                 out = {"data":{"x" : xFromBins, "y" : hist}}
-                tr.hdf5_save(opslaan+"_data.h5",out)
+                tr.hdf5_save(opslaanFigureData+"_data.h5",out)
+                
 
             
     return
@@ -809,14 +961,28 @@ def plot_slices(snap,
     colourmapMain="inferno",
     numthreads=10,
     savePathBase = "./",
+    savePathBaseFigureData = "./",
+    saveFigureData = False,
     saveFigure = True,
-    DEBUG = False,
+    rasterized = True,
+    verbose = False,
+    inplace = False,
 ):
     savePath = savePathBase + "Plots/Slices/"
+    savePathFigureData = savePathBaseFigureData + "Plots/Slices/"
+    
+    tmp = ""
+    for savePathChunk in savePath.split("/")[:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
 
-    tmp = "./"
-
-    for savePathChunk in savePath.split("/")[1:-1]:
+    tmp = ""
+    for savePathChunk in savePathFigureData.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -844,11 +1010,41 @@ def plot_slices(snap,
     try:
         types = pd.unique(snap.data["type"])
         snapType = True
-        if DEBUG: print("[@plot_slices]: snapshot type detected!")
+        if verbose: print("[@plot_slices]: snapshot type detected!")
     except:
         snapType = False
-        slice = snap
-        if DEBUG: print("[@plot_slices]: dictionary type detected!")
+        if verbose: print("[@plot_slices]: dictionary type detected!")
+
+    paramSplitList = sliceParam.split("_")
+
+    if paramSplitList[-1] == "col":
+        ## If _col variant is called we want to calculate a projection of the non-col parameter
+        ## Thus, we force projection to now be true, and incorporate a dummy variable tmpsliceParam
+        ## to force plots to generate non-col variants but save output as column density version
+
+        tmpsliceParam = "_".join(paramSplitList[:-1])
+        projection = True
+    else:
+        tmpsliceParam = sliceParam
+
+    if snapType == True:
+        try:
+            tmp = snap.data[tmpsliceParam]
+        except Exception as e:
+            print(f"{str(e)}")
+            print(
+            f"[@plot_slices]: Variable {tmpsliceParam} not found in snapshot data. Skipping plot..."
+            )
+            return
+    else:
+        try:
+            slice = snap[tmpsliceParam]
+        except Exception as e:
+            print(f"{str(e)}")
+            print(
+            f"[@plot_slices]: Variable {tmpsliceParam} not found in data dictionary. Skipping plot..."
+            )
+            return
 
     if snapType is True:
         # ==============================================================================#
@@ -869,7 +1065,7 @@ def plot_slices(snap,
             nz=None #int(boxlos / pixreslos)
             boxz= None #boxlos
 
-        if sliceParam == "T":
+        if tmpsliceParam == "T":
             slice  = snap.get_Aslice(
                 "Tdens",
                 box=[boxsize, boxsize],
@@ -899,7 +1095,7 @@ def plot_slices(snap,
             slice["grid"] = slice["grid"]/proj_dens["grid"]
         else:
             slice = snap.get_Aslice(
-                sliceParam,
+                tmpsliceParam,
                 box=[boxsize, boxsize],
                 center=imgcent,
                 nx=int(boxsize / pixres),
@@ -910,7 +1106,14 @@ def plot_slices(snap,
                 proj=projection,
                 numthreads=numthreads,
             )
-            if projection is True:
+
+            paramSplitList = sliceParam.split("_")
+
+            if paramSplitList[-1] == "col":
+                KpcTocm = 1e3 * c.parsec
+                convert = float(pixreslos)*KpcTocm
+                slice["grid"] = slice["grid"]*convert
+            elif projection is True:
                 slice["grid"] = slice["grid"]/ int(boxlos / pixreslos)
     
     if saveFigure is True:
@@ -920,9 +1123,8 @@ def plot_slices(snap,
         )
 
         # cmap = plt.get_cmap(colourmapMain)
+        cmap = copy.copy(cmap)
         cmap.set_bad(color="grey")
-
-        norm = matplotlib.colors.LogNorm(clip=True)
 
         try:
             tmp = xlimDict[sliceParam]["xmin"]
@@ -941,18 +1143,17 @@ def plot_slices(snap,
         else:
             zmin, zmax = None, None
 
+        norm = matplotlib.colors.LogNorm(vmin = zmin, vmax = zmax,clip=True)
         pcm = axes.pcolormesh(
             slice["x"],
             slice["y"],
             np.transpose(slice["grid"]),
-            vmin = zmin,
-            vmax = zmax,
             norm=norm,
             cmap=cmap,
-            rasterized=True,
+            rasterized=rasterized,
         )
 
-        axes.set_title(f"{sliceParam} Slice", fontsize=fontsize)
+        #axes.set_title(f"{sliceParam} Slice", fontsize=fontsize)
         cax1 = inset_axes(axes, width="5%", height="95%", loc="right")
         fig.colorbar(pcm, cax=cax1, orientation="vertical").set_label(
             label=f"{ylabel[sliceParam]}", size=fontsize, weight="bold"
@@ -978,8 +1179,10 @@ def plot_slices(snap,
 
         if projection is False:
             savePath = savePath + f"Slice_Plot_{sliceParam}{SaveSnapNumber}.pdf"
+            savePathFigureData = savePathFigureData + f"Slice_Plot_{sliceParam}{SaveSnapNumber}"
         else:
             savePath = savePath + f"Projection_Plot_{sliceParam}{SaveSnapNumber}.pdf" 
+            savePathFigureData = savePathFigureData + f"Projection_Plot_{sliceParam}{SaveSnapNumber}" 
 
         print(f" Save {savePath}")
         plt.savefig(savePath, transparent=False)
@@ -989,7 +1192,12 @@ def plot_slices(snap,
         plt.close("all")
         print(f" ...done!")
 
-    return {sliceParam: copy.deepcopy(slice)}
+        out = {sliceParam: copy.deepcopy(slice)}
+        if saveFigureData is True:
+            print(f"Saving Figure Data as {savePathFigureData}")
+            tr.hdf5_save(savePathFigureData+"_data.h5",out)
+
+    return out
 
 def combined_pdf_versus_plot(
     loadPaths,
@@ -1012,7 +1220,7 @@ def combined_pdf_versus_plot(
     byType = False,
     forceLogMass = False,
     normalise = False,
-    DEBUG = False,
+    verbose = False,
     ):
 
     try:
@@ -1057,7 +1265,7 @@ def combined_pdf_versus_plot(
                 byType = byType,
                 forceLogMass = forceLogMass,
                 normalise = normalise,
-                DEBUG = DEBUG,
+                verbose = verbose,
             )
         return
 
@@ -1083,9 +1291,9 @@ def combined_pdf_versus_plot(
                 print("loadPathBase= ",loadPathBase)
 
                 loadPath = loadPathBase + "Plots/PDFs/"
-                tmp = "./"
+                tmp = ""
 
-                for loadPathChunk in loadPath.split("/")[1:-1]:
+                for loadPathChunk in loadPath.split("/")[:-1]:
                     tmp += loadPathChunk + "/"
                     try:
                         os.mkdir(tmp)
@@ -1222,9 +1430,9 @@ def combined_pdf_versus_plot(
                 plt.subplots_adjust(hspace=0.1, left=0.15)
 
             savePath = savePathBase + "Plots/PDFs/" + savePath
-            tmp = "./"
+            tmp = ""
 
-            for savePathChunk in savePath.split("/")[1:-1]:
+            for savePathChunk in savePath.split("/")[:-1]:
                 tmp += savePathChunk + "/"
                 try:
                     os.mkdir(tmp)
@@ -1238,40 +1446,322 @@ def combined_pdf_versus_plot(
             plt.close()
     return
 
-def round_it(x, sig):
-    """
-        Minor adaptations made to the function taken from here https://www.delftstack.com/howto/python/round-to-significant-digits-python/
-        Accessed: 21/04/2023
-    """
-    if x != 0:
-        return round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
+def medians_versus_plot(
+    inputDict,
+    PARAMS,
+    ylabel,
+    xlimDict,
+    snapNumber = None,
+    yParam=None,
+    xParam="R",
+    titleBool=False,
+    DPI=150,
+    xsize=6.0,
+    ysize=6.0,
+    fontsize = 13,
+    fontsizeTitle = 14,
+    opacityPercentiles=0.25,
+    colourmapMain="tab10",
+    savePathBase ="./",
+    savePathBaseFigureData = "./",
+    inplace = False,
+    saveFigureData = False,
+    ):
+
+ 
+    keys = list(PARAMS.keys())
+    selectKey0 = keys[0]
+
+    if yParam is None:
+        plotParams = PARAMS[selectKey0]["saveParams"]
+        print(f"[medians_versus_plot]: WARNING! No yParam provided so default of all 'saveParams' being used. This may cause errors if any of 'saveParams' do not have limits set in xlimDict...")
     else:
-        return 0.0
+        plotParams = yParam
 
-def check_params_are_in_xlimDict(xlimDict, params):
+    #check_params_are_in_xlimDict(xlimDict, yParam)
+    #check_params_are_in_xlimDict(xlimDict, [xParam])
 
-    haslimits = []
-    for param in params:
+    if inplace is True:
+        statsDict = inputDict
+        print("\n"
+              +f"[@medians_versus_plot]: WARNING! inplace flag set to True. This will modify the data dictionary provided to this function call."
+              +"\n"
+              +f"Call details: xParam:{xParam}, yParam:{yParam}"
+              +"\n"
+              )
+    else:
+        statsDict = copy.deepcopy(inputDict)
+
+    savePath = savePathBase + "/Plots/Medians/"
+ 
+    tmp = ""
+    for savePathChunk in savePath.split("/")[:-1]:
+        tmp += savePathChunk + "/"
         try:
-            values = xlimDict[param]
-            try:
-                tmp = values['xmin']
-                tmp = values['xmax']
-                haslimits.append(True)
-            except:
-                haslimits.append(False)
+            os.mkdir(tmp)
         except:
-            haslimits.append(False)
+            pass
 
-    haslimits = np.asarray(haslimits)
+    for analysisParam in plotParams:
+        if analysisParam != xParam:
+            print("")
+            print(f"Starting {analysisParam} plots!")
+  
+            fig, ax = plt.subplots(
 
-    if not np.all(haslimits):
-        raise Exception(f"[check_params_are_in_xlimDict]: FAILURE! All plotted properties must contain limits in xlimDict to allow for temporal averaging!"
-                        +"\n"
-                        +f"Properties {params[np.where(haslimits==False)[0]]} do not have limits in xlimDict!"
+            nrows=1,
+            ncols=1,
+            sharex=True,
+            sharey=True,
+            figsize=(xsize, ysize),
+            dpi=DPI,
+            )
+
+            yminlist = []
+            ymaxlist = []
+
+            Nkeys = len(list(statsDict.keys()))
+
+            for (ii, (selectKey, simDict)) in enumerate(statsDict.items()):
+                if (selectKey[-2] == "Stars") | (selectKey[-2] == "col") :
+                    selectKeyShort = tuple([xx for xx in selectKey if (xx != "Stars") & (xx != "col")])
+                else:
+                    selectKeyShort = selectKey
+
+                try:
+                    HASDATA = simDict.values()
+                    if HASDATA is None:
+                        print(f"[@medians_versus_plot]: No data found in simDict entry for {selectKey} (or for {selectKeyShort}). Skipping...")
+                        continue
+                except Exception as e:
+                    print(f"{str(e)}")
+                    print(f"[@medians_versus_plot]: No data found in simDict entry for {selectKey} (or for {selectKeyShort}). Skipping...")
+                    continue
+
+                print(f"Starting {selectKey} plot")             
+
+
+                plotData = simDict.copy()
+                xData = np.array(simDict[xParam].copy())
+
+                cmap = matplotlib.cm.get_cmap(colourmapMain)
+                if colourmapMain == "tab10":
+                    colour = cmap(float(ii) / 10.0)
+                else:
+                    colour = cmap(float(ii) / float(Nkeys))
+
+                try:
+                    loadPercentilesTypes = [
+                        analysisParam + "_" + str(percentile) + "%"
+                        for percentile in PARAMS[selectKeyShort]["percentiles"]
+                    ]
+                except Exception as e:
+                    print(f"{str(e)}")
+                    print(
+                        f"[@medians_versus_plot]: Variable {analysisParam} not found in PARAMS. Skipping plot..."
+                    )
+                    continue
+                LO = (
+                    analysisParam
+                    + "_"
+                    + str(min(PARAMS[selectKeyShort]["percentiles"]))
+                    + "%"
+                )
+                UP = (
+                    analysisParam
+                    + "_"
+                    + str(max(PARAMS[selectKeyShort]["percentiles"]))
+                    + "%"
+                )
+                median = analysisParam + "_" + "50.00%"
+
+                if analysisParam in PARAMS[selectKeyShort]["logParameters"]:
+                    for k, v in plotData.items():
+                        plotData.update({k: np.log10(v)})
+
+                try:
+                    ymin = np.nanmin(
+                        plotData[LO][np.isfinite(plotData[LO])])
+                    ymax = np.nanmax(
+                        plotData[UP][np.isfinite(plotData[UP])])
+                except Exception as e:
+                    print(f"{str(e)}")
+                    print(
+                        f"[@medians_versus_plot]: Variable {analysisParam} has no finite values. Skipping plot...")
+                    continue
+                yminlist.append(ymin)
+                ymaxlist.append(ymax)
+
+                if (
+                    (np.isinf(ymin) == True)
+                    or (np.isinf(ymax) == True)
+                    or (np.isnan(ymin) == True)
+                    or (np.isnan(ymax) == True)
+                ):
+                    # print()
+                    print("[@medians_versus_plot]: Data All Inf/NaN! Skipping entry!")
+                    continue
+
+                currentAx = ax
+
+                path = copy.copy(savePathBase)
+
+                splitbase = path.split("/")
+                # print(splitbase)
+                if "" in splitbase:
+                    splitbase.remove("")
+                if "." in splitbase:
+                    splitbase.remove(".")
+                if "Plots" in splitbase:
+                    splitbase.remove("Plots")
+                # print(splitbase)
+
+                if len(splitbase)>2:
+                    label = f'{splitbase[0]}: {"_".join(((splitbase[-2]).split("_"))[:2])} ({splitbase[-1]})'
+                elif len(splitbase)>1:
+                    label = f'{splitbase[0]}: {"_".join(((splitbase[-1]).split("_"))[:2])}'
+                else:
+                    label = f'Original: {"_".join(((splitbase[-1]).split("_"))[:2])}'
+
+
+                midPercentile = math.floor(len(loadPercentilesTypes) / 2.0)
+                percentilesPairs = zip(
+                    loadPercentilesTypes[:midPercentile],
+                    loadPercentilesTypes[midPercentile + 1:],
+                )
+                for (LO, UP) in percentilesPairs:
+                    currentAx.fill_between(
+                        xData,
+                        plotData[UP],
+                        plotData[LO],
+                        facecolor=colour,
+                        alpha=opacityPercentiles,
+                        interpolate=False,
+                    )
+                currentAx.plot(
+                    xData,
+                    plotData[median],
+                    label= label,
+                    color=colour,
+                )
+
+                currentAx.xaxis.set_minor_locator(AutoMinorLocator())
+                currentAx.yaxis.set_minor_locator(AutoMinorLocator())
+                currentAx.tick_params(
+                    axis="both", which="both", labelsize=fontsize)
+
+                currentAx.set_ylabel(
+                    ylabel[analysisParam], fontsize=fontsize)
+
+                if titleBool is True:
+                    if selectKey[-2] == "Stars":
+                        fig.suptitle(
+                            f"Median and Percentiles of"
+                            + "\n"
+                            + f" Stellar-{analysisParam} vs {xParam}",
+                            fontsize=fontsizeTitle,
                         )
 
+                    elif selectKey[-2] == "col":
+                        fig.suptitle(
+                            f"Median and Percentiles of"
+                            + "\n"
+                            + f" Projected Maps of {analysisParam} vs {xParam}",
+                            fontsize=fontsizeTitle,
+                        )    
+
+                    else:
+                        fig.suptitle(
+                            f"Median and Percentiles of"
+                            + "\n"
+                            + f" {analysisParam} vs {xParam}",
+                            fontsize=fontsizeTitle,
+                        )
+
+            ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
+
+            if (len(yminlist) == 0) | (len(ymaxlist) == 0):
+                print(
+                    f"[@medians_versus_plot]: Variable {analysisParam} has no ymin or ymax. Skipping plot..."
+                )
+                continue
+
+            try:
+                xmin, xmax =(
+                xlimDict[xParam]["xmin"], xlimDict[xParam]["xmax"]
+                )
+            except:
+                xmin, xmax, = ( np.nanmin(xData), np.nanmax(xData))
+
+            try:
+                finalymin, finalymax =(
+                xlimDict[analysisParam]["xmin"], xlimDict[analysisParam]["xmax"]
+                )
+            except:
+                finalymin, finalymax, = ( np.nanmin(yminlist), np.nanmax(ymaxlist))
+
+
+            if (
+                (np.isinf(finalymin) == True)
+                or (np.isinf(finalymax) == True)
+                or (np.isnan(finalymin) == True)
+                or (np.isnan(finalymax) == True)
+            ):
+                print("[@medians_versus_plot]: Data All Inf/NaN! Skipping entry!")
+                continue
+
+            custom_xlim = (xmin, xmax)
+            custom_ylim = (finalymin, finalymax)
+            # xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
+            # custom_xlim = (min(xData),max(xData)*1.05)
+            # if xParam == "R":
+            #     if PARAMS[selectKeyShort]['analysisType'] == "cgm":
+            #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
+            #         custom_xlim = (0,max(xData)*1.05)
+            #     else:
+            #         custom_xlim = (0,max(xData)*1.05)
+            # ax.set_xticks(xticks)
+            ax.legend(loc="best", fontsize=fontsize)
+
+            plt.setp(
+                ax,
+                ylim=custom_ylim,
+                xlim=custom_xlim
+            )
+            # plt.tight_layout()
+
+            if snapNumber is not None:
+                if type(snapNumber) == int:
+                    SaveSnapNumber = "_" + str(snapNumber).zfill(4)
+                else:
+                    SaveSnapNumber = "_" + str(snapNumber)
+            else:
+                SaveSnapNumber = ""
+
+            if titleBool is True:
+                plt.subplots_adjust(top=0.875, hspace=0.1, left=0.15)
+            else:
+                plt.subplots_adjust(hspace=0.1, left=0.15)
+
+            if selectKey[-2] == "Stars":
+                opslaan = savePath + \
+                    f"Stellar-{analysisParam}_Medians{SaveSnapNumber}.pdf"
+            elif selectKey[-2] == "col":
+                opslaan = savePath + \
+                    f"Projection-Mapped-{analysisParam}_Medians{SaveSnapNumber}.pdf"
+            else:
+                opslaan = savePath + f"{analysisParam}_Medians{SaveSnapNumber}.pdf"
+            plt.savefig(opslaan, dpi=DPI, transparent=False)
+            matplotlib.rc_file_defaults()
+            plt.close("all")
+            print(opslaan)
+            plt.close()
+
+    if saveFigureData is True:
+        print("\n"+"[@medians_versus_plot]: saveFigureData is redundant for this plot type. Save data from calculate_statistics calls instead!")
+
     return
+
 #==========================================================#
 ##  Project Specific variants ...
 #==========================================================#
@@ -1292,9 +1782,9 @@ def hy_plot_slices(snap,
     savePathBase = "./",
 ):
     savePath = savePathBase + f"Plots/Slices/"
-    tmp = "./"
+    tmp = ""
 
-    for savePathChunk in savePath.split("/")[1:-1]:
+    for savePathChunk in savePath.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -1303,10 +1793,10 @@ def hy_plot_slices(snap,
         else:
             pass
 
-    if colourmapMain == None:
+    if colourmapMain is None:
         cmap = plt.get_cmap("inferno")
     else:
-        cmap = colourmapMain
+        cmap = plt.get_cmap(colourmapMain)
 
     # Axes Labels to allow for adaptive axis selection
     AxesLabels = ["x", "y", "z"]
@@ -1399,6 +1889,7 @@ def hy_plot_slices(snap,
         fig.suptitle(TITLE, fontsize=fontsizeTitle)
 
     # cmap = plt.get_cmap(colourmapMain)
+    cmap = copy.copy(cmap)
     cmap.set_bad(color="grey")
 
     # -----------#
@@ -1411,9 +1902,7 @@ def hy_plot_slices(snap,
         slice_T["x"],
         slice_T["y"],
         np.transpose(slice_T["grid"]),
-        vmin=1e4,
-        vmax=10 ** (6.5),
-        norm=matplotlib.colors.LogNorm(),
+        norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
         cmap=cmap,
         rasterized=True,
     )
@@ -1444,13 +1933,11 @@ def hy_plot_slices(snap,
     ax2 = axes[1]
 
     cmapVol = cm.get_cmap("seismic")
-    norm = matplotlib.colors.LogNorm(clip=True)
+    norm = matplotlib.colors.LogNorm(vmin = 5e-3, vmax = 5e3, clip=True)
     pcm2 = ax2.pcolormesh(
         slice_vol["x"],
         slice_vol["y"],
         np.transpose(slice_vol["grid"]),
-        vmin = 5e-3,#5e-1,
-        vmax = 5e3,#2e1,
         norm=norm,
         cmap=cmapVol,
         rasterized=True,
@@ -1526,9 +2013,9 @@ def hy_plot_slices_quad(snap,
 ):
     savePath = savePathBase + "Plots/Slices/"
 
-    tmp = "./"
+    tmp = ""
 
-    for savePathChunk in savePath.split("/")[1:-1]:
+    for savePathChunk in savePath.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -1537,10 +2024,10 @@ def hy_plot_slices_quad(snap,
         else:
             pass
 
-    if colourmapMain == None:
+    if colourmapMain is None:
         cmap = plt.get_cmap("inferno")
     else:
-        cmap = colourmapMain
+        cmap = plt.get_cmap(colourmapMain)
 
     # Axes Labels to allow for adaptive axis selection
     AxesLabels = ["x", "y", "z"]
@@ -1663,6 +2150,7 @@ def hy_plot_slices_quad(snap,
         fig.suptitle(TITLE, fontsize=fontsizeTitle)
 
     # cmap = plt.get_cmap(colourmapMain)
+    cmap = copy.copy(cmap)
     cmap.set_bad(color="grey")
 
     # -----------#
@@ -1675,9 +2163,7 @@ def hy_plot_slices_quad(snap,
         slice_T["x"],
         slice_T["y"],
         np.transpose(slice_T["grid"]),
-        vmin=1e4,
-        vmax=10 ** (6.5),
-        norm=matplotlib.colors.LogNorm(),
+        norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
         cmap=cmap,
         rasterized=True,
     )
@@ -1711,9 +2197,7 @@ def hy_plot_slices_quad(snap,
         slice_tcool["x"],
         slice_tcool["y"],
         np.transpose(slice_tcool["grid"]),
-        vmin = (10)**(-3.5),
-        vmax = 1e2,
-        norm=matplotlib.colors.LogNorm(),
+        norm=matplotlib.colors.LogNorm(vmin = (10)**(-3.5), vmax = 1e2),
         cmap=cmap,
         rasterized=True,
     )
@@ -1759,9 +2243,7 @@ def hy_plot_slices_quad(snap,
         slice_cl["x"],
         slice_cl["y"],
         np.transpose(slice_cl["grid"]),
-        vmin=1e-1,
-        vmax=1e4,
-        norm=matplotlib.colors.LogNorm(),
+        norm=matplotlib.colors.LogNorm(vmin=1e-1, vmax=1e4),
         cmap=cmap,
         rasterized=True,
     )
@@ -1804,9 +2286,7 @@ def hy_plot_slices_quad(snap,
         slice_nH["x"],
         slice_nH["y"],
         np.transpose(slice_nH["grid"]),
-        vmin=1e-7,
-        vmax=1e-1,
-        norm=matplotlib.colors.LogNorm(),
+        norm=matplotlib.colors.LogNorm(vmin=1e-7, vmax=1e-1),
         cmap=cmap,
         rasterized=True,
     )
@@ -1873,9 +2353,9 @@ def hy_plot_projections(snap,
 ):
 
     savePath = savePathBase + "Plots/Projections/"
-    tmp = "./"
+    tmp = ""
 
-    for savePathChunk in savePath.split("/")[1:-1]:
+    for savePathChunk in savePath.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -1884,10 +2364,10 @@ def hy_plot_projections(snap,
         else:
             pass
 
-    if colourmapMain == None:
+    if colourmapMain is None:
         cmap = plt.get_cmap("inferno")
     else:
-        cmap = colourmapMain
+        cmap = plt.get_cmap(colourmapMain)
 
     # Axes Labels to allow for adaptive axis selection
     AxesLabels = ["x", "y", "z"]
@@ -1991,6 +2471,7 @@ def hy_plot_projections(snap,
         fig.suptitle(TITLE, fontsize=fontsizeTitle)
 
     # cmap = plt.get_cmap(colourmapMain)
+    cmap = copy.copy(cmap)
     cmap.set_bad(color="grey")
 
     # -----------#
@@ -2003,9 +2484,7 @@ def hy_plot_projections(snap,
         proj_T["x"],
         proj_T["y"],
         np.transpose(proj_T["grid"] / proj_dens["grid"]),
-        vmin=1e4,
-        vmax=10 ** (6.5),
-        norm=matplotlib.colors.LogNorm(),
+        norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
         cmap=cmap,
         rasterized=True,
     )
@@ -2036,13 +2515,11 @@ def hy_plot_projections(snap,
     ax2 = axes[1]
 
     cmapVol = cm.get_cmap("seismic")
-    norm = matplotlib.colors.LogNorm(clip=True)
+    norm = matplotlib.colors.LogNorm(vmin = 5e-3, vmax = 5e3, clip=True)
     pcm2 = ax2.pcolormesh(
         proj_vol["x"],
         proj_vol["y"],
         np.transpose(proj_vol["grid"]) / int(boxlos / pixreslos),
-        vmin = 5e-3,#5e-1,
-        vmax = 5e3,#2e1,
         norm=norm,
         cmap=cmapVol,
         rasterized=True,
@@ -2104,7 +2581,7 @@ def hy_plot_projections(snap,
 
 def cr_medians_versus_plot(
     statsDict,
-    CRPARAMSHALO,
+    CRPARAMS,
     ylabel,
     xlimDict,
     snapNumber = None,
@@ -2118,277 +2595,107 @@ def cr_medians_versus_plot(
     fontsizeTitle = 14,
     opacityPercentiles=0.25,
     colourmapMain="tab10",
-    savePathBase ="./"
+    savePathBase ="./",
+    savePathBaseFigureData = "./",
+    inplace = False,
+    saveFigureData = False,
+    forcePlotsWithoutxlimits = False,
     ):
 
-    
-
-    keys = list(CRPARAMSHALO.keys())
+    keys = list(CRPARAMS.keys())
     selectKey0 = keys[0]
 
     if yParam is None:
-        plotParams = CRPARAMSHALO[selectKey0]["saveParams"]
+        plotParams = CRPARAMS[selectKey0]["saveParams"]
         print(f"[cr_medians_versus_plot]: WARNING! No yParam provided so default of all 'saveParams' being used. This may cause errors if any of 'saveParams' do not have limits set in xlimDict...")
     else:
         plotParams = yParam
 
-    check_params_are_in_xlimDict(xlimDict, yParam)
-    check_params_are_in_xlimDict(xlimDict, [xParam])
+    if forcePlotsWithoutxlimits == False:
+        check_params_are_in_xlimDict(xlimDict, yParam)
+        check_params_are_in_xlimDict(xlimDict, [xParam])
 
-    simSavePath = f"Plots/{CRPARAMSHALO[selectKey0]['halo']}/{CRPARAMSHALO[selectKey0]['analysisType']}"
-    savePath = savePathBase + simSavePath + "/Plots/Medians/"
-    tmp = "./"
 
-    for savePathChunk in savePath.split("/")[1:-1]:
-        tmp += savePathChunk + "/"
-        try:
-            os.mkdir(tmp)
-        except:
-            pass
+    fontsize = CRPARAMS[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMS[selectKey0]["fontsizeTitle"]
 
-    for analysisParam in plotParams:
-        if analysisParam != xParam:
-            print("")
-            print(f"Starting {analysisParam} plots!")
-  
-            fig, ax = plt.subplots(
+    for (ii, (selectKey, simDict)) in enumerate(statsDict.items()):
+        if (selectKey[-2] == "Stars") | (selectKey[-2] == "col") :
+            selectKeyShort = tuple([xx for xx in selectKey if (xx != "Stars") & (xx != "col")])
+        else:
+            selectKeyShort = selectKey
 
-            nrows=1,
-            ncols=1,
-            sharex=True,
-            sharey=True,
-            figsize=(xsize, ysize),
-            dpi=DPI,
-            )
+        selectKeyShortest = selectKeyShort[:-1]
 
-            yminlist = []
-            ymaxlist = []
-            patchList = []
-            labelList = []
+        loadpath = CRPARAMS[selectKeyShort]["simfile"]
+        if loadpath is not None:
+            print(f"{CRPARAMS[selectKeyShort]['resolution']}, {CRPARAMS[selectKeyShort]['CR_indicator']}{CRPARAMS[selectKeyShort]['no-alfven_indicator']}")
+            if snapNumber is None:
+                snapNumber = "Averaged"
 
-            Nkeys = len(list(statsDict.items()))
-            for (ii, (selectKey, simDict)) in enumerate(statsDict.items()):
-                if selectKey[-1] == "Stars":
-                    selectKeyShort = selectKey[:2]
+            plotableDict = {selectKeyShortest : simDict}
+            tmpCRPARAMS = {selectKeyShortest : copy.deepcopy(CRPARAMS[selectKeyShort])}
+
+            if (selectKey[-2] == "Stars"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Stars/"
+            elif (selectKey[-2] == "col"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Col-Projection-Mapped/"
+            else:
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/"
+
+
+            savePath = savePathBase + simSavePath
+            tmp = ""
+
+            for savePathChunk in savePath.split("/")[:-1]:
+                tmp += savePathChunk + "/"
+                try:
+                    os.mkdir(tmp)
+                except:
+                    pass
+
+            savePathData = savePathBaseFigureData + simSavePath
+
+            tmp = ""
+            for savePathChunk in savePathData.split("/")[1:-1]:
+                tmp += savePathChunk + "/"
+                try:
+                    os.mkdir(tmp)
+                except:
+                    pass
                 else:
-                    selectKeyShort = selectKey
+                    pass
 
-                loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
-                if loadpath is not None:
-                    print(f"{CRPARAMSHALO[selectKeyShort]['resolution']}, {CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}")                    # Create a plot for each Temperature
-
-                    plotData = simDict.copy()
-                    xData = np.array(simDict[xParam].copy())
-
-                    cmap = matplotlib.cm.get_cmap(colourmapMain)
-                    if colourmapMain == "tab10":
-                        colour = cmap(float(ii) / 10.0)
-                    else:
-                        colour = cmap(float(ii) / float(Nkeys))
-
-                    try:
-                        loadPercentilesTypes = [
-                            analysisParam + "_" + str(percentile) + "%"
-                            for percentile in CRPARAMSHALO[selectKeyShort]["percentiles"]
-                        ]
-                    except Exception as e:
-                        print(f"{str(e)}")
-                        print(
-                            f"Variable {analysisParam} not found. Skipping plot..."
-                        )
-                        continue
-                    LO = (
-                        analysisParam
-                        + "_"
-                        + str(min(CRPARAMSHALO[selectKeyShort]["percentiles"]))
-                        + "%"
-                    )
-                    UP = (
-                        analysisParam
-                        + "_"
-                        + str(max(CRPARAMSHALO[selectKeyShort]["percentiles"]))
-                        + "%"
-                    )
-                    median = analysisParam + "_" + "50.00%"
-
-                    if analysisParam in CRPARAMSHALO[selectKeyShort]["logParameters"]:
-                        for k, v in plotData.items():
-                            plotData.update({k: np.log10(v)})
-
-                    try:
-                        ymin = np.nanmin(
-                            plotData[LO][np.isfinite(plotData[LO])])
-                        ymax = np.nanmax(
-                            plotData[UP][np.isfinite(plotData[UP])])
-                    except Exception as e:
-                        print(f"{str(e)}")
-                        print(
-                            f"Variable {analysisParam} not found. Skipping plot...")
-                        continue
-                    yminlist.append(ymin)
-                    ymaxlist.append(ymax)
-
-                    if (
-                        (np.isinf(ymin) == True)
-                        or (np.isinf(ymax) == True)
-                        or (np.isnan(ymin) == True)
-                        or (np.isnan(ymax) == True)
-                    ):
-                        # print()
-                        print("Data All Inf/NaN! Skipping entry!")
-                        continue
-
-                    currentAx = ax
-
-                    path = f"Plots/{CRPARAMSHALO[selectKeyShort]['halo']}/{CRPARAMSHALO[selectKeyShort]['analysisType']}/{CRPARAMSHALO[selectKeyShort]['resolution']}/{CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}/"
-
-                    splitbase = path.split("/")
-                    # print(splitbase)
-                    if "" in splitbase:
-                        splitbase.remove("")
-                    if "." in splitbase:
-                        splitbase.remove(".")
-                    if "Plots" in splitbase:
-                        splitbase.remove("Plots")
-                    # print(splitbase)
-
-                    if len(splitbase)>2:
-                        label = f'{splitbase[0]}: {"_".join(((splitbase[-2]).split("_"))[:2])} ({splitbase[-1]})'
-                    elif len(splitbase)>1:
-                        label = f'{splitbase[0]}: {"_".join(((splitbase[-1]).split("_"))[:2])}'
-                    else:
-                        label = f'Original: {"_".join(((splitbase[-1]).split("_"))[:2])}'
-
-
-                    midPercentile = math.floor(len(loadPercentilesTypes) / 2.0)
-                    percentilesPairs = zip(
-                        loadPercentilesTypes[:midPercentile],
-                        loadPercentilesTypes[midPercentile + 1:],
-                    )
-                    for (LO, UP) in percentilesPairs:
-                        currentAx.fill_between(
-                            xData,
-                            plotData[UP],
-                            plotData[LO],
-                            facecolor=colour,
-                            alpha=opacityPercentiles,
-                            interpolate=False,
-                        )
-                    currentAx.plot(
-                        xData,
-                        plotData[median],
-                        label= label,
-                        color=colour,
-                    )
-
-                    currentAx.xaxis.set_minor_locator(AutoMinorLocator())
-                    currentAx.yaxis.set_minor_locator(AutoMinorLocator())
-                    currentAx.tick_params(
-                        axis="both", which="both", labelsize=fontsize)
-
-                    currentAx.set_ylabel(
-                        ylabel[analysisParam], fontsize=fontsize)
-
-                    if titleBool is True:
-                        if selectKey[-1] == "Stars":
-                            fig.suptitle(
-                                f"Median and Percentiles of"
-                                + "\n"
-                                + f" Stellar-{analysisParam} vs {xParam}",
-                                fontsize=fontsizeTitle,
-                            )
-
-                        else:
-                            fig.suptitle(
-                                f"Median and Percentiles of"
-                                + "\n"
-                                + f" {analysisParam} vs {xParam}",
-                                fontsize=fontsizeTitle,
-                            )
-
-            ax.set_xlabel(ylabel[xParam], fontsize=fontsize)
-
-            if (len(yminlist) == 0) | (len(ymaxlist) == 0):
-                print(
-                    f"Variable {analysisParam} not found. Skipping plot..."
-                )
-                continue
-
-            try:
-                xmin, xmax =(
-                xlimDict[xParam]["xmin"], xlimDict[xParam]["xmax"]
-                )
-            except:
-                xmin, xmax, = ( np.nanmin(xData), np.nanmax(xData))
-
-            try:
-                finalymin, finalymax =(
-                xlimDict[analysisParam]["xmin"], xlimDict[analysisParam]["xmax"]
-                )
-            except:
-                finalymin, finalymax, = ( np.nanmin(yminlist), np.nanmax(ymaxlist))
-
-
-            if (
-                (np.isinf(finalymin) == True)
-                or (np.isinf(finalymax) == True)
-                or (np.isnan(finalymin) == True)
-                or (np.isnan(finalymax) == True)
-            ):
-                print("Data All Inf/NaN! Skipping entry!")
-                continue
-
-            custom_xlim = (xmin, xmax)
-            custom_ylim = (finalymin, finalymax)
-            # xticks = [round_it(xx,2) for xx in np.linspace(min(xData),max(xData),5)]
-            # custom_xlim = (min(xData),max(xData)*1.05)
-            # if xParam == "R":
-            #     if CRPARAMSHALO[selectKeyShort]['analysisType'] == "cgm":
-            #         ax.fill_betweenx([finalymin,finalymax],0,min(xData), color="tab:gray",alpha=opacityPercentiles)
-            #         custom_xlim = (0,max(xData)*1.05)
-            #     else:
-            #         custom_xlim = (0,max(xData)*1.05)
-            # ax.set_xticks(xticks)
-            ax.legend(loc="best", fontsize=fontsize)
-
-            plt.setp(
-                ax,
-                ylim=custom_ylim,
-                xlim=custom_xlim
+            medians_versus_plot(
+                plotableDict,
+                tmpCRPARAMS,
+                ylabel,
+                xlimDict,
+                snapNumber = snapNumber,
+                yParam=plotParams,
+                xParam=xParam,
+                titleBool=titleBool,
+                DPI=DPI,
+                xsize=xsize,
+                ysize=ysize,
+                fontsize = fontsize,
+                fontsizeTitle = fontsizeTitle,
+                opacityPercentiles=opacityPercentiles,
+                colourmapMain=colourmapMain,
+                savePathBase = savePath,
+                savePathBaseFigureData = savePathBaseFigureData,
+                inplace = inplace,
+                saveFigureData=saveFigureData
             )
-            # plt.tight_layout()
-
-            if snapNumber is not None:
-                if type(snapNumber) == int:
-                    SaveSnapNumber = "_" + str(snapNumber).zfill(4)
-                else:
-                    SaveSnapNumber = "_" + str(snapNumber)
-            else:
-                SaveSnapNumber = ""
-
-            if titleBool is True:
-                plt.subplots_adjust(top=0.875, hspace=0.1, left=0.15)
-            else:
-                plt.subplots_adjust(hspace=0.1, left=0.15)
-
-            if selectKey[-1] == "Stars":
-                opslaan = savePath + \
-                    f"Stellar-{analysisParam}_Medians{SaveSnapNumber}.pdf"
-            else:
-                opslaan = savePath + f"{analysisParam}_Medians{SaveSnapNumber}.pdf"
-            plt.savefig(opslaan, dpi=DPI, transparent=False)
-            matplotlib.rc_file_defaults()
-            plt.close("all")
-            print(opslaan)
-            plt.close()
 
     return
 
 def cr_pdf_versus_plot(
     dataDict,
-    CRPARAMSHALO,
+    CRPARAMS,
     ylabel,
     xlimDict,
+    snapNumber = None,
     weightKeys = ['mass'],
     xParams = ["T"],
     titleBool=False,
@@ -2398,36 +2705,42 @@ def cr_pdf_versus_plot(
     fontsize=13,
     fontsizeTitle=14,
     Nbins=250,
+    binByxParam = False,
+    NxParamBins = None,
     ageWindow=None,
     cumulative = False,
     savePathBase = "./",
-    saveCurve = True,
+    savePathBaseFigureData = "./",
+    saveFigureData = True,
     SFR = False,
     byType = False,
     forceLogMass = False,
     normalise = False,
-    DEBUG = False,
+    verbose = False,
+    inplace = False,
+    forcePlotsWithoutxlimits = False,
+    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"],
     #lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
 ):
-    check_params_are_in_xlimDict(xlimDict, xParams)
+    
+    if (forcePlotsWithoutxlimits == False) & (SFR == False):
+        check_params_are_in_xlimDict(xlimDict, xParams)
 
-    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"]
-
-    keys = list(CRPARAMSHALO.keys())
+    keys = list(CRPARAMS.keys())
     selectKey0 = keys[0]
 
-    fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
-    fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+    fontsize = CRPARAMS[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMS[selectKey0]["fontsizeTitle"]
 
     for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
-        if selectKey[-1] == "Stars":
-            selectKeyShort = selectKey[:2]
+        if (selectKey[-2] == "Stars") | (selectKey[-2] == "col") :
+            selectKeyShort = tuple([xx for xx in selectKey if (xx != "Stars") & (xx != "col")])
         else:
             selectKeyShort = selectKey
 
-        loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
+        loadpath = CRPARAMS[selectKeyShort]["simfile"]
         if loadpath is not None:
-            print(f"{CRPARAMSHALO[selectKeyShort]['resolution']}, {CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}")
+            print(f"{CRPARAMS[selectKeyShort]['resolution']}, {CRPARAMS[selectKeyShort]['CR_indicator']}{CRPARAMS[selectKeyShort]['no-alfven_indicator']}")
             snapNumber = copy.deepcopy(simDict["Snap"])
             if len(snapNumber)>1:
                 snapNumber = "Averaged"
@@ -2439,21 +2752,41 @@ def cr_pdf_versus_plot(
             for excl in exclusions:
                 plotableDict.pop(excl)
 
+            if (selectKey[-2] == "Stars"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Stars/"
+            elif (selectKey[-2] == "col"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Col-Projection-Mapped/"
+            else:
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/"
 
-            savePath = savePathBase + f"Plots/{CRPARAMSHALO[selectKeyShort]['halo']}/{CRPARAMSHALO[selectKeyShort]['analysisType']}/{CRPARAMSHALO[selectKeyShort]['resolution']}/{CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}/"
-            tmp = "./"
 
-            for savePathChunk in savePath.split("/")[1:-1]:
+            savePath = savePathBase + simSavePath
+            tmp = ""
+
+            for savePathChunk in savePath.split("/")[:-1]:
                 tmp += savePathChunk + "/"
                 try:
                     os.mkdir(tmp)
                 except:
                     pass
+
+            savePathData = savePathBaseFigureData + simSavePath
+
+            tmp = ""
+            for savePathChunk in savePathData.split("/")[1:-1]:
+                tmp += savePathChunk + "/"
+                try:
+                    os.mkdir(tmp)
+                except:
+                    pass
+                else:
+                    pass
+
             pdf_versus_plot(
                 plotableDict,
                 ylabel,
                 xlimDict,
-                CRPARAMSHALO[selectKeyShort]["logParameters"],
+                CRPARAMS[selectKeyShort]["logParameters"],
                 snapNumber = snapNumber,
                 weightKeys = weightKeys,#['mass'],
                 xParams = xParams, #["T"],
@@ -2464,22 +2797,24 @@ def cr_pdf_versus_plot(
                 fontsize=fontsize,#13,
                 fontsizeTitle=fontsizeTitle,#14,
                 Nbins=Nbins,#250,
+                binByxParam = binByxParam,
+                NxParamBins = NxParamBins,
                 ageWindow=ageWindow,#None,
                 cumulative = cumulative,#False,
                 savePathBase = savePath,#"./",
-                saveCurve = saveCurve,#False,
+                savePathBaseFigureData = savePathData,#False,
                 SFR = SFR,#False,
                 byType = byType,#False,
                 forceLogMass = forceLogMass,#False,
                 normalise = normalise,#False,
-                DEBUG = DEBUG,#False,
+                verbose = verbose,#False,
+                inplace = inplace, #False,
             )
-
     return
 
 def cr_combined_pdf_versus_plot(
     dataDict,
-    CRPARAMSHALO,
+    CRPARAMS,
     ylabel,
     xlimDict,
     weightKeys = ['mass'],
@@ -2496,41 +2831,94 @@ def cr_combined_pdf_versus_plot(
     byType = False,
     forceLogMass = False,
     normalise = False,
-    DEBUG = False,
+    verbose = False,
+    forcePlotsWithoutxlimits = False,
+    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"],
     ):
+
+    raise Exception("UPDATE THIS FUNCTION TO NEW CR_PDF_VERSUS_PLOT CALL SIGNIATURES")
+    cr_pdf_versus_plot(
+        dataDict,
+        CRPARAMS,
+        ylabel,
+        xlimDict,
+        snapNumber = None,
+        weightKeys = ['mass'],
+        xParams = ["T"],
+        titleBool=False,
+        DPI=150,
+        xsize=6.0,
+        ysize=6.0,
+        fontsize=13,
+        fontsizeTitle=14,
+        Nbins=250,
+        binByxParam = False,
+        NxParamBins = None,
+        ageWindow=None,
+        cumulative = False,
+        savePathBase = "./",
+        savePathBaseFigureData = "./",
+        saveFigureData = True,
+        SFR = False,
+        byType = False,
+        forceLogMass = False,
+        normalise = False,
+        verbose = False,
+        inplace = False,
+        exclusions = ["Redshift", "Lookback", "Snap", "Rvir"],
+        #lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
+    )
+
     #lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
     check_params_are_in_xlimDict(xlimDict, xParams)
 
-    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"]
 
-    keys = list(CRPARAMSHALO.keys())
+
+    keys = list(CRPARAMS.keys())
     selectKey0 = keys[0]
 
-    fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
-    fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+    fontsize = CRPARAMS[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMS[selectKey0]["fontsizeTitle"]
+
 
     pdfLoadPaths = []
     for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
-        if selectKey[-1] == "Stars":
-            selectKeyShort = selectKey[:2]
+        if (selectKey[-2] == "Stars") | (selectKey[-2] == "col") :
+            selectKeyShort = tuple([xx for xx in selectKey if (xx != "Stars") & (xx != "col")])
         else:
             selectKeyShort = selectKey
 
-        loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
+        loadpath = CRPARAMS[selectKeyShort]["simfile"]
         if loadpath is not None:
-            path = savePathBase + f"Plots/{CRPARAMSHALO[selectKeyShort]['halo']}/{CRPARAMSHALO[selectKeyShort]['analysisType']}/{CRPARAMSHALO[selectKeyShort]['resolution']}/{CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}/"
+
+            if (selectKey[-2] == "Stars"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Stars/"
+            elif (selectKey[-2] == "col"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Col-Projection-Mapped/"
+            else:
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/"
+
+            path = savePathBase + simSavePath
             pdfLoadPaths.append(path)
-            
-    savePath = savePathBase + f"Plots/{CRPARAMSHALO[selectKeyShort]['halo']}/{CRPARAMSHALO[selectKeyShort]['analysisType']}/"
+
+    if (selectKey[-2] == "Stars"):
+        spath = f"type-{CRPARAMS[selectKey0]['analysisType']}/{CRPARAMS[selectKey0]['halo']}/Stars/"
+    elif (selectKey[-2] == "col"):
+        spath = f"type-{CRPARAMS[selectKey0]['analysisType']}/{CRPARAMS[selectKey0]['halo']}/Col-Projection-Mapped/"
+    else:
+        spath = f"type-{CRPARAMS[selectKey0]['analysisType']}/{CRPARAMS[selectKey0]['halo']}/"
+
+    savePath = savePathBase + spath
+
     snapNumber = copy.deepcopy(simDict["Snap"])
     if len(snapNumber)>1:
         snapNumber = "Averaged"
     elif (type(snapNumber) is list)|(type(snapNumber) is np.ndarray):
         snapNumber = snapNumber[0]
 
-    tmp = "./"
+    tmp = ""
 
-    for savePathChunk in savePath.split("/")[1:-1]:
+    for savePathChunk in savePath.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -2541,7 +2929,7 @@ def cr_combined_pdf_versus_plot(
         pdfLoadPaths,
         ylabel,
         xlimDict,
-        CRPARAMSHALO[selectKeyShort]["logParameters"],
+        CRPARAMS[selectKey0]["logParameters"],
         snapNumber = snapNumber,
         weightKeys = weightKeys,#['mass'],
         xParams = xParams, #["T"],
@@ -2551,22 +2939,23 @@ def cr_combined_pdf_versus_plot(
         ysize=ysize,#6.0,
         fontsize=fontsize,#13,
         fontsizeTitle=fontsizeTitle,#14,
-        colourmapMain = CRPARAMSHALO[selectKeyShort]["colourmapMain"],
+        colourmapMain = CRPARAMS[selectKey0]["colourmapMain"],
         savePathBase = savePath,
         cumulative = cumulative,#False,
         SFR = SFR,#False,
         byType = byType,#False,
         forceLogMass = forceLogMass,#False,
         normalise = normalise,#False,
-        DEBUG = DEBUG,#False,
+        verbose = verbose,#False,
     )
     return
 
-def cr_hist_plot_xyz(
+def cr_phase_plot(
     dataDict,
-    CRPARAMSHALO,
+    CRPARAMS,
     ylabel,
     xlimDict,
+    snapNumber = None,
     yParams = ["T"],
     xParams = ["rho_rhomean","R"],
     weightKeys = ["mass","vol"],
@@ -2578,38 +2967,40 @@ def cr_hist_plot_xyz(
     ysize=8.0, #lineStyleDict={"with_CRs": "-.", "no_CRs": "solid"},
     colourmapMain="plasma",
     Nbins=250,
-    saveCurve = True,
+    saveFigureData = True,
     savePathBase = "./",
-    DEBUG = False,
+    savePathBaseFigureData = "./",
+    verbose = False,
+    inplace = False,
+    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"],
+    forcePlotsWithoutxlimits = False,
 ):
-    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"]
 
-    check_params_are_in_xlimDict(xlimDict, xParams)
-    check_params_are_in_xlimDict(xlimDict, yParams)
+    if forcePlotsWithoutxlimits == False:
+        check_params_are_in_xlimDict(xlimDict, xParams)
+        check_params_are_in_xlimDict(xlimDict, yParams)
 
-    keys = list(CRPARAMSHALO.keys())
+    keys = list(CRPARAMS.keys())
     selectKey0 = keys[0]
 
-    fontsize = CRPARAMSHALO[selectKey0]["fontsize"]
-    fontsizeTitle = CRPARAMSHALO[selectKey0]["fontsizeTitle"]
+    fontsize = CRPARAMS[selectKey0]["fontsize"]
+    fontsizeTitle = CRPARAMS[selectKey0]["fontsizeTitle"]
     # ------------------------------------------------------------------------------#
     #               PLOTTING
     #
     # ------------------------------------------------------------------------------#
     for (ii, (selectKey, simDict)) in enumerate(dataDict.items()):
-        if selectKey[-1] == "Stars":
-            selectKeyShort = selectKey[:2]
-            print("[@phases_plot]: WARNING! Stars not supported! Skipping!")
-            continue
+        if (selectKey[-2] == "Stars") | (selectKey[-2] == "col") :
+            selectKeyShort = tuple([xx for xx in selectKey if (xx != "Stars") & (xx != "col")])
+            # print("[@phases_plot]: WARNING! Stars not supported! Skipping!")
+            # continue
         else:
             selectKeyShort = selectKey
 
-        loadpath = CRPARAMSHALO[selectKeyShort]["simfile"]
+        loadpath = CRPARAMS[selectKeyShort]["simfile"]
         if loadpath is not None:
-            print(f"{CRPARAMSHALO[selectKeyShort]['resolution']}, {CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}")                    # Create a plot for each Temperature
+            print(f"{CRPARAMS[selectKeyShort]['resolution']}, {CRPARAMS[selectKeyShort]['CR_indicator']}{CRPARAMS[selectKeyShort]['no-alfven_indicator']}")                    # Create a plot for each Temperature
 
-            savePath = savePathBase + f"Plots/{CRPARAMSHALO[selectKeyShort]['halo']}/{CRPARAMSHALO[selectKeyShort]['analysisType']}/{CRPARAMSHALO[selectKeyShort]['resolution']}/{CRPARAMSHALO[selectKeyShort]['CR_indicator']}{CRPARAMSHALO[selectKeyShort]['no-alfven_indicator']}/"
-            tmp = "./"
 
             snapNumber = copy.deepcopy(simDict["Snap"])
             if len(snapNumber)>1:
@@ -2621,18 +3012,36 @@ def cr_hist_plot_xyz(
             for excl in exclusions:
                 plotableDict.pop(excl)
 
-            for savePathChunk in savePath.split("/")[1:-1]:
+            if (selectKey[-2] == "Stars"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Stars/"
+            elif (selectKey[-2] == "col"):
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/Col-Projection-Mapped/"
+            else:
+                simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/"
+
+            savePath = savePathBase + simSavePath
+            tmp = ""
+            for savePathChunk in savePath.split("/")[:-1]:
                 tmp += savePathChunk + "/"
                 try:
                     os.mkdir(tmp)
                 except:
                     pass
 
-            hist_plot_xyz(
+            savePathData = savePathBaseFigureData + simSavePath
+            tmp = ""
+            for savePathChunk in savePathData.split("/")[:-1]:
+                tmp += savePathChunk + "/"
+                try:
+                    os.mkdir(tmp)
+                except:
+                    pass
+
+            phase_plot(
                 plotableDict,
                 ylabel,
                 xlimDict,
-                CRPARAMSHALO[selectKeyShort]["logParameters"],
+                CRPARAMS[selectKeyShort]["logParameters"],
                 snapNumber = snapNumber,
                 yParams = yParams,
                 xParams = xParams,                    
@@ -2645,67 +3054,11 @@ def cr_hist_plot_xyz(
                 ysize=ysize,#6.0,
                 colourmapMain=colourmapMain,
                 Nbins=Nbins,
-                saveCurve = saveCurve,
+                saveFigureData = saveFigureData,
                 savePathBase = savePath,
-                DEBUG=DEBUG,
-
+                savePathBaseFigureData = savePathData,
+                verbose=verbose,
+                inplace=inplace
             )
-
-    return
-
-def cr_plot_projections(
-    projectionsDict,
-    CRPARAMS,
-    ylabel,
-    xlimDict,
-    sliceParam = "T",
-    xsize = 5.0,
-    ysize = 5.0,
-    fontsize=13,
-    Axes=[0,1],
-    boxsize=400.0,
-    boxlos=50.0,
-    pixreslos=0.3,
-    pixres=0.3,
-    projection=False,
-    DPI=200,
-    colourmapMain="inferno",
-    numthreads=10,
-    savePathKeyword = "",
-    savePathBase = "./",
-    DEBUG = False,
-):
-    print(f"Starting Slice/Projection Plots!")
-
-    keys = list(CRPARAMS.keys())
-    selectKey0 = keys[0]
-
-    savePath = savePathBase + f"Plots/{CRPARAMS['halo']}/{CRPARAMS['analysisType']}/{CRPARAMS['resolution']}/{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}/"
-
-    params = list(projectionsDict.keys())
-    
-    for sliceParam in params:
-        plot_slices(projectionsDict[sliceParam],
-                ylabel,
-                xlimDict,
-                CRPARAMS['logParameters'],
-                snapNumber = savePathKeyword,
-                sliceParam = sliceParam,
-                xsize = xsize,
-                ysize = ysize,
-                fontsize=fontsize,
-                Axes=Axes,
-                boxsize=boxsize,
-                boxlos=boxlos,
-                pixreslos=pixreslos,
-                pixres=pixres,
-                projection=projection,
-                DPI=DPI,
-                colourmapMain=colourmapMain,
-                numthreads=numthreads,
-                savePathBase = savePath,
-                DEBUG = DEBUG
-            )
-
 
     return
