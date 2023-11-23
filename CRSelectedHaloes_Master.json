@@ -1,118 +1,134 @@
 {
-  "halo_12": {
-    "high_with_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_1kpc_CRs/output/",
-      "resolution": "high",
-      "with_CRs": true,
-      "no-alfven": false
-    },
-    "high_with_CRs_no-alfven": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h12_1kpc_CRs_no-alfven/output/",
-      "resolution": "high",
-      "with_CRs": true,
-      "no-alfven": true
-    },
-    "high_no_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_1kpc/output/",
-      "resolution": "high",
-      "with_CRs": false,
-      "no-alfven": null
-    },
-    "standard_with_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
-      "resolution": "standard",
-      "with_CRs": true,
-      "no-alfven": false
-    },
-    "standard_with_CRs_no-alfven": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h12_standard_CRs_no-alfven/output/",
-      "resolution": "standard",
-      "with_CRs": true,
-      "no-alfven": true
-    },
-    "standard_no_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h12_standard/output/",
-      "resolution": "standard",
-      "with_CRs": false,
-      "no-alfven": null
-    }
-  },
+  "analysisType": "cgm",
 
-  "halo_6": {
-    "high_with_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_1kpc_CRdiffalfven/output/",
-      "resolution": "high",
-      "with_CRs": true,
-      "no-alfven": false
-    },
-    "high_with_CRs_no-alfven": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h6_1kpc_CRs_no-alfven/output/",
-      "resolution": "high",
-      "with_CRs": true,
-      "no-alfven": true
-    },
-    "high_no_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_1kpc/output/",
-      "resolution": "high",
-      "with_CRs": false,
-      "no-alfven": null
-    },
-    "standard_with_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_standard_CRdiffalfven/output/",
-      "resolution": "standard",
-      "with_CRs": true,
-      "no-alfven": false
-    },
-    "standard_with_CRs_no-alfven": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h6_standard_CRs_no-alfven/output/",
-      "resolution": "standard",
-      "with_CRs": true,
-      "no-alfven": true
-    },
-    "standard_no_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h6_standard/output/",
-      "resolution": "standard",
-      "with_CRs": false,
-      "no-alfven": null
-    }
-  },
+  "restartFlag": true,
 
-  "halo_5": {
-    "high_with_CRs": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h5_1kpc_CRs/output/",
-      "resolution": "high",
-      "with_CRs": true,
-      "no-alfven": false
-    },
-    "high_with_CRs_no-alfven": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h5_1kpc_CRs_no-alfven/output/",
-      "resolution": "high",
-      "with_CRs": true,
-      "no-alfven": true
-    },
-    "high_no_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h5_1kpc/output/",
-      "resolution": "high",
-      "with_CRs": false,
-      "no-alfven": null
-    },
-    "standard_with_CRs": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h5_standard_CRs/output/",
-      "resolution": "standard",
-      "with_CRs": true,
-      "no-alfven": false
-    },
-    "standard_with_CRs_no-alfven": {
-      "simfile": "/home/cosmos/c1838736/Auriga/level4_cgm/h5_standard_CRs_no-alfven/output/",
-      "resolution": "standard",
-      "with_CRs": true,
-      "no-alfven": true
-    },
-    "standard_no_CRs": {
-      "simfile": "/home/cosmos/spxfv/Auriga/level4_cgm/h5_standard/output/",
-      "resolution": "standard",
-      "with_CRs": false,
-      "no-alfven": null
-    }
+  "savepathfigures": "./",
+
+  "savepathdata": "/home/universe/c1838736/Cosmic_Rays/Stage2/V3-1/",
+
+  "loadRotationMatrix" : false,
+
+  "constantRotationMatrix" : false,
+
+  "saveParams": [ "T", "R", "n_H", "n_HI", "nh", "ndens", "rho_rhomean", "B", "vrad", "vrad_in", "vrad_out", "gz", "L", "P_CR", "PCR_Pthermal","PCR_Pmagnetic", "P_kinetic", "P_thermal", "P_magnetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "tcool", "tff", "tcool_tff"],
+
+  "saveEssentials": [ "halo", "subhalo", "Redshift", "Lookback", "Snap", "type", "mass", "pos", "vol", "hrgm", "sfr", "Rvir", "gima", "age" , "boxsize", "gmet", "ne", "Tdens", "u", "bfld", "vel", "gcol", "cren", "rho"],
+
+  "snapMin": 118,
+
+  "snapMax": 127,
+
+  "percentiles": [ 15.87, 50.0, 84.13 ],
+
+  "Rinner": 0.0,
+
+  "Router": 1.0,
+
+  "xParam": "R",
+
+  "colParams" : [ "n_H_col", "n_HI_col" ],
+
+  "imageParams": [ "T", "ndens", "rho_rhomean", "n_H", "n_HI", "B", "P_CR", "PCR_Pthermal", "P_kinetic", "P_thermal", "P_magnetic", "PCR_Pmagnetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "vrad"],
+
+  "pdfParams": [ "T", "R", "ndens", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "vrad_in", "vrad_out", "gz", "L", "P_CR", "PCR_Pmagnetic", "PCR_Pthermal", "P_kinetic", "P_thermal", "P_magnetic", "Pthermal_Pmagnetic", "P_tot+k" ,"P_tot", "tcool", "tff", "tcool_tff" ],
+
+  "phasesxParams": ["R", "rho_rhomean"],
+
+  "phasesyParams": [ "T" ],
+
+  "phasesWeightParams": [ "mass", "vrad", "vrad_in", "vrad_out", "L", "P_CR", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "PCR_Pthermal", "PCR_Pmagnetic"],
+
+  "mediansParams": [ "T", "ndens", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "vrad_in", "vrad_out", "gz", "L", "P_CR", "PCR_Pthermal", "PCR_Pmagnetic", "P_kinetic", "P_thermal", "P_magnetic", "Pthermal_Pmagnetic", "P_tot+k" ,"P_tot", "tcool", "tff", "tcool_tff" ],
+
+  "NStatsBins": 100,
+
+  "Nbins": 250,
+
+  "opacityPercentiles": 0.10,
+
+  "Axes": [ 1, 0 ],
+
+  "projections": false,
+
+  "binByParam": true,
+
+  "binParam": "R",
+
+  "NParamBins" : 4,
+
+  "byType": false,
+
+  "SaveImages": true,
+
+  "averageAcrossAxes" : true,
+
+  "saveAllAxesImages" : false,
+
+  "numthreads": 18,
+
+  "boxsize": 400.0,
+
+  "boxlos": 50.0,
+
+  "pixres": 0.50,
+
+  "pixreslos": 0.50,
+
+  "HaloID": 0,
+
+  "DPI": 200,
+
+  "DPIimages" : 300,
+
+  "xsizeImages": 6.0,
+
+  "ysizeImages": 6.0,
+
+  "xsize": 8.0,
+
+  "ysize": 8.0,
+
+  "colourmapMain": "Spectral",
+
+  "titleBool": false,
+
+  "fontsize": 13,
+
+  "fontsizeTitle": 14,
+
+  "ageWindow": null,
+
+  "windowBins": 0.100,
+
+  "logParameters": [ "nh", "dens", "ndens", "rho_rhomean", "rho", "vol", "csound", "T", "n_H", "n_H_col", "n_HI", "n_HI_col", "B", "gz", "L", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal", "PCR_Pmagnetic", "gah", "Grad_T", "Grad_n_H", "Grad_bfld", "Grad_P_CR", "tcool", "theat", "tcross", "tff", "tcool_tff", "mass", "count", "e_CR"],
+
+  "nonMassWeightDict": {
+    "mass": "vol",
+    "nh": "vol",
+    "n_H": "vol",
+    "n_HI": "vol",
+    "n_H_col": "vol",
+    "n_HI_col": "vol",
+    "ndens": "vol",
+    "dens": "vol",
+    "rho_rhomean": "vol",
+    "rho": "vol",
+    "B": "vol",
+    "bfld": "vol",
+    "P_kinetic": "vol",
+    "P_thermal": "vol",
+    "P_magnetic": "vol",
+    "P_tot": "vol",
+    "P_tot+k": "vol",
+    "Pthermal_Pmagnetic": "vol",
+    "P_CR": "vol",
+    "PCR_Pthermal": "vol",
+    "gah": "vol",
+    "Grad_T": "mass",
+    "Grad_n_H": "vol",
+    "Grad_bfld": "vol",
+    "Grad_P_CR": "vol"
   }
+
 }

@@ -1,7 +1,7 @@
 {
   "analysisType": "cgm",
 
-  "restartFlag": true,
+  "restartFlag": false,
 
   "savepathfigures": "./",
 
@@ -37,7 +37,7 @@
 
   "phasesyParams": [ "T" ],
 
-  "phasesColourbarParams": [ "mass", "vrad", "vrad_in", "vrad_out", "L", "P_CR", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "PCR_Pthermal", "PCR_Pmagnetic"],
+  "phasesWeightParams": [ "mass", "vrad", "vrad_in", "vrad_out", "L", "P_CR", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "PCR_Pthermal", "PCR_Pmagnetic"],
 
   "mediansParams": [ "T", "ndens", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "vrad_in", "vrad_out", "gz", "L", "P_CR", "PCR_Pthermal", "PCR_Pmagnetic", "P_kinetic", "P_thermal", "P_magnetic", "Pthermal_Pmagnetic", "P_tot+k" ,"P_tot", "tcool", "tff", "tcool_tff" ],
 
@@ -46,8 +46,6 @@
   "Nbins": 250,
 
   "opacityPercentiles": 0.25,
-
-  "linewidth": 2.0,
 
   "Axes": [ 1, 0 ],
 
@@ -63,21 +61,23 @@
 
   "SaveImages": true,
 
-  "averageAcrossAxes" : true,
-
-  "saveAllAxesImages" : false,
-
-  "forceYAxisLog": false,
-
   "numthreads": 18,
 
   "boxsize": 400.0,
 
   "boxlos": 50.0,
 
+  "coldenslos": 600.0,
+
   "pixres": 0.50,
 
   "pixreslos": 0.50,
+
+  "pixresproj": 0.50,
+
+  "pixreslosproj": 0.50,
+
+  "coldenspixreslos": 0.50,
 
   "HaloID": 0,
 
@@ -85,23 +85,21 @@
 
   "DPIimages" : 300,
 
-  "xsizeImages": 5.5,
+  "xsizeImages": 6.0,
 
-  "ysizeImages": 5.5,
+  "ysizeImages": 6.0,
 
-  "xsize": 5.5,
+  "xsize": 8.0,
 
-  "ysize": 5.5,
+  "ysize": 8.0,
 
   "colourmapMain": "Spectral",
 
   "titleBool": false,
 
-  "legendBool": false,
+  "fontsize": 13,
 
-  "fontsize": 12,
-
-  "fontsizeTitle": 13,
+  "fontsizeTitle": 14,
 
   "ageWindow": null,
 
@@ -113,8 +111,8 @@
    "nh": "vol",
     "n_H": "vol",
     "n_HI": "vol",
-    "n_H_col": "count",
-    "n_HI_col": "count",
+    "n_H_col": "vol",
+    "n_HI_col": "vol",
     "ndens": "vol",
     "dens": "vol",
     "rho_rhomean": "vol",
@@ -129,9 +127,8 @@
     "Pthermal_Pmagnetic": "vol",
     "P_CR": "vol",
     "PCR_Pthermal": "vol",
-    "PCR_Pmagnetic": "vol",
     "gah": "vol",
-    "Grad_T": "vol",
+    "Grad_T": "mass",
     "Grad_n_H": "vol",
     "Grad_bfld": "vol",
     "Grad_P_CR": "vol"
