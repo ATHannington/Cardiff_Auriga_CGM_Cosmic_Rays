@@ -51,6 +51,7 @@ def cr_analysis_radial(
     starsout = {}
     colout = {}
     quadPlotDict = {}
+    innerColout = {}
 
     if colImagexlimDict is None:
         colImagexlimDict = copy.copy(xlimDict)
@@ -63,7 +64,7 @@ def cr_analysis_radial(
 
     # Generate halo directory
     tmp = ""
-    for savePathChunk in saveDir.split("/")[1:-1]:
+    for savePathChunk in saveDir.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -73,7 +74,7 @@ def cr_analysis_radial(
             pass
 
     tmp = ""
-    for savePathChunk in saveDirFigures.split("/")[1:-1]:
+    for savePathChunk in saveDirFigures.split("/")[:-1]:
         tmp += savePathChunk + "/"
         try:
             os.mkdir(tmp)
@@ -129,7 +130,7 @@ def cr_analysis_radial(
     snap.calc_sf_indizes(snap_subfind)
     if rotation_matrix is None:
         rotation_matrix = snap.select_halo(snap_subfind, do_rotation=True)
-        rotationsavepath = DataSavepathBase + "rotation_matrix.h5"
+        rotationsavepath = saveDir + f"rotation_matrix_{int(snapNumber)}.h5"
         tr.hdf5_save(rotationsavepath,{(f"{CRPARAMS['resolution']}",
         f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}") : {"rotation_matrix" : rotation_matrix}})
         ## If we don't want to use the same rotation matrix for all snapshots, set rotation_matrix back to None
@@ -169,11 +170,7 @@ def cr_analysis_radial(
     snap.data["R"] = np.linalg.norm(snap.data["pos"], axis=1)
     rvir = (snap_subfind.data["frc2"] * 1e3)[int(0)]
 
-    boxmax = max([CRPARAMS['boxsize'],CRPARAMS['boxlos'],CRPARAMS['coldenslos']])
-
-    print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select stars..."
-    )
+    boxmax = max([CRPARAMS['boxsize'],CRPARAMS['boxlos']])
 
     print(
         f"[@{int(snapNumber)}]: Remove beyond {boxmax:2.2f} kpc..."
@@ -188,19 +185,20 @@ def cr_analysis_radial(
         verbose = verbose,
         )
 
+
+    print(
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Remove wind from stars..."
+    )
+
     whereWind = snap.data["age"] < 0.0
 
     snap = remove_selection(
         snap,
         removalConditionMask = whereWind,
-        errorString = "Remove Wind from Gas",
+        errorString = "Remove Wind from Stars",
         verbose = verbose,
         )
-
-    print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select within R_virial..."
-    )
-
+    
     # Calculate New Parameters and Load into memory others we want to track
     snap = tr.calculate_tracked_parameters(
         snap,
@@ -242,7 +240,7 @@ def cr_analysis_radial(
         for param in cols:
             additionalParam = CRPARAMS["nonMassWeightDict"][param]
             if (np.any(np.isin(np.asarray([additionalParam]),np.asarray(additionalColParams))) == False) \
-            & (additionalParam is not None):
+            & (additionalParam is not None) & (additionalParam != "count"):
                 additionalColParams.append(additionalParam)
         #---------------#
 
@@ -275,13 +273,15 @@ def cr_analysis_radial(
                 snapNumber=snapNumber,
                 sliceParam = param,
                 Axes=CRPARAMS["Axes"],
+                averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
+                saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
                 xsize = CRPARAMS["xsizeImages"],
                 ysize = CRPARAMS["ysizeImages"],
-                colourmapMain=CRPARAMS["colourmapMain"],
-                boxsize=CRPARAMS["boxsize"],
-                boxlos=CRPARAMS["coldenslos"],
-                pixreslos=CRPARAMS["coldenspixreslos"],
-                pixres=CRPARAMS["pixresproj"],
+                colourmapMain = CRPARAMS["colourmapMain"],
+                boxsize = CRPARAMS["boxsize"],
+                boxlos = CRPARAMS["boxlos"],
+                pixreslos = CRPARAMS["pixreslos"],
+                pixres = CRPARAMS["pixres"],
                 projection = False,
                 DPI = CRPARAMS["DPIimages"],
                 numthreads=CRPARAMS["numthreads"],
@@ -351,46 +351,115 @@ def cr_analysis_radial(
 
     if np.nanmax(snap.data["R"])>=(50.0*CRPARAMS["Router"]): snap.data["R"] = snap.data["R"]/rvir
 
-    for param in CRPARAMS["imageParams"]:
-        if param == "T":
-            colourmapadjust = "_r"
-        else:
-            colourmapadjust = ""
 
-        tmpdict = apt.plot_slices(snap,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            logParameters = CRPARAMS["logParameters"],
-            snapNumber=snapNumber,
-            sliceParam = param,
-            Axes=CRPARAMS["Axes"],
-            xsize = CRPARAMS["xsizeImages"],
-            ysize = CRPARAMS["ysizeImages"],
-            colourmapMain=CRPARAMS["colourmapMain"] + colourmapadjust,
-            boxsize=CRPARAMS["boxsize"],
-            boxlos=CRPARAMS["boxlos"],
-            pixreslos=CRPARAMS["pixreslos"],
-            pixres=CRPARAMS["pixres"],
-            projection = CRPARAMS["projections"],
-            DPI = CRPARAMS["DPIimages"],
-            numthreads=CRPARAMS["numthreads"],
-            savePathBase = FiguresSavepath,
-            savePathBaseFigureData = DataSavepath,
-            saveFigureData = True,
-            saveFigure = CRPARAMS["SaveImages"],
-            inplace = False,
-        )
-        if tmpdict is not None:
-            quadPlotDict.update(tmpdict)
+    for projectionBool in [False, True]:
+        for param in CRPARAMS["imageParams"]:
+            if param == "T":
+                colourmapadjusted = CRPARAMS["colourmapMain"]+ "_r"
+            elif param == "vrad":
+                colourmapadjusted = "seismic" #CRPARAMS["colourmapMain"]
+            else:
+                colourmapadjusted = CRPARAMS["colourmapMain"]
+
+
+            tmpdict = apt.plot_slices(snap,
+                ylabel=ylabel,
+                xlimDict=xlimDict,
+                logParameters = CRPARAMS["logParameters"],
+                snapNumber=snapNumber,
+                sliceParam = param,
+                Axes=CRPARAMS["Axes"],
+                xsize = CRPARAMS["xsizeImages"],
+                ysize = CRPARAMS["ysizeImages"],
+                colourmapMain = colourmapadjusted,
+                boxsize = CRPARAMS["boxsize"],
+                boxlos = CRPARAMS["boxlos"],
+                pixreslos = CRPARAMS["pixreslos"],
+                pixres = CRPARAMS["pixres"],
+                projection = projectionBool,
+                DPI = CRPARAMS["DPIimages"],
+                numthreads=CRPARAMS["numthreads"],
+                savePathBase = FiguresSavepath,
+                savePathBaseFigureData = DataSavepath,
+                saveFigureData = True,
+                saveFigure = CRPARAMS["SaveImages"],
+                inplace = False,
+            )
+            if tmpdict is not None:
+                quadPlotDict.update(tmpdict)
 
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Delete unwanted data..."
     )
 
+
+    whereSatellite = np.isin(snap.data["subhalo"],np.array([-1,int(CRPARAMS["HaloID"]),np.nan]))==False
+
+    snap = remove_selection(
+        snap,
+        removalConditionMask = whereSatellite,
+        errorString = "Remove Satellites",
+        verbose = verbose,
+    )
+
+    # Redshift
+    redshift = snap.redshift  # z
+    aConst = 1.0 / (1.0 + redshift)  # [/]
+
+    # Get lookback time in Gyrs
+    # [0] to remove from numpy array for purposes of plot title
+    lookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
+        0
+    ]  # [Gyrs]
+
+    print( 
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Ages: get_lookback_time_from_a() ..."
+    )
+    ages = snap.cosmology_get_lookback_time_from_a(snap.data["age"],is_flat=True)
+    snap.data["age"] = ages
+
+    print(
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary  ..."
+    )
+
+
+    # print(
+    #     f"[@{int(snapNumber)}]: Convert from SnapShot to Dictionary  ..."
+    # )
+    # Make normal dictionary form of snap
+    innerStars = {}
+    for key, value in snap.data.items():
+        if value is not None:
+            innerStars.update({key: copy.deepcopy(value)})
+
+    print(
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select stars and gas separately..."
+    )
+
+    whereNotStars = np.isin(innerStars["type"],np.array([0,1,2,3,5,6]))==True
+
+    innerStars = remove_selection(
+        innerStars,
+        removalConditionMask = whereNotStars,
+        errorString = "Remove Not Stars Types",
+        verbose = verbose,
+        )
+
+    whereNotGas = np.isin(snap.data["type"],np.array([1,2,3,5,6]))==True
+
+    snap = remove_selection(
+        snap,
+        removalConditionMask = whereNotGas,
+        errorString = "Remove Not Gas Types (w/o stars)",
+        verbose = verbose,
+        )
+
     if analysisType == "cgm":
         print(
             f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']},@{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the CGM..."
         )
+
+    
         whereNotCGM = (snap.data["R"] > CRPARAMS["Router"])
 
         snap = remove_selection(
@@ -400,6 +469,14 @@ def cr_analysis_radial(
             verbose = verbose,
             )
 
+        whereNotStarsCGM = innerStars["R"] > CRPARAMS["Router"]
+
+        innerStars = remove_selection(
+            innerStars,
+            removalConditionMask = whereNotStarsCGM,
+            errorString = "Remove Stars Not within Router",
+            verbose = verbose,
+            )
         # whereNotCGM = (snap.data["R"] < CRPARAMS["Rinner"])
 
         # snap = remove_selection(
@@ -409,14 +486,52 @@ def cr_analysis_radial(
         #     verbose = verbose,
         #     )
         
-        whereNotCGM = (snap.data["sfr"] > 0.0)
+        # # whereNotCGM = (snap.data["sfr"] > 0.0)
+
+        # # snap = remove_selection(
+        # #     snap,
+        # #     removalConditionMask = whereNotCGM,
+        # #     errorString = "Remove NOT CGM from Gas <Rinner",
+        # #     verbose = verbose,
+        # #     )
+
+        param = "ndens"
+
+        try:
+            tmp = snap.data[param]
+        except:
+            snap = tr.calculate_tracked_parameters(
+                snap,
+                oc.elements,
+                oc.elements_Z,
+                oc.elements_mass,
+                oc.elements_solar,
+                oc.Zsolar,
+                oc.omegabaryon0,
+                snapNumber,
+                logParameters = CRPARAMS['logParameters'],
+                paramsOfInterest=[param],
+                mappingBool=True,
+                box=[boxmax,boxmax,boxmax],
+                numthreads=CRPARAMS["numthreads"],
+                DataSavepath = DataSavepath,
+                verbose = verbose,
+            )
+
+        print(
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Remove n >= 1.1e-1 cm^-3 gas..."
+        )
+
+        whereAboveCritDens = (snap.data["ndens"] >= 1.1e-1)
 
         snap = remove_selection(
             snap,
-            removalConditionMask = whereNotCGM,
-            errorString = "Remove NOT CGM from Gas <Rinner",
+            removalConditionMask = whereAboveCritDens,
+            errorString = "Remove above critical density for standard star formation",
             verbose = verbose,
             )
+
+        if np.nanmax(snap.data["R"])>=(50.0*CRPARAMS["Router"]): snap.data["R"] = snap.data["R"]/rvir
                 
     elif analysisType == "ism":
         print(
@@ -447,61 +562,12 @@ def cr_analysis_radial(
             verbose = verbose,
             )
 
-
-    whereSatellite = np.isin(snap.data["subhalo"],np.array([-1,int(CRPARAMS["HaloID"]),np.nan]))==False
-
-    snap = remove_selection(
-        snap,
-        removalConditionMask = whereSatellite,
-        errorString = "Remove Satellites",
-        verbose = verbose,
-    )
-
-    # Redshift
-    redshift = snap.redshift  # z
-    aConst = 1.0 / (1.0 + redshift)  # [/]
-
-    # Get lookback time in Gyrs
-    # [0] to remove from numpy array for purposes of plot title
-    lookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
-        0
-    ]  # [Gyrs]
-
-    print( 
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Ages: get_lookback_time_from_a() ..."
-    )
-    ages = snap.cosmology_get_lookback_time_from_a(snap.data["age"],is_flat=True)
-    snap.data["age"] = ages
-
-    print(
-        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Convert from SnapShot to Dictionary and Trim ..."
-    )
-
-
-    # print(
-    #     f"[@{int(snapNumber)}]: Convert from SnapShot to Dictionary and Trim ..."
-    # )
-    # Make normal dictionary form of snap
-    innerStars = {}
-    for key, value in snap.data.items():
-        if value is not None:
-            innerStars.update({key: copy.deepcopy(value)})
-
-    whereNotStars = np.isin(innerStars["type"],np.array([0,1,2,3,5,6]))==True
-
-    innerStars = remove_selection(
-        innerStars,
-        removalConditionMask = whereNotStars,
-        errorString = "Remove Not Stars Types",
-        verbose = verbose,
-        )
-
-    whereNotGas = np.isin(snap.data["type"],np.array([1,2,3,4,5,6]))==True
+    whereNotGas = snap.data["type"]==4
 
     snap = remove_selection(
         snap,
         removalConditionMask = whereNotGas,
-        errorString = "Remove Not Gas Types",
+        errorString = "Remove Stars",
         verbose = verbose,
         )
 
@@ -608,78 +674,187 @@ def cr_parameters(CRPARAMSMASTER, simDict):
 
     return CRPARAMS
 
+# def cr_flatten_wrt_time(dataDict, CRPARAMS, snapRange):
 
-def cr_flatten_wrt_time(dataDict, CRPARAMS, snapRange):
+#     print("Flattening with respect to time...")
+#     flatData = {}
 
-    print("Flattening with respect to time...")
+#     print("Gas...")
+#     tmp = {}
+#     newKey = (f"{CRPARAMS['resolution']}",
+#               f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
+#     selectKey0 = (
+#         f"{CRPARAMS['resolution']}",
+#         f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+#         f"{int(snapRange[0])}",
+#     )
+
+#     keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
+
+#     for ii, subkey in enumerate(keys):
+#         print(f"{float(ii)/float(len(keys)):3.1%}")
+#         concatenateList = []
+#         for snapNumber in snapRange:
+#             selectKey = (
+#                 f"{CRPARAMS['resolution']}",
+#                 f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+#                 f"{int(snapNumber)}",
+#             )
+#             concatenateList.append(dataDict[selectKey][subkey].copy())
+
+#             del dataDict[selectKey][subkey]
+#             # # Fix values to arrays to remove concat error of 0D arrays
+#             # for k, val in dataDict.items():
+#             #     dataDict[k] = np.array([val]).flatten()
+#         outvals = np.concatenate((concatenateList), axis=0)
+#         tmp.update({subkey: outvals})
+#     flatData.update({newKey: tmp})
+
+#     print("Stars...")
+#     tmp = {}
+#     newKey = (f"{CRPARAMS['resolution']}", 
+#               f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+#               "Stars")
+#     selectKey0 = (
+#         f"{CRPARAMS['resolution']}",
+#         f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+#         f"{int(snapRange[0])}",
+#         "Stars",
+#     )
+
+#     keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
+
+#     for ii, subkey in enumerate(keys):
+#         print(f"{float(ii)/float(len(keys)):3.1%}")
+#         concatenateList = []
+#         for snapNumber in snapRange:
+#             selectKey = (
+#                 f"{CRPARAMS['resolution']}",
+#                 f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+#                 f"{int(snapNumber)}",
+#                 "Stars",
+#             )
+#             concatenateList.append(dataDict[selectKey][subkey].copy())
+
+#             del dataDict[selectKey][subkey]
+#             # # Fix values to arrays to remove concat error of 0D arrays
+#             # for k, val in dataDict.items():
+#             #     dataDict[k] = np.array([val]).flatten()
+#         outvals = np.concatenate((concatenateList), axis=0)
+#         tmp.update({subkey: outvals})
+#     flatData.update({newKey: tmp})
+
+#     print("...flattening done!")
+#     return flatData
+
+
+
+def cr_flatten_wrt_time(input, stack = True, verbose = False, hush = False):
+    """
+        For the combining of ~binned~ data across different snapshots.
+
+        NOTE: 
+        1)  This function cannot flatten data without tuple keys in format: keys = [(A, #1), (A, #2), ..., (B, #1), (B, #2), ...] or [(A,B, #1), (A,B, #2), ..., (C,D, #1), (C,D, #2), ...] etc.
+        This is due to dictionary keys being unique. We cannot have more than one (A,B), as they will overwrite one another.
+
+        2)  This will not work in default mode of stack = True if using snapshot data that has not been binned or summarised in some way.
+        This is due to data from different snapshots having different numbers of data points, slty, flty, etc. 
+       
+        3)  Consequently, if you want to stack unsummarised snapshot data you cannot simply pass in a snapshot - snapshots aren't designed to hold data for more than one point of time from the simulations.
+         a) Again, if you ~do~ wish to combine snapshot data (see below), then you must pass a dictionary where the keys have the last entry as numerals (these can be any, arbitrary numbering). And,
+         b) Pass kwarg stack = False to concatenate data along 0th axis (see 2) from above as to why you cannot stack raw snapshot data).
+        However, please use this with caution when applied to snapshot data, as you may run out of RAM rather quickly...
+
+        4)  To clarify:
+         a) the non-numeral entries before the last value in the tuple of the keys can be whatever you like. [(A, #1), (A, #2), ..., (B, #1), (B, #2), ...] or [(A,B, #1), (A,B, #2), ..., (C,D, #1), (C,D, #2), ...] 
+            Will combine into [(A),(B)] and [(A,B),(C,D)]. But you could use [(A,B, #1), (A,B, #2), ..., (C,B, #1), (C,B, #2), ...] which would combine into [(A,B),(C,B)]
+         b) The final entry in the tuple of each key can be a string, so long as each entry is unique. You can label the data however you wish, but it is the last element of the tuple that will be dropped when flattening the data. However,
+            the data will be sorted into ascending order of the this last entry in the key tuple if it is numeric.
+    """
+
+    snapType = False
+    try:
+        tmp = input.data.keys()
+        snapType = True
+        raise Exception("[@cr_flatten_wrt_time]: ERROR! FATAL! Data format must be dictionary!"+"\n"+"Cannot flatten data without tuple keys in format: keys = [(A, #1), (A, #2), ..., (B, #1), (B, #2), ...] or [(A,B, #1), (A,B, #2), ..., (C,D, #1), (C,D, #2), ...] etc.")
+
+    except:
+        try:
+            tmp = input.keys()
+        except:
+            raise Exception("[@cr_flatten_wrt_time]: Unrecognised data format input! Data was neither Arepo snapshot format or Dictionary format! Data format must be dictionary!")
+        snapType = False
+
+    if snapType == True:
+        dataDict = copy.deepcopy(input.data)
+    else:
+        dataDict = copy.deepcopy(input)
+
+    if hush is False: print("Flattening data...")
     flatData = {}
 
-    print("Gas...")
-    tmp = {}
-    newKey = (f"{CRPARAMS['resolution']}",
-              f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
-    selectKey0 = (
-        f"{CRPARAMS['resolution']}",
-        f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
-        f"{int(snapRange[0])}",
-    )
+    keys = list(dataDict.keys())
 
-    keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
+    keysAreTuples = np.all(np.asarray([isinstance(kk, tuple) for kk in keys]))
 
-    for ii, subkey in enumerate(keys):
-        print(f"{float(ii)/float(len(keys)):3.1%}")
-        concatenateList = []
-        for snapNumber in snapRange:
-            selectKey = (
-                f"{CRPARAMS['resolution']}",
-                f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
-                f"{int(snapNumber)}",
-            )
-            concatenateList.append(dataDict[selectKey][subkey].copy())
+    if keysAreTuples == False:
+        raise Exception(f"[@cr_flatten_wrt_time]: ERROR! FATAL! Cannot flatten data without tuple keys in format keys: keys = [(A, #1), (A, #2), ..., (B, #1), (B, #2), ...] or [(A,B, #1), (A,B, #2), ..., (C,D, #1), (C,D, #2), ...] etc.")
 
-            del dataDict[selectKey][subkey]
-            # # Fix values to arrays to remove concat error of 0D arrays
-            # for k, val in dataDict.items():
-            #     dataDict[k] = np.array([val]).flatten()
-        outvals = np.concatenate((concatenateList), axis=0)
-        tmp.update({subkey: outvals})
-    flatData.update({newKey: tmp})
+    keysLastElements = [kk[-1] for kk in keys]
+    if verbose: print(f"[@cr_flatten_wrt_time]: keysLastElements (the numerals...): {keysLastElements}")
 
-    print("Stars...")
-    tmp = {}
-    newKey = (f"{CRPARAMS['resolution']}", 
-              f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
-              "Stars")
-    selectKey0 = (
-        f"{CRPARAMS['resolution']}",
-        f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
-        f"{int(snapRange[0])}",
-        "Stars",
-    )
+    keysRestOfElements = [tuple(kk[:-1]) if len(kk[:-1])>1 else kk[0] for kk in keys]
+    if verbose: print(f"[@cr_flatten_wrt_time]: keysRestOfElements (the rest of the original tuple keys...): {keysRestOfElements}")
+    
+    digitTruthy = np.asarray([str(kk).isdigit() for kk in keysLastElements])
+    isNumericSequence = np.all(digitTruthy)
+    if isNumericSequence == True:
+        if hush is False: print("\n"+f"[@cr_flatten_wrt_time]: Last element of tuple in keys detected as being numeric! Will sort data by these numerals, in ascending order."+"\n")
+        keysLastElements = [float(kk) for kk in keysLastElements]
+        order = np.argsort(np.asarray(keysLastElements)).tolist()
+        keysLastElements = [keysLastElements[ii] for ii in order]
+        keysRestOfElements = [keysRestOfElements[ii] for ii in order]
+        if verbose: print(f"[@cr_flatten_wrt_time]: Sorted keysLastElements (the numerals...): {keysLastElements}")
+        if verbose: print(f"[@cr_flatten_wrt_time]: Sorted keysRestOfElements (the rest of the original tuple keys...): {keysRestOfElements}")
+        
 
-    keys = copy.deepcopy(list(dataDict[selectKey0].keys()))
 
-    for ii, subkey in enumerate(keys):
-        print(f"{float(ii)/float(len(keys)):3.1%}")
-        concatenateList = []
-        for snapNumber in snapRange:
-            selectKey = (
-                f"{CRPARAMS['resolution']}",
-                f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
-                f"{int(snapNumber)}",
-                "Stars",
-            )
-            concatenateList.append(dataDict[selectKey][subkey].copy())
+    combinedDataKeys = pd.unique(keysRestOfElements)
+    if verbose: print(f"[@cr_flatten_wrt_time]: combinedDataKeys (the new unique tuple keys after data is flattened...): {combinedDataKeys}")
 
-            del dataDict[selectKey][subkey]
-            # # Fix values to arrays to remove concat error of 0D arrays
-            # for k, val in dataDict.items():
-            #     dataDict[k] = np.array([val]).flatten()
-        outvals = np.concatenate((concatenateList), axis=0)
-        tmp.update({subkey: outvals})
-    flatData.update({newKey: tmp})
+    for ii, key in enumerate(combinedDataKeys):
+        if hush is False: print(f"{float(ii)/float(len(combinedDataKeys)):3.1%}")
+        flattenList = []
+        for kk in dataDict.keys():
+            if ((len(kk[:-1])>1) & (tuple(kk[:-1])==key)) or ((len(kk[:-1])==1) & (kk[0]==key)):
+                flattenList.append(kk)
 
-    print("...flattening done!")
+        innerData = {}
+        dataKeys = list(dataDict[flattenList[0]].keys())
+        for dd in dataKeys:
+            toCombine = []
+            for kk in flattenList:
+                try:
+                    tmp = copy.copy(dataDict[kk][dd])
+                except Exception as e:
+                    print(str(e))
+                    raise Exception(f"[@cr_flatten_wrt_time]: ERROR! FATAL! Data for {kk} {dd} not found! Cannot flatten data where data contained is inconsistent between snapshots/entries!")
+                toCombine.append(np.asarray(tmp))
+
+            if stack == True:
+                outvals = np.stack((toCombine), axis=-1)
+            else:
+                outvals = np.concatenate((toCombine), axis=0)
+            
+            innerData.update({dd: outvals})
+
+        if verbose: 
+            for dd in innerData.keys():
+                print(f"[@cr_flatten_wrt_time]: combinedDataKey {key} data {dd} has data of shape {innerData[dd].shape}")
+
+        flatData.update({key: innerData})
+    
+    if hush is False: print("...flattening done!")
     return flatData
 
 
@@ -716,6 +891,14 @@ def cr_calculate_statistics(
 ):
     if exclusions is None:
         exclusions = []
+
+    ## Empty data checks ## 
+    if bool(dataDict) is False:
+        print("\n"
+                +f"[@cr_calculate_statistics]: WARNING! dataDict is empty! Skipping plots ..."
+                +"\n"
+        )
+        return
 
     print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS["logParameters"]:
@@ -815,7 +998,7 @@ def map_params_to_types(snap, degeneracyBool = False):
     possibleTypesCombos = []
     for jj in range(1,len(types)+1):
         possibleTypesCombos += list(combinations(types,r=jj))
-    possibleTypesCombos = np.array(possibleTypesCombos)
+    possibleTypesCombos = np.array(possibleTypesCombos,dtype=object)
 
     possibleValueLengths = []
     possibleValueLengthsSumTot = []
@@ -824,7 +1007,7 @@ def map_params_to_types(snap, degeneracyBool = False):
         possibleValueLengths += val.tolist()
         possibleValueLengthsSumTot += np.sum(val,axis=-1).tolist()
 
-    possibleValueLengths = np.array(possibleValueLengths)
+    possibleValueLengths = np.array(possibleValueLengths,dtype=object)
     possibleValueLengthsSumTot = np.array(possibleValueLengthsSumTot)
 
     paramToTypeMap = {}
@@ -1006,7 +1189,7 @@ def remove_selection(
             else:
                 whereType = np.where(snap["type"]==tp)[0]
             whereTypeInTypes = np.where(types==tp)[0][0]
-            if verbose: print("whereTypeInTypes",whereTypeInTypes)
+            # if verbose: print("whereTypeInTypes",whereTypeInTypes)
             locTypesOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes])])# if tt not in typeCombosArray])
 
             if (len(locTypesOffset) == 0):
@@ -1014,21 +1197,21 @@ def remove_selection(
                 typesOffset = 0
             else:
                 typesOffset = np.sum(np.array(paramToTypeMap["lty"])[locTypesOffset])
-            if verbose: print("locTypesOffset",locTypesOffset)
+            # if verbose: print("locTypesOffset",locTypesOffset)
             # Type specific removal which adjusts for any type in types that
             # aren't part of those included in removalConditionMask
             if snapType is True:
                 whereType = np.where(snap.data["type"]==tp)[0]
             else:
                 whereType = np.where(snap["type"]==tp)[0]
-            if verbose:
-                print(whereType)
+            # if verbose:
+            #     print(whereType)
 
             whereToRemove = np.where(removalConditionMask[whereType-typesOffset])[0] + typesOffset
 
 
-            if verbose: print(typesOffset)
-            if verbose: print(whereToRemove)
+            # if verbose: print(typesOffset)
+            # if verbose: print(whereToRemove)
             if snapType is True:
                 itrr = snap.data.items()
             else:
@@ -1036,7 +1219,7 @@ def remove_selection(
             for jj,(key, value) in enumerate(itrr):
                 if tp in paramToTypeMap[key]:
                     if value is not None:
-                        if verbose: print(f"{jj}, {key}")
+                        # if verbose: print(f"{jj}, {key}")
 
                         # For the key in snapshot data, retrieve types that
                         # contain that key (i.e. the types that have values
@@ -1046,18 +1229,18 @@ def remove_selection(
                         # of this unused data type (offset) from whereToRemove
 
                         locRemovalOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes]) if tt not in paramToTypeMap[key]])
-                        if verbose: print("locRemovalOffset",locRemovalOffset)
-                        if verbose:
-                            print(tp)
-                            if len(locTypesOffset)>0:
-                                print(types[locTypesOffset])
-                            else:
-                                print("No locs type")
+                        # if verbose: print("locRemovalOffset",locRemovalOffset)
+                        # if verbose:
+                        #     print(tp)
+                        #     if len(locTypesOffset)>0:
+                        #         print(types[locTypesOffset])
+                        #     else:
+                        #         print("No locs type")
 
-                            if len(locRemovalOffset)>0:
-                                print(types[locRemovalOffset])
-                            else:
-                                print("No locs removal")
+                        #     if len(locRemovalOffset)>0:
+                        #         print(types[locRemovalOffset])
+                        #     else:
+                        #         print("No locs removal")
 
 
                         if (len(locRemovalOffset) == 0):
@@ -1065,11 +1248,11 @@ def remove_selection(
                             removalOffset = 0
                         else:
                             removalOffset = np.sum(np.array(paramToTypeMap["lty"])[locRemovalOffset])
-                        if verbose:
-                            print("val",np.shape(value))
-                            print("offset",removalOffset)
-                            print("where",whereToRemove)
-                            print("where - offset", whereToRemove - removalOffset)
+                        # if verbose:
+                        #     print("val",np.shape(value))
+                        #     print("offset",removalOffset)
+                        #     print("where",whereToRemove)
+                        #     print("where - offset", whereToRemove - removalOffset)
 
                         try:
                             # Adjust whereToRemove for key specific types. If a
@@ -1154,15 +1337,16 @@ def remove_selection(
     noneRemovedTruthy = np.all(~removedTruthy)
 
     if noneRemovedTruthy is True:
-        print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
+        if verbose: print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
     else:
         if np.any(~removedTruthy):
-            print(f"[@remove_selection]: WARNING! Selection criteria for error string = '{errorString}' not applied to particles of type:")
-            print(f"{types[np.where(removedTruthy==False)[0]]}")
-            print(f"Original types {originalTypes} with counts {originalTypeCounts}")
-            print(f"New/current types {currentTypes} with counts {currentTypeCounts}")
+            if verbose:
+                print(f"[@remove_selection]: WARNING! Selection criteria for error string = '{errorString}' not applied to particles of type:")
+                print(f"{types[np.where(removedTruthy==False)[0]]}")
+                print(f"Original types {originalTypes} with counts {originalTypeCounts}")
+                print(f"New/current types {currentTypes} with counts {currentTypeCounts}")
         else:
-            print(f"[@remove_selection]: Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
+            if verbose: print(f"[@remove_selection]: Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
 
     return snap
 
@@ -1306,6 +1490,105 @@ def cr_slice_averaging(
     print("...averaging done!")
     # STOP1080
     return quadPlotDictAveraged
+
+def cr_stats_ratios(stats,comparisons,exclusions=[],verbose = False):
+    comparisonDict = {}
+    tmpstats = {}
+    for sKey in stats.keys():
+        tmpstats.update({sKey : stats[sKey][sKey]})
+    inner = stats_ratios(
+        stats = tmpstats,
+        comparisons = comparisons,
+        exclusions = exclusions,
+        verbose = verbose, 
+    )
+
+    for compKey,val in inner.items():
+        comparisonDict.update({compKey :{compKey : val}})
+        
+    return comparisonDict
+
+def stats_ratios(stats, comparisons, exclusions=[], verbose = False):
+    print(
+        f"[@stats_ratios]: Beginning stats comparisons..."
+    )
+    comparisonDict = {}
+    for comp in comparisons:
+        numer = comp[0]
+        denom = comp[1]
+        comp = numer + "/" + denom
+        print(
+            f"[@stats_ratios]: Comparison: {comp}"
+        )
+        # comparisonDict[halo].update({compKey : {}})
+        for sKey in stats.keys():
+            listed = list(sKey)
+            if numer in listed:
+                denomKey = tuple([xx if xx != numer else denom for xx in listed])
+                compKey = tuple([xx if xx != numer else comp for xx in listed])
+                comparisonDict.update({compKey : {}})
+                for key in stats[sKey].keys():
+                    if key not in exclusions:
+                        try:
+                            val = stats[sKey][key]/stats[denomKey][key]
+                        except Exception as e:
+                            if verbose: 
+                                print(str(e))
+                                print(f"[@stats_ratios]: WARNING! Variable {key} not found! Entering null data...")
+                            val = np.full(shape=np.shape(stats[sKey][key]),fill_value=np.nan)
+                        comparisonDict[compKey].update({key : copy.deepcopy(val)})
+                    else:
+                        comparisonDict[compKey].update({key : stats[sKey][key]})
+
+
+    return comparisonDict
+
+
+def cr_save_to_excel(
+    statsDict,
+    CRPARAMSHALO,
+    savePathBase = "./",
+    filename = "CR-Data.xlsx",
+    replacements = [["high","hi"],["standard","std"],["no_CRs","MHD"],["with_CRs","CRs"],["_no_Alfven","-diff"]]
+    ):
+
+    replacements = replacements + [["/","__"]]
+
+    selectKey0 = list(CRPARAMSHALO.keys())[0]
+
+    if ("Stars" in selectKey0):
+        simSavePath = f"type-{CRPARAMSHALO[selectKey0]['analysisType']}/{CRPARAMSHALO[selectKey0]['halo']}/Stars/"
+    elif ("col" in selectKey0):
+        simSavePath = f"type-{CRPARAMSHALO[selectKey0]['analysisType']}/{CRPARAMSHALO[selectKey0]['halo']}/Col-Projection-Mapped/"
+    else:
+        simSavePath = f"type-{CRPARAMSHALO[selectKey0]['analysisType']}/{CRPARAMSHALO[selectKey0]['halo']}/"
+
+    savePath = savePathBase + simSavePath
+
+    tmp = ""
+    for savePathChunk in savePath.split("/")[:-1]:
+        tmp += savePathChunk + "/"
+        try:
+            os.mkdir(tmp)
+        except:
+            pass
+        else:
+            pass
+            
+    print(
+        f"[@cr_save_to_excel]: Saving as",savePath+filename
+    )
+    excel = pd.ExcelWriter(path=savePath+filename,mode="w")
+    with excel as writer:
+        for (selectKey, simDict) in statsDict.items():
+            df = pd.DataFrame.from_dict(simDict[selectKey])
+            sheet = " ".join(list(selectKey))
+            for replacement in replacements:
+                sheet = sheet.replace(replacement[0],replacement[1])
+            df.to_excel(writer,sheet_name=sheet)
+        
+    return
+
 
 #def _map_cart_grid_to_cells_2d(pos_array, xx, yy):
 #    nn = xx.shape[0]
