@@ -1299,7 +1299,7 @@ def cr_plot_projections(
         cmap = CMAP
 
     # Axes Labels to allow for adaptive axis selection
-    AxesLabels = ["x", "y", "z"]
+    AxesLabels = ["z","x","y"]
 
     # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
     imgcent = [0.0, 0.0, 0.0]
@@ -1400,7 +1400,7 @@ def cr_plot_projections(
 
     cax2 = inset_axes(ax2, width="5%", height="95%", loc="right")
     fig.colorbar(pcm2, cax=cax2, orientation="vertical").set_label(
-        label=r"n$_H$ (cm$^{-3}$)", size=fontsize, weight="bold"
+        label=r"n$_{\mathrm{H}}$ (cm$^{-3}$)", size=fontsize, weight="bold"
     )
     cax2.yaxis.set_ticks_position("left")
     cax2.yaxis.set_label_position("left")
