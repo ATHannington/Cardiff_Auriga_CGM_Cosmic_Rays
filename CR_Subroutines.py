@@ -33,6 +33,7 @@ def cr_analysis_radial(
     DataSavepathBase,
     FigureSavepathBase,
     colImagexlimDict = None,
+    imageCmapDict = {},
     FullDataPathSuffix=".h5",
     rotation_matrix=None,
     verbose = False,
@@ -271,18 +272,19 @@ def cr_analysis_radial(
                 xlimDict=tmpxlimDict,
                 logParameters = CRPARAMS["logParameters"],
                 snapNumber=snapNumber,
-                sliceParam = param,
+                sliceParam = [param],
                 Axes=CRPARAMS["Axes"],
                 averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
                 saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
                 xsize = CRPARAMS["xsizeImages"],
                 ysize = CRPARAMS["ysizeImages"],
                 colourmapMain = CRPARAMS["colourmapMain"],
+                colourmapsUnique = imageCmapDict,
                 boxsize = CRPARAMS["boxsize"],
                 boxlos = CRPARAMS["boxlos"],
                 pixreslos = CRPARAMS["pixreslos"],
                 pixres = CRPARAMS["pixres"],
-                projection = False,
+                projection = [False],
                 DPI = CRPARAMS["DPIimages"],
                 numthreads=CRPARAMS["numthreads"],
                 savePathBase = FiguresSavepath,
@@ -354,29 +356,22 @@ def cr_analysis_radial(
 
     for projectionBool in [False, True]:
         for param in CRPARAMS["imageParams"]:
-            if param == "T":
-                colourmapadjusted = CRPARAMS["colourmapMain"]+ "_r"
-            elif param == "vrad":
-                colourmapadjusted = "seismic" #CRPARAMS["colourmapMain"]
-            else:
-                colourmapadjusted = CRPARAMS["colourmapMain"]
-
-
             tmpdict = apt.plot_slices(snap,
                 ylabel=ylabel,
                 xlimDict=xlimDict,
                 logParameters = CRPARAMS["logParameters"],
                 snapNumber=snapNumber,
-                sliceParam = param,
+                sliceParam = [param],
                 Axes=CRPARAMS["Axes"],
                 xsize = CRPARAMS["xsizeImages"],
                 ysize = CRPARAMS["ysizeImages"],
-                colourmapMain = colourmapadjusted,
+                colourmapMain = CRPARAMS["colourmapMain"],
+                colourmapsUnique = imageCmapDict,
                 boxsize = CRPARAMS["boxsize"],
                 boxlos = CRPARAMS["boxlos"],
                 pixreslos = CRPARAMS["pixreslos"],
                 pixres = CRPARAMS["pixres"],
-                projection = projectionBool,
+                projection = [projectionBool],
                 DPI = CRPARAMS["DPIimages"],
                 numthreads=CRPARAMS["numthreads"],
                 savePathBase = FiguresSavepath,

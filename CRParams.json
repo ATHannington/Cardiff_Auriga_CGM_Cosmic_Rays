@@ -5,7 +5,7 @@
 
   "savepathfigures": "./",
 
-  "savepathdata": "/home/universe/c1838736/Cosmic_Rays/Stage2/V3-1/",
+  "savepathdata": "/home/universe/c1838736/Cosmic_Rays/Stage2/V3-2/",
 
   "loadRotationMatrix" : false,
 
@@ -93,11 +93,11 @@
 
   "ysize": 5.5,
 
-  "colourmapMain": "Spectral",
+  "colourmapMain": "Spectral_r",
 
   "titleBool": false,
 
-  "legendBool": false,
+  "legendBool": true,
 
   "fontsize": 12,
 

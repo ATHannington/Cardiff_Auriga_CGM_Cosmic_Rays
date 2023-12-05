@@ -113,6 +113,17 @@ colImagexlimDict ={
     "n_H": {"xmin": -5.5, "xmax": -2.5},
     }
 
+imageCmapDict = {
+    "vrad": "seismic",
+    "vrad_out": "Reds",
+    "vrad_in": "Blues",
+    "n_H": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
+    "n_HI": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
+    "n_H_col": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
+    "n_HI_col": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
+}
+
+
 xlimDict = {
     "R": {}, #{"xmin": CRPARAMSMASTER["Rinner"], "xmax": CRPARAMSMASTER["Router"]},
     "mass": {"xmin": 4.0, "xmax": 9.0},
@@ -403,6 +414,7 @@ if __name__ == "__main__":
                             ylabel=ylabel,
                             xlimDict=xlimDict,
                             colImagexlimDict = colImagexlimDict,
+                            imageCmapDict = imageCmapDict,
                             DataSavepathBase = DataSavepathBase,
                             FigureSavepathBase = FigureSavepathBase,
                             FullDataPathSuffix=FullDataPathSuffix,

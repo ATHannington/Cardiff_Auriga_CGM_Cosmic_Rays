@@ -73,6 +73,7 @@ ylabel = {
     "vrad_out": r"$v_{\mathrm{r}}$ (km s$^{-1}$)",
     "gz": r"Z/Z$_{\odot}$",
     "L": r"L" + "\n" + r"(kpc km s$^{-1}$)",
+    "Pressure": r"P (erg cm$^{-3}$)",
     "P_thermal": r"P$_{\mathrm{Th}}$ (erg cm$^{-3}$)",
     "P_magnetic": r"P$_{\mathrm{B}}$ (erg cm$^{-3}$)",
     "P_kinetic": r"P$_{\mathrm{Kin}}$(erg cm$^{-3}$)",
@@ -120,10 +121,14 @@ colImagexlimDict ={
     }
 
 imageCmapDict = {
+    "Pressure": "tab10",
     "vrad": "seismic",
     "vrad_out": "Reds",
     "vrad_in": "Blues",
-    "T": CRPARAMSMASTER["colourmapMain"]+"_r",
+    "n_H": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
+    "n_HI": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
+    "n_H_col": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
+    "n_HI_col": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
 }
 
 xlimDict = {
@@ -140,6 +145,7 @@ xlimDict = {
     "vrad_in": {"xmin": -200.0, "xmax": 200.0},
     "vrad_out": {"xmin": -200.0, "xmax": 200.0},
     "gz": {"xmin": -2.0, "xmax": 1.0},
+    "Pressure" : {"xmin": -16.0, "xmax": -10.0},
     "P_thermal": {"xmin": -16.0, "xmax": -10.0},
     "P_CR": {"xmin": -19.5, "xmax": -10.0},
     "PCR_Pthermal": {"xmin": -4.5, "xmax": 2.5},
@@ -268,7 +274,9 @@ if __name__ == "__main__":
             selectKeyLen=3,
             delimiter="-",
             stack = None,
+            allowFindOtherAxesData = True,
             verbose = DEBUG,
+            hush = ~DEBUG,
             )
         
         ordering = [
@@ -291,8 +299,8 @@ if __name__ == "__main__":
             Axes=CRPARAMS["Axes"],
             averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
             saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
-            xsize = CRPARAMS["xsizeImages"]*1.5,
-            ysize = CRPARAMS["ysizeImages"]*1.5,
+            xsize = CRPARAMS["xsizeImages"]*1.8,
+            ysize = CRPARAMS["ysizeImages"]*1.8,
             fontsize = CRPARAMS["fontsize"],
             colourmapMain = CRPARAMS["colourmapMain"],
             colourmapsUnique = imageCmapDict,
@@ -303,7 +311,7 @@ if __name__ == "__main__":
             projection = [[False,False,False,False]],
             DPI = CRPARAMS["DPI"],
             numthreads=CRPARAMS["numthreads"],
-            savePathBase = CRPARAMS["savepathfigures"],
+            savePathBase = CRPARAMS["savepathfigures"]+ f"/type-{analysisType}/{CRPARAMS['halo']}/",
             savePathBaseFigureData = CRPARAMS["savepathdata"],
             saveFigureData = False,
             saveFigure = CRPARAMS["SaveImages"],
@@ -314,7 +322,97 @@ if __name__ == "__main__":
             replotFromData = True,
         )
 
-        STOP268
+        
+        tmp = apt.cr_load_slice_plot_data(
+            selectKeysList,
+            CRPARAMSHALO,
+            snapNumber,
+            sliceParam = ["n_H_col","n_HI_col"],
+            Axes = CRPARAMS["Axes"],
+            averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
+            projection=True,
+            loadPathBase = CRPARAMS["savepathdata"],
+            loadPathSuffix = "",
+            selectKeyLen=3,
+            delimiter="-",
+            stack = None,
+            allowFindOtherAxesData = True,
+            verbose = DEBUG,
+            hush = ~DEBUG,
+            )
+        
+        ordering = [
+            (f"standard",f"with_CRs"),
+            (f"standard",f"no_CRs"),
+            (f"standard",f"with_CRs_no_Alfven"),
+            (f"high",f"with_CRs"),
+            (f"high",f"no_CRs"),
+            (f"high",f"with_CRs_no_Alfven"),
+        ]
+
+        tmp2 = {}
+        for key in ordering:
+            tmp2.update({key : tmp[key]})
+
+        variableAdjust = "2"
+
+        tmp3 = {}
+        for key in tmp2.keys():
+            newkey = key[-1]
+            inner = tmp2[key]
+            for kk in inner.keys():
+                dat = copy.deepcopy(inner[kk])
+                if key[0] == "high":
+                    newinnerkey = variableAdjust+kk
+                else:
+                    newinnerkey = kk  
+
+                if newkey not in list(tmp3.keys()):
+                    tmp3.update({newkey : {newinnerkey : dat}})
+                else:
+                    tmp3[newkey][newinnerkey] = dat
+
+
+        for key in tmp2[list(tmp2.keys())[0]].keys():
+            ylabel[variableAdjust+key] = ylabel[key]
+            xlimDict[variableAdjust+key] = xlimDict[key]
+            CRPARAMS["logParameters"] = CRPARAMS["logParameters"]+[variableAdjust+key]
+            imageCmapDict[variableAdjust+key] = imageCmapDict[key]
+
+
+        tmpdict = apt.plot_slices(tmp3,
+            ylabel=ylabel,
+            xlimDict=xlimDict,
+            logParameters = CRPARAMS["logParameters"],
+            snapNumber=snapNumber,
+            sliceParam = [["n_H_col","n_HI_col","2n_H_col","2n_HI_col"]],
+            Axes=CRPARAMS["Axes"],
+            averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
+            saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
+            xsize = CRPARAMS["xsizeImages"]*1.8,
+            ysize = CRPARAMS["ysizeImages"]*1.8,
+            fontsize = CRPARAMS["fontsize"],
+            colourmapMain = CRPARAMS["colourmapMain"],
+            colourmapsUnique = imageCmapDict,
+            boxsize = CRPARAMS["boxsize"],
+            boxlos = CRPARAMS["boxlos"],
+            pixreslos = CRPARAMS["pixreslos"],
+            pixres = CRPARAMS["pixres"],
+            projection = [[True,True,True,True]],
+            DPI = CRPARAMS["DPI"],
+            numthreads=CRPARAMS["numthreads"],
+            savePathBase = CRPARAMS["savepathfigures"]+ f"/type-{analysisType}/{CRPARAMS['halo']}/Col-Projection-Mapped/",
+            savePathBaseFigureData = CRPARAMS["savepathdata"],
+            saveFigureData = False,
+            saveFigure = CRPARAMS["SaveImages"],
+            selectKeysList = None,
+            alignSelectKeys = "vertical",
+            subfigures = True,
+            inplace = False,
+            replotFromData = True,
+        )
+
+        snapNumber="Averaged"
 
         # for snapNumber in snapRange:
         #     print("\n"+
@@ -560,6 +658,8 @@ if __name__ == "__main__":
             fontsizeTitle = CRPARAMS["fontsizeTitle"],
             linewidth=CRPARAMS["linewidth"],
             opacityPercentiles = CRPARAMS["opacityPercentiles"],
+            colourmapMain = CRPARAMS["colourmapMain"],
+            colourmapsUnique = None,#imageCmapDict,
             savePathBase = CRPARAMS["savepathfigures"],
             savePathBaseFigureData = CRPARAMS["savepathdata"],
             inplace = inplace,
@@ -570,7 +670,74 @@ if __name__ == "__main__":
             styleDict = styleDict,
             hush = ~DEBUG,
             )
+
+        apt.cr_medians_versus_plot(
+            statsOut,
+            CRPARAMSHALO,
+            ylabel=ylabel,
+            xlimDict=xlimDict,
+            snapNumber=snapNumber,
+            yParam=[["n_H"],["T"],["gz"],{"vrad": ["vrad_in","vrad_out"]},["B"]],
+            xParam=CRPARAMS["xParam"],
+            titleBool=CRPARAMS["titleBool"],
+            legendBool=False,#CRPARAMS["legendBool"],
+            DPI = CRPARAMS["DPI"],
+            xsize = CRPARAMS["xsize"]*0.35*2.0,
+            ysize = CRPARAMS["ysize"]*0.35,
+            fontsize = CRPARAMS["fontsize"],
+            fontsizeTitle = CRPARAMS["fontsizeTitle"],
+            linewidth=CRPARAMS["linewidth"],
+            opacityPercentiles = CRPARAMS["opacityPercentiles"],   
+            colourmapMain = CRPARAMS["colourmapMain"],
+            colourmapsUnique = None,#imageCmapDict,
+            savePathBase = CRPARAMS["savepathfigures"],
+            savePathBaseFigureData = CRPARAMS["savepathdata"],
+            subfigures = True,
+            sharex = True,
+            sharey = False,
+            inplace = inplace,
+            saveFigureData = False,
+            replotFromData = True,
+            combineMultipleOntoAxis = True,
+            selectKeysList = keepPercentiles,
+            styleDict = styleDict,
+            hush = ~DEBUG,
+            )
+
+        apt.cr_medians_versus_plot(
+            statsOut,
+            CRPARAMSHALO,
+            ylabel=ylabel,
+            xlimDict=xlimDict,
+            snapNumber=snapNumber,
+            yParam=[["Pthermal_Pmagnetic"],["PCR_Pthermal"],["PCR_Pmagnetic"]],
+            xParam=CRPARAMS["xParam"],
+            titleBool=CRPARAMS["titleBool"],
+            legendBool=False,#CRPARAMS["legendBool"],
+            DPI = CRPARAMS["DPI"],
+            xsize = CRPARAMS["xsize"]*0.35*2.0,
+            ysize = CRPARAMS["ysize"]*0.35,
+            fontsize = CRPARAMS["fontsize"],
+            fontsizeTitle = CRPARAMS["fontsizeTitle"],
+            linewidth=CRPARAMS["linewidth"],
+            opacityPercentiles = CRPARAMS["opacityPercentiles"],   
+            colourmapMain = CRPARAMS["colourmapMain"],
+            colourmapsUnique = None,#imageCmapDict,
+            savePathBase = CRPARAMS["savepathfigures"],
+            savePathBaseFigureData = CRPARAMS["savepathdata"],
+            subfigures = True,
+            sharex = True,
+            sharey = False,
+            inplace = inplace,
+            saveFigureData = False,
+            replotFromData = True,
+            combineMultipleOntoAxis = True,
+            selectKeysList = keepPercentiles,
+            styleDict = styleDict,
+            hush = ~DEBUG,
+            )
         
+
         if len(CRPARAMS["colParams"])>0:
             print(
             "\n" + f"[@{CRPARAMS['halo']}]: Time averaged Column Density Medians profile plots..."
@@ -677,7 +844,8 @@ if __name__ == "__main__":
                 fontsizeTitle = COLCRPARAMS["fontsizeTitle"],
                 linewidth=COLCRPARAMS["linewidth"],
                 opacityPercentiles = COLCRPARAMS["opacityPercentiles"],
-                colourmapMain = "tab10",
+                colourmapMain = COLCRPARAMS["colourmapMain"],
+                colourmapsUnique = None,#imageCmapDict,
                 savePathBase = COLCRPARAMS["savepathfigures"],
                 savePathBaseFigureData = COLCRPARAMS["savepathdata"],
                 inplace = inplace,
@@ -689,6 +857,38 @@ if __name__ == "__main__":
                 hush = ~DEBUG,
             )
 
+            apt.cr_medians_versus_plot(
+                statsDict = statsOutCol,
+                CRPARAMS = COLCRPARAMSHALO,
+                ylabel=ylabel,
+                xlimDict=xlimDict,
+                snapNumber=snapNumber,
+                yParam=[["n_H_col"],[ "n_HI_col" ]],
+                xParam=COLCRPARAMS["xParam"],
+                titleBool=COLCRPARAMS["titleBool"],
+                legendBool=False,#COLCRPARAMS["legendBool"],
+                DPI = COLCRPARAMS["DPI"],
+                xsize = COLCRPARAMS["xsize"]*0.35*2.0,
+                ysize = COLCRPARAMS["ysize"]*0.35,
+                fontsize = COLCRPARAMS["fontsize"],
+                fontsizeTitle = COLCRPARAMS["fontsizeTitle"],
+                linewidth=COLCRPARAMS["linewidth"],
+                opacityPercentiles = COLCRPARAMS["opacityPercentiles"],
+                colourmapMain = COLCRPARAMS["colourmapMain"],
+                colourmapsUnique = None,#imageCmapDict,
+                savePathBase = COLCRPARAMS["savepathfigures"],
+                savePathBaseFigureData = COLCRPARAMS["savepathdata"],
+                subfigures = True,
+                sharex = True,
+                sharey = False,
+                inplace = inplace,
+                saveFigureData = False,
+                replotFromData = True,
+                combineMultipleOntoAxis = True,
+                selectKeysList = None, #[('standard', 'with_CRs',"col"),('standard', 'with_CRs_no_Alfven',"col"),('standard', 'no_CRs',"col")],
+                styleDict = styleDict,
+                hush = ~DEBUG,
+                )
             selectKey = (f"{CRPARAMS['resolution']}", 
                     f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
 
