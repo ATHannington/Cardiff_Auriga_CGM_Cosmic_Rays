@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Author: A. T. Hannington
 Created: 31/03/2022
@@ -24,6 +25,7 @@ import time
 import multiprocessing as mp
 import psutil
 import math
+import warnings
 
 def cr_analysis_radial(
     snapNumber,
@@ -32,6 +34,7 @@ def cr_analysis_radial(
     xlimDict,
     DataSavepathBase,
     FigureSavepathBase,
+    types = [0, 1, 4],
     colImagexlimDict = None,
     imageCmapDict = {},
     FullDataPathSuffix=".h5",
@@ -105,7 +108,7 @@ def cr_analysis_radial(
         snapNumber,
         loadpath,
         hdf5=True,
-        loadonlytype=[0, 1, 4],
+        loadonlytype=types,
         lazy_load=True,
         subfind=snap_subfind,
         #loadonlyhalo=int(CRPARAMS["HaloID"]),
@@ -169,9 +172,11 @@ def cr_analysis_radial(
     snap.gima *= 1e10  # [Msol]
 
     snap.data["R"] = np.linalg.norm(snap.data["pos"], axis=1)
-    rvir = (snap_subfind.data["frc2"] * 1e3)[int(0)]
-
-    boxmax = max([CRPARAMS['boxsize'],CRPARAMS['boxlos']])
+    rvir = (snap_subfind.data["frc2"] * 1e3)[CRPARAMS["HaloID"]]
+    stellarType = 4
+    rdisc = (snap_subfind.data["shmt"] * 1e3)[CRPARAMS["HaloID"]][stellarType]
+    
+    boxmax = max([CRPARAMS['boxsize'],CRPARAMS['boxlos'],CRPARAMS['coldenslos']])
 
     print(
         f"[@{int(snapNumber)}]: Remove beyond {boxmax:2.2f} kpc..."
@@ -272,7 +277,7 @@ def cr_analysis_radial(
                 xlimDict=tmpxlimDict,
                 logParameters = CRPARAMS["logParameters"],
                 snapNumber=snapNumber,
-                sliceParam = [param],
+                sliceParam = param,
                 Axes=CRPARAMS["Axes"],
                 averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
                 saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
@@ -281,10 +286,10 @@ def cr_analysis_radial(
                 colourmapMain = CRPARAMS["colourmapMain"],
                 colourmapsUnique = imageCmapDict,
                 boxsize = CRPARAMS["boxsize"],
-                boxlos = CRPARAMS["boxlos"],
+                boxlos = CRPARAMS["coldenslos"],
                 pixreslos = CRPARAMS["pixreslos"],
                 pixres = CRPARAMS["pixres"],
-                projection = [False],
+                projection = False,
                 DPI = CRPARAMS["DPIimages"],
                 numthreads=CRPARAMS["numthreads"],
                 savePathBase = FiguresSavepath,
@@ -328,7 +333,7 @@ def cr_analysis_radial(
                     )
                     values = np.linalg.norm(np.asarray(np.meshgrid(xx,yy)), axis=0).reshape(-1)
                     innerColout.update({"R": values/rvir})
-
+    
     for param in CRPARAMS["imageParams"]+["Tdens", "rho_rhomean"]:
         try:
             tmp = snap.data[param]
@@ -351,7 +356,12 @@ def cr_analysis_radial(
                 verbose = verbose,
             )
 
-    if np.nanmax(snap.data["R"])>=(50.0*CRPARAMS["Router"]): snap.data["R"] = snap.data["R"]/rvir
+        ## Check that radii are still being stored in units of Rvir...
+    if np.all(snap.data["R"][np.where(np.linalg.norm(snap.data["pos"],axis=1)<=CRPARAMS["Router"]*rvir)[0]]<=CRPARAMS["Router"]): 
+        pass
+    else:
+        ## if radii are not in units of rvir, set that now...
+        snap.data["R"] = snap.data["R"]/rvir
 
 
     for projectionBool in [False, True]:
@@ -361,7 +371,7 @@ def cr_analysis_radial(
                 xlimDict=xlimDict,
                 logParameters = CRPARAMS["logParameters"],
                 snapNumber=snapNumber,
-                sliceParam = [param],
+                sliceParam = param,
                 Axes=CRPARAMS["Axes"],
                 xsize = CRPARAMS["xsizeImages"],
                 ysize = CRPARAMS["ysizeImages"],
@@ -371,7 +381,7 @@ def cr_analysis_radial(
                 boxlos = CRPARAMS["boxlos"],
                 pixreslos = CRPARAMS["pixreslos"],
                 pixres = CRPARAMS["pixres"],
-                projection = [projectionBool],
+                projection = projectionBool,
                 DPI = CRPARAMS["DPIimages"],
                 numthreads=CRPARAMS["numthreads"],
                 savePathBase = FiguresSavepath,
@@ -387,6 +397,13 @@ def cr_analysis_radial(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Delete unwanted data..."
     )
 
+
+        ## Check that radii are still being stored in units of Rvir...
+    if np.all(snap.data["R"][np.where(np.linalg.norm(snap.data["pos"],axis=1)<=CRPARAMS["Router"]*rvir)[0]]<=CRPARAMS["Router"]): 
+        pass
+    else:
+        ## if radii are not in units of rvir, set that now...
+        snap.data["R"] = snap.data["R"]/rvir
 
     whereSatellite = np.isin(snap.data["subhalo"],np.array([-1,int(CRPARAMS["HaloID"]),np.nan]))==False
 
@@ -440,6 +457,14 @@ def cr_analysis_radial(
         verbose = verbose,
         )
 
+
+    ##
+    # Generate dataset clone containing all particle types in 'types' variable
+    innerFull = {}
+    for key, value in snap.data.items():
+        if value is not None:
+            innerFull.update({key: copy.deepcopy(value)})
+
     whereNotGas = np.isin(snap.data["type"],np.array([1,2,3,5,6]))==True
 
     snap = remove_selection(
@@ -451,7 +476,7 @@ def cr_analysis_radial(
 
     if analysisType == "cgm":
         print(
-            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']},@{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the CGM..."
+            f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the CGM..."
         )
 
     
@@ -472,7 +497,16 @@ def cr_analysis_radial(
             errorString = "Remove Stars Not within Router",
             verbose = verbose,
             )
-        # whereNotCGM = (snap.data["R"] < CRPARAMS["Rinner"])
+        
+        whereNotCGMFull = (innerFull["R"] > CRPARAMS["Router"])
+
+        innerFull = remove_selection(
+            innerFull,
+            removalConditionMask = whereNotCGMFull,
+            errorString = "Remove not within Router for full data",
+            verbose = verbose,
+            )    
+        # whereNot CGM = (snap.data["R"] < CRPARAMS["Rinner"])
 
         # snap = remove_selection(
         #     snap,
@@ -525,15 +559,13 @@ def cr_analysis_radial(
             errorString = "Remove above critical density for standard star formation",
             verbose = verbose,
             )
-
-        if np.nanmax(snap.data["R"])>=(50.0*CRPARAMS["Router"]): snap.data["R"] = snap.data["R"]/rvir
                 
     elif analysisType == "ism":
         print(
             f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Select the ISM..."
         )
 
-        whereNotISM = (snap.data["sfr"] <= 0.0) & (snap.data["R"] > CRPARAMS["Rinner"])
+        whereNotISM = (snap.data["ndens"] < 1.1e-1) & (snap.data["R"] > CRPARAMS["Rinner"])
 
         snap = remove_selection(
             snap,
@@ -541,7 +573,25 @@ def cr_analysis_radial(
             errorString = "Remove NOT ISM from Gas",
             verbose = verbose,
             )
+        
+        whereOutsideSelection = (innerFull["R"] > CRPARAMS["Rinner"])
 
+        innerFull = remove_selection(
+            innerFull,
+            removalConditionMask = whereOutsideSelection,
+            errorString = "Remove outside selection from full data",
+            verbose = verbose,
+            )  
+        
+        whereNotStarsCGM = (innerStars["ndens"] < 1.1e-1) & (innerStars["R"] > CRPARAMS["Rinner"])
+
+        innerStars = remove_selection(
+            innerStars,
+            removalConditionMask = whereNotStarsCGM,
+            errorString = "Remove NOT ISM from Stars",
+            verbose = verbose,
+            )
+        
     elif analysisType == "all":
 
         print(
@@ -556,6 +606,26 @@ def cr_analysis_radial(
             errorString = "Remove ALL Outside Selection from Gas",
             verbose = verbose,
             )
+        
+        
+        whereOutsideSelectionFull = (innerFull["R"] > CRPARAMS["Router"])
+
+        innerFull = remove_selection(
+            innerFull,
+            removalConditionMask = whereOutsideSelectionFull,
+            errorString = "Remove ALL Outside Selection from full data",
+            verbose = verbose,
+            )  
+        
+        
+        whereOutsideSelectionStars = (innerStars["R"] > CRPARAMS["Router"])
+
+        innerStars = remove_selection(
+            innerStars,
+            removalConditionMask = whereOutsideSelectionStars,
+            errorString = "Remove ALL Outside Selection from Stars",
+            verbose = verbose,
+            )  
 
     whereNotGas = snap.data["type"]==4
 
@@ -575,21 +645,32 @@ def cr_analysis_radial(
     inner["Lookback"] = np.array([lookback])
     inner["Snap"] = np.array([snapNumber])
     inner["Rvir"] = np.array([rvir])
+    inner["Rdisc"] = np.array([rdisc])
 
     innerStars["Redshift"] = np.array([redshift])
     innerStars["Lookback"] = np.array([lookback])
     innerStars["Snap"] = np.array([snapNumber])
     innerStars["Rvir"] = np.array([rvir])
+    innerStars["Rdisc"] = np.array([rdisc])
 
     innerColout["Redshift"] = np.array([redshift])
     innerColout["Lookback"] = np.array([lookback])
     innerColout["Snap"] = np.array([snapNumber])
     innerColout["Rvir"] = np.array([rvir])
+    innerColout["Rdisc"] = np.array([rdisc])
 
     quadPlotDict["Redshift"] = np.array([redshift])
     quadPlotDict["Lookback"] = np.array([lookback])
     quadPlotDict["Snap"] = np.array([snapNumber])
     quadPlotDict["Rvir"] = np.array([rvir])
+    quadPlotDict["Rdisc"] = np.array([rdisc])
+
+    innerFull["Redshift"] = np.array([redshift])
+    innerFull["Lookback"] = np.array([lookback])
+    innerFull["Snap"] = np.array([snapNumber])
+    innerFull["Rvir"] = np.array([rvir])
+    innerFull["Rdisc"] = np.array([rdisc])
+
     # # Make normal dictionary form of snap
     # inner = {}
     # for key, value in snap.data.items():
@@ -646,10 +727,17 @@ def cr_analysis_radial(
         ): quadPlotDict
     }
 
+    full = { (
+            f"{CRPARAMS['resolution']}",
+            f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}",
+            f"{int(snapNumber)}",
+        ): innerFull
+    }
+
     print(
         f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Finishing process..."
     )
-    return out, starsout, colout, quadPlotDictOut, rotation_matrix
+    return out, starsout, colout, quadPlotDictOut, full, rotation_matrix
 
 
 def cr_parameters(CRPARAMSMASTER, simDict):
@@ -881,25 +969,28 @@ def cr_calculate_statistics(
         "ndens": {"xmin": -6.0, "xmax": 2.0},
     },
     printpercent=5.0,
-    exclusions = ["Redshift", "Lookback", "Snap", "Rvir"],
+    exclusions = ["Redshift", "Lookback", "Snap", "Rvir", "Rdisc"],
     weightedStatsBool = True,
 ):
+
     if exclusions is None:
         exclusions = []
 
     ## Empty data checks ## 
     if bool(dataDict) is False:
-        print("\n"
-                +f"[@cr_calculate_statistics]: WARNING! dataDict is empty! Skipping plots ..."
+        warnings.warn("\n"
+                +f"[@cr_calculate_statistics]: dataDict is empty! Skipping plots ..."
                 +"\n"
         )
         return
+    
+    print(f"[@cr_calculate_statistics]: Excluded properties (as passed into 'exclusions' kwarg): {exclusions}")
 
     print("[@cr_calculate_statistics]: Generate bins")
     if xParam in CRPARAMS["logParameters"]:
         xBins = np.logspace(
-            start=xlimDict[xParam]["xmin"],
-            stop=xlimDict[xParam]["xmax"],
+            start=np.log10(xlimDict[xParam]["xmin"]),
+            stop=np.log10(xlimDict[xParam]["xmax"]),
             num=Nbins+1,
             base=10.0,
         )
@@ -913,7 +1004,7 @@ def cr_calculate_statistics(
     where_within = np.where((dataDict[xParam] >= xmin) & (dataDict[xParam] < xmax))[0]
 
     sort_ind = np.argsort(dataDict[xParam][where_within],axis=0)
-
+    
     sortedData ={}
     print("[@cr_calculate_statistics]: Sort data by xParam")
     for param, values in dataDict.items():
@@ -921,7 +1012,7 @@ def cr_calculate_statistics(
             param not in exclusions
         ):
             sortedData.update({param: copy.deepcopy(values[where_within][sort_ind])})
-
+    
     xData = []
     datList = []
     printcount = 0.0
@@ -935,7 +1026,6 @@ def cr_calculate_statistics(
             printcount += printpercent
         xData.append((float(xmax) + float(xmin)) / 2.0)
         whereData = np.where((sortedData[xParam] >= xmin) & (sortedData[xParam] < xmax))[0]
-
         binnedData = {}
         for param, values in sortedData.items():
             if (param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]) & (
@@ -1018,13 +1108,15 @@ def map_params_to_types(snap, degeneracyBool = False):
             try:
                 tmptypeCombos = possibleTypesCombos[whereValueShape][0]
             except:
-                raise Exception(f"[@map_params_to_types]: FAILURE! CRITICAL! Parameter {key} could not be assigned a type!"
+                raise Exception(f"[@map_params_to_types]:  Parameter {key} could not be assigned a type!"
                                 +"\n"
                                 +"This usually means the parameter has an incorrect shape, and does not correspond to any type."
                                 +"\n"
                                 +"Check logic around parameter creation, or check that you meant to include this parameter into the data included in the call to this function."
                                 +"\n"
-                                +"e.g. you should only pass data with shapes corresponding to the included types in the passed data dict/snapshot.")
+                                +"e.g. you should only pass data with shapes corresponding to the included types in the passed data dict/snapshot."
+                                +"\n"
+                                +"Some parameters may be handled through exception via singleValueKeys or exclusions variables. Please check scripts from CR project for examples of usage.")
             paramToTypeMap.update({
                 key: copy.deepcopy(tmptypeCombos),
             })
@@ -1040,9 +1132,12 @@ def map_params_to_types(snap, degeneracyBool = False):
         countDict = Counter(lenTypes)
         #If length of type is not unique...
         if np.any(np.array(list(countDict.values()))>1):
-            print(f"[map_params_to_types]: WARNING! Type lengths are degenerate!")
-            print(f"[map_params_to_types]:",countDict)
-            print(f"[map_params_to_types]: We will pad with np.nan by small amounts to try and break this degeneracy")
+            warnings.warn(f"[map_params_to_types]: Type lengths are degenerate!"
+                          +"\n"
+                          +f"[map_params_to_types]: {countDict}"
+                          +"\n"
+                          +f"[map_params_to_types]: We will pad with np.nan by small amounts to try and break this degeneracy"
+                    )
 
             nUnique = 0
             while nUnique != len(types):
@@ -1103,6 +1198,10 @@ def remove_selection(
     verbose = False,
     ):
     """
+    WARNING: Do ~NOT~ enter indices (e.g. from a call to np.where() ) for the argument of removalConditionMask!
+             Tempting though this may be, it will break the code in unexpected ways! I will try to add a catch for to throw an error when
+             this is attempted.
+
     This function accepts as an input either an Arepo snapshot instance, or a dictionary along with a numpy boolean array of where to remove. It then
     removes from the data ~for ALL Arepo particle types~ whichever entries are True in this array.
     This function (and the function map_params_to_types) works on a combinatorics assumption. We assume that for every Arepo particle type, the number
@@ -1112,7 +1211,7 @@ def remove_selection(
     This function ~does not care which Arepo particle types you have loaded into memory, nor their order~ but it ~does~ modify the data in the order
     of the types loaded in. Thus, much of the work of removing, for example, data of particle type 1 from loaded types [0, 1, 4] is involved with 
     determining the location of type 1 in the current parameter being modified, and adjusting the indices to be deleted accordingly.
-    If a property has associated types [0,1] then we account for the length of type 0 before removing indices. 
+    If a property has associated types [0, 1] then we account for the length of type 0 before removing indices. 
     We modify the data of a property associated with types [0, 1] for example, by first removing the type 0 entries flagged for removal, and then
     the type 1 entries flagged for removal. Note: our function must keep track of the changes in shapes of each property and particle type as they
     are editted through the loops in this function.
@@ -1123,6 +1222,18 @@ def remove_selection(
     """
     import copy
     import pandas as pd
+
+    if removalConditionMask.dtype is not np.dtype("bool"):
+        raise TypeError(f"[@remove_selection]: removalConditionMask detected as dtype {removalConditionMask.dtype}!"
+                            +"\n"
+                            + "removalConditionMask can only be of dtype 'bool'."
+                            +"\n"
+                            +"Common causes of this error are using:"
+                            +"\n"
+                            +"removalConditionMask = np.where(condition==False)"
+                            +"\n"
+                            +"instead of removalConditionMask = condition==False"
+                        )
 
     nRemovals = np.shape(np.where(removalConditionMask==True)[0])[0]
     if nRemovals==0:
@@ -1147,7 +1258,7 @@ def remove_selection(
     snap, paramToTypeMap, degeneracyBool = map_params_to_types(snap)
 
     if degeneracyBool is True:
-        raise Exception(f"[remove_selection]: FAILURE! CRITICAL! Snapshot type lengths have been detected as degenerate by map_params_to_types() call in remove_selection()."+"\n"+"map_params_to_types() must be called seperately, prior to the evaluation of removalConditionMask in this call to remove_selection()"+"\n"+f"This error came from errorString {errorString} call to remove_selection()!")
+        raise Exception(f"[remove_selection]:  Snapshot type lengths have been detected as degenerate by map_params_to_types() call in remove_selection()."+"\n"+"map_params_to_types() must be called seperately, prior to the evaluation of removalConditionMask in this call to remove_selection()"+"\n"+f"This error came from errorString {errorString} call to remove_selection()!")
 
     removedTruthy = np.full(types.shape,fill_value=False)
 
@@ -1163,7 +1274,11 @@ def remove_selection(
 
     whereShapeMatch = np.where(paramToTypeMap["pvl_tot"] == removalConditionMask.shape[0])[0]
 
+    if verbose: print("whereShapeMatch", whereShapeMatch)
+
     typeCombos = paramToTypeMap["ptyc"][whereShapeMatch]
+
+    if verbose: print("typeCombos", typeCombos)
 
     tmp = typeCombos.tolist()
     tmp2 = [list(xx) for xx in tmp]
@@ -1184,7 +1299,7 @@ def remove_selection(
             else:
                 whereType = np.where(snap["type"]==tp)[0]
             whereTypeInTypes = np.where(types==tp)[0][0]
-            # if verbose: print("whereTypeInTypes",whereTypeInTypes)
+            if verbose: print("whereTypeInTypes",whereTypeInTypes)
             locTypesOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes])])# if tt not in typeCombosArray])
 
             if (len(locTypesOffset) == 0):
@@ -1192,21 +1307,22 @@ def remove_selection(
                 typesOffset = 0
             else:
                 typesOffset = np.sum(np.array(paramToTypeMap["lty"])[locTypesOffset])
-            # if verbose: print("locTypesOffset",locTypesOffset)
+            if verbose: print("locTypesOffset",locTypesOffset)
             # Type specific removal which adjusts for any type in types that
             # aren't part of those included in removalConditionMask
             if snapType is True:
                 whereType = np.where(snap.data["type"]==tp)[0]
             else:
                 whereType = np.where(snap["type"]==tp)[0]
-            # if verbose:
-            #     print(whereType)
+            if verbose:
+                print("whereType", whereType)
 
             whereToRemove = np.where(removalConditionMask[whereType-typesOffset])[0] + typesOffset
 
 
-            # if verbose: print(typesOffset)
-            # if verbose: print(whereToRemove)
+            if verbose: print("typesOffset",typesOffset)
+            if verbose: print("whereToRemove",whereToRemove)
+            
             if snapType is True:
                 itrr = snap.data.items()
             else:
@@ -1214,7 +1330,7 @@ def remove_selection(
             for jj,(key, value) in enumerate(itrr):
                 if tp in paramToTypeMap[key]:
                     if value is not None:
-                        # if verbose: print(f"{jj}, {key}")
+                        if verbose: print("jj, key", f"{jj}, {key}")
 
                         # For the key in snapshot data, retrieve types that
                         # contain that key (i.e. the types that have values
@@ -1224,18 +1340,18 @@ def remove_selection(
                         # of this unused data type (offset) from whereToRemove
 
                         locRemovalOffset= np.array([jj for jj,tt in enumerate(types[:whereTypeInTypes]) if tt not in paramToTypeMap[key]])
-                        # if verbose: print("locRemovalOffset",locRemovalOffset)
-                        # if verbose:
-                        #     print(tp)
-                        #     if len(locTypesOffset)>0:
-                        #         print(types[locTypesOffset])
-                        #     else:
-                        #         print("No locs type")
+                        if verbose: print("locRemovalOffset",locRemovalOffset)
+                        if verbose:
+                            print("tp",tp)
+                            if len(locTypesOffset)>0:
+                                print("types[locTypesOffset]",types[locTypesOffset])
+                            else:
+                                print("No locs type")
 
-                        #     if len(locRemovalOffset)>0:
-                        #         print(types[locRemovalOffset])
-                        #     else:
-                        #         print("No locs removal")
+                            if len(locRemovalOffset)>0:
+                                print("types[locRemovalOffset]",types[locRemovalOffset])
+                            else:
+                                print("No locs removal")
 
 
                         if (len(locRemovalOffset) == 0):
@@ -1243,11 +1359,11 @@ def remove_selection(
                             removalOffset = 0
                         else:
                             removalOffset = np.sum(np.array(paramToTypeMap["lty"])[locRemovalOffset])
-                        # if verbose:
-                        #     print("val",np.shape(value))
-                        #     print("offset",removalOffset)
-                        #     print("where",whereToRemove)
-                        #     print("where - offset", whereToRemove - removalOffset)
+                        if verbose:
+                            print("val",np.shape(value))
+                            print("offset",removalOffset)
+                            print("where",whereToRemove)
+                            print("where - offset", whereToRemove - removalOffset)
 
                         try:
                             # Adjust whereToRemove for key specific types. If a
@@ -1284,8 +1400,9 @@ def remove_selection(
                         except Exception as e:
                             removedTruthy[ii] = False
                             if verbose:
-                                print(f"[remove_selection]: verbose! Shape key: {np.shape(value)}")
-                                print(f"[remove_selection]: verbose! WARNING! {str(e)}. Could not remove selection from {key} for particles of type {tp}")
+                                warnings.warn(f"[remove_selection]: Shape key: {np.shape(value)}"
+                                              +"\n"
+                                              +f"[remove_selection]: {str(e)}. Could not remove selection from {key} for particles of type {tp}")
 
             # Need to remove all entries (deleted (True) or kept (False))
             # of this type so that next type has
@@ -1310,7 +1427,7 @@ def remove_selection(
         else:
             nData = np.shape(snap["type"])[0]
     except:
-        raise Exception(f"[@remove_selection]: FAILURE! CRITICAL!"+
+        raise Exception(f"[@remove_selection]: "+
                         "\n"+f"Error String: {errorString} returned an empty snapShot!"
                         )
 
@@ -1325,23 +1442,26 @@ def remove_selection(
             currentTypes, currentTypeCounts = np.unique(snap["type"],return_counts=True)
 
     except:
-        raise Exception(f"[@remove_selection]: FAILURE! CRITICAL!"+
+        raise Exception(f"[@remove_selection]: "+
                         "\n"+f"Error String: {errorString} returned an empty snapShot!"
                         )
     
     noneRemovedTruthy = np.all(~removedTruthy)
 
     if noneRemovedTruthy is True:
-        if verbose: print(f"[@remove_selection]: WARNING! Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
+        if verbose: warnings.warn(f"[@remove_selection]: Selection Criteria for error string = '{errorString}', has removed NO entries. Check logic! ")
     else:
         if np.any(~removedTruthy):
             if verbose:
-                print(f"[@remove_selection]: WARNING! Selection criteria for error string = '{errorString}' not applied to particles of type:")
-                print(f"{types[np.where(removedTruthy==False)[0]]}")
-                print(f"Original types {originalTypes} with counts {originalTypeCounts}")
-                print(f"New/current types {currentTypes} with counts {currentTypeCounts}")
+                warnings.warn(f"[@remove_selection]:  Selection criteria for error string = '{errorString}' not applied to particles of type:"
+                              +"\n"
+                              +f"{types[np.where(removedTruthy==False)[0]]}"
+                              +"\n"
+                              +f"Original types {originalTypes} with counts {originalTypeCounts}"
+                              +"\n"
+                              +f"New/current types {currentTypes} with counts {currentTypeCounts}")
         else:
-            if verbose: print(f"[@remove_selection]: Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
+            if verbose: warnings.warn(f"[@remove_selection]: Selection criteria for error string = '{errorString}' was ~successfully~ applied!")
 
     return snap
 
@@ -1528,8 +1648,9 @@ def stats_ratios(stats, comparisons, exclusions=[], verbose = False):
                             val = stats[sKey][key]/stats[denomKey][key]
                         except Exception as e:
                             if verbose: 
-                                print(str(e))
-                                print(f"[@stats_ratios]: WARNING! Variable {key} not found! Entering null data...")
+                                warnings.warn(str(e)
+                                +"\n"
+                                +f"[@stats_ratios]: Variable {key} not found! Entering null data...")
                             val = np.full(shape=np.shape(stats[sKey][key]),fill_value=np.nan)
                         comparisonDict[compKey].update({key : copy.deepcopy(val)})
                     else:
@@ -1544,7 +1665,7 @@ def cr_save_to_excel(
     CRPARAMSHALO,
     savePathBase = "./",
     filename = "CR-Data.xlsx",
-    replacements = [["high","hi"],["standard","std"],["no_CRs","MHD"],["with_CRs","CRs"],["_no_Alfven","-diff"]]
+    replacements = [["high","hi"],["standard","std"],["no_CRs","MHD"],["with_CRs","CRs"],["_no_Alfven","-NA"]]
     ):
 
     replacements = replacements + [["/","__"]]
