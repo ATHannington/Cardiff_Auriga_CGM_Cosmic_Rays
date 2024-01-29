@@ -103,7 +103,7 @@
       "no-alfven": null
     },
     "standard_with_CRs_no-alfven": {
-      "simfile":  "/home/cosmos/c1838736/Auriga/level4_cgm/h5_standard_CRs_no-alfven/output/",
+      "simfile":  "/home/cosmos/c1838736/Auriga/level4_cgm/h5_standard_CRs_no-alfven_v2/output/",
       "resolution": "standard",
       "with_CRs": true,
       "no-alfven": true

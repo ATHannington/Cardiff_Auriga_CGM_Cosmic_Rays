@@ -45,7 +45,7 @@
 
   "opacityPercentiles": 0.25,
 
-  "forceYAxisLog": false,
+  "forceLogPDF": false,
 
   "numthreads": 28,
 

@@ -5,7 +5,7 @@
 
   "savepathfigures": "./",
 
-  "savepathdata": "/home/universe/c1838736/Cosmic_Rays/Stage2/V3-2/",
+  "savepathdata": "/home/universe/c1838736/Cosmic_Rays/Stage2/V3-3/",
 
   "loadRotationMatrix" : false,
 
@@ -13,7 +13,7 @@
 
   "saveParams": [ "T", "R", "n_H", "n_HI", "nh", "ndens", "rho_rhomean", "B", "vrad", "vrad_in", "vrad_out", "gz", "L", "P_CR", "PCR_Pthermal","PCR_Pmagnetic", "P_kinetic", "P_thermal", "P_magnetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "tcool", "tff", "tcool_tff"],
 
-  "saveEssentials": [ "halo", "subhalo", "Redshift", "Lookback", "Snap", "type", "mass", "pos", "vol", "hrgm", "sfr", "Rvir", "gima", "age" , "boxsize", "gmet", "ne", "Tdens", "u", "bfld", "vel", "gcol", "cren", "rho"],
+  "saveEssentials": [ "halo", "subhalo", "Redshift", "Lookback", "Snap", "type", "mass", "pos", "vol", "hrgm", "sfr", "Rvir", "Rdisc", "gima", "age" , "boxsize", "gmet", "ne", "Tdens", "u", "bfld", "vel", "gcol", "cren", "rho"],
 
   "snapMin": 118,
 
@@ -29,7 +29,7 @@
 
   "colParams" : [ "n_H_col", "n_HI_col" ],
 
-  "imageParams": [ "T", "ndens", "rho_rhomean", "n_H", "n_HI", "B", "P_CR", "PCR_Pthermal", "P_kinetic", "P_thermal", "P_magnetic", "PCR_Pmagnetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "vrad", "gz"],
+  "imageParams": [ "T", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "gz"],
 
   "pdfParams": [ "T", "R", "ndens", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "vrad_in", "vrad_out", "gz", "L", "P_CR", "PCR_Pmagnetic", "PCR_Pthermal", "P_kinetic", "P_thermal", "P_magnetic", "Pthermal_Pmagnetic", "P_tot+k" ,"P_tot", "tcool", "tff", "tcool_tff" ],
 
@@ -67,16 +67,18 @@
 
   "saveAllAxesImages" : false,
 
-  "forceYAxisLog": false,
+  "forceLogPDF": false,
 
   "numthreads": 18,
-
+  
   "boxsize": 400.0,
-
+  
   "boxlos": 50.0,
-
+  
+  "coldenslos": 600.0,
+  
   "pixres": 0.50,
-
+  
   "pixreslos": 0.50,
 
   "HaloID": 0,

@@ -1,0 +1,144 @@
+{
+  "analysisType": "cgm",
+
+  "restartFlag": false,
+
+  "savepathfigures": "./",
+
+  "savepathdata": "./",
+
+  "SFR" : true,
+
+  "loadRotationMatrix" : false,
+
+  "constantRotationMatrix" : false,
+
+  "saveParams": [ "T", "R", "n_H", "n_HI", "nh", "ndens", "rho_rhomean", "gmet"],
+
+  "saveEssentials": [ "halo", "subhalo", "Redshift", "Lookback", "Snap", "type", "mass", "pos", "vol", "hrgm", "sfr", "Rvir", "Rdisc", "gima", "age" , "boxsize", "ne", "Tdens", "u", "bfld", "vel", "gcol", "cren", "rho"],
+
+  "snapMin": 118,
+
+  "snapMax": 127,
+
+  "percentiles": [],
+
+  "Rinner": 0.0,
+
+  "Router": 1.0,
+
+  "xParam": "R",
+
+  "colParams" : [],
+
+  "imageParams": [],
+
+  "pdfParams": [],
+
+  "phasesxParams": [],
+
+  "phasesyParams": [],
+
+  "phasesColourbarParams": [],
+
+  "mediansParams": [],
+
+  "NStatsBins": 100,
+
+  "Nbins": 250,
+
+  "opacityPercentiles": 0.25,
+
+  "linewidth": 2.0,
+
+  "Axes": [ 1, 0 ],
+
+  "projections": false,
+
+  "binByParam": true,
+
+  "binParam": "R",
+
+  "NParamBins" : 4,
+
+  "byType": false,
+
+  "SaveImages": true,
+
+  "averageAcrossAxes" : true,
+
+  "saveAllAxesImages" : false,
+
+  "forceLogPDF": false,
+
+  "numthreads": 18,
+  
+  "boxsize": 400.0,
+  
+  "boxlos": 50.0,
+  
+  "coldenslos": 600.0,
+  
+  "pixres": 0.50,
+  
+  "pixreslos": 0.50,
+
+  "HaloID": 0,
+
+  "DPI": 200,
+
+  "DPIimages" : 300,
+
+  "xsizeImages": 5.5,
+
+  "ysizeImages": 5.5,
+
+  "xsize": 5.5,
+
+  "ysize": 5.5,
+
+  "colourmapMain": "Spectral_r",
+
+  "titleBool": false,
+
+  "legendBool": true,
+
+  "fontsize": 12,
+
+  "fontsizeTitle": 13,
+
+  "ageWindow": null,
+
+  "windowBins": 0.100,
+
+  "logParameters": [ "nh", "dens", "ndens", "rho_rhomean", "rho", "vol", "csound", "T", "n_H", "n_H_col", "n_HI", "n_HI_col", "B", "gz", "L", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal", "PCR_Pmagnetic", "gah", "Grad_T", "Grad_n_H", "Grad_bfld", "Grad_P_CR", "tcool", "theat", "tcross", "tff", "tcool_tff", "mass", "count", "e_CR"],
+
+  "nonMassWeightDict": {
+   "nh": "vol",
+    "n_H": "vol",
+    "n_HI": "vol",
+    "n_H_col": "count",
+    "n_HI_col": "count",
+    "ndens": "vol",
+    "dens": "vol",
+    "rho_rhomean": "vol",
+    "rho": "vol",
+    "B": "vol",
+    "bfld": "vol",
+    "P_kinetic": "vol",
+    "P_thermal": "vol",
+    "P_magnetic": "vol",
+    "P_tot": "vol",
+    "P_tot+k": "vol",
+    "Pthermal_Pmagnetic": "vol",
+    "P_CR": "vol",
+    "PCR_Pthermal": "vol",
+    "PCR_Pmagnetic": "vol",
+    "gah": "vol",
+    "Grad_T": "vol",
+    "Grad_n_H": "vol",
+    "Grad_bfld": "vol",
+    "Grad_P_CR": "vol"
+  }
+
+}
