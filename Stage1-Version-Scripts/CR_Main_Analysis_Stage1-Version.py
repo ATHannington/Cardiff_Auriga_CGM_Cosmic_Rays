@@ -455,7 +455,7 @@ if __name__ == "__main__":
         #    saveCurve = True,
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #)
@@ -483,7 +483,7 @@ if __name__ == "__main__":
         #    savePathBase = "./",
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #    )
@@ -514,7 +514,7 @@ if __name__ == "__main__":
         #    saveCurve = True,
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #)
@@ -542,7 +542,7 @@ if __name__ == "__main__":
         #    savePathBase = "./",
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #    )
@@ -572,7 +572,7 @@ if __name__ == "__main__":
         #    saveCurve = True,
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #)
@@ -600,7 +600,7 @@ if __name__ == "__main__":
         #    savePathBase = "./",
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #    )
@@ -631,7 +631,7 @@ if __name__ == "__main__":
         #    saveCurve = True,
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #)
@@ -659,7 +659,7 @@ if __name__ == "__main__":
         #    savePathBase = "./",
         #    SFR = False,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #    )
@@ -687,7 +687,7 @@ if __name__ == "__main__":
         #    saveCurve = True,
         #    SFR = True,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #)
@@ -713,7 +713,7 @@ if __name__ == "__main__":
         #    savePathBase = "./",
         #    SFR = True,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #    )
@@ -741,7 +741,7 @@ if __name__ == "__main__":
         #    saveCurve = True,
         #    SFR = True,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #)
@@ -767,7 +767,7 @@ if __name__ == "__main__":
         #    savePathBase = "./",
         #    SFR = True,
         #    byType = False,
-        #    forceYAxisLog = False,
+        #    forceLogPDF = False,
         #    normalise = False,
         #    DEBUG = DEBUG,
         #    )
