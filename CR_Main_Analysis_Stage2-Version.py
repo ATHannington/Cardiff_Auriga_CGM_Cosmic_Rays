@@ -1,3 +1,4 @@
+# coding=utf-8
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -17,6 +18,7 @@ import json
 import copy
 import os
 import math
+import warnings
 
 # =============================================================================#
 #
@@ -34,7 +36,7 @@ DEBUG = False
 inplace = False
 CRPARAMSPATHMASTER = "CRParams.json"
 
-singleValueKeys = ["Redshift", "Lookback", "Snap", "Rvir"]
+singleValueKeys = ["Redshift", "Lookback", "Snap", "Rvir", "Rdisc"]
 
 
 CRPARAMSMASTER = json.load(open(CRPARAMSPATHMASTER, "r"))
@@ -57,8 +59,10 @@ ylabel = {
     "T": r"T (K)",
     "R": r"R/R$_{\mathrm{200c}}}$",
     "n_H": r"n$_{\mathrm{H}}$ (cm$^{-3}$)",
+    "M_H": r"M$_{\mathrm{H}}$ (M$_{\odot}$)",
     "n_H_col": r"N$_{\mathrm{H}}$ (cm$^{-2}$)",
     "n_HI": r"n$_{\mathrm{HI}}$ (cm$^{-3}$)",
+    "M_HI": r"M$_{\mathrm{HI}}$ (M$_{\odot}$)",
     "n_HI_col": r"N$_{\mathrm{HI}}$ (cm$^{-2}$)",
     "nh": r"Neutral Hydrogen Fraction",
     "B": r"|B| ($ \mu $G)",
@@ -76,14 +80,14 @@ ylabel = {
     "P_CR": r"P$_{\mathrm{CR}}$ (erg cm$^{-3}$)",
     "PCR_Pmagnetic" : r"P$_{\mathrm{CR}}$/P$_{\mathrm{B}}$",
     "PCR_Pthermal": r"P$_{\mathrm{CR}}$/P$_{\mathrm{Th}}$",
-    "gah": r"Alfven Gas Heating (erg s$^{-1}$)",
+    "gah": r"Alfvén Gas Heating (erg s$^{-1}$)",
     "bfld": r"$\mathbf{B}$ ($ \mu $G)",
     "Grad_T": r"||$\nabla$ T|| (K kpc$^{-1}$)",
     "Grad_n_H": r"||$\nabla$ n$_{\mathrm{H}}$|| (cm$^{-3}$ kpc$^{-1}$)",
     "Grad_bfld": r"||$\nabla$ $\mathrm{B}$|| ($ \mu $G kpc$^{-1}$)",
     "Grad_P_CR": r"||P$_{\mathrm{CR}}$|| (erg kpc$^{-4}$)",
     "gima" : r"SFR (M$_{\odot}$ yr$^{-1}$)",
-    # "crac" : r"Alfven CR Cooling (erg s$^{-1}$)",
+    # "crac" : r"Alfvén CR Cooling (erg s$^{-1}$)",
     "tcool": r"t$_{\mathrm{Cool}}$ (Gyr)",
     "theat": r"t$_{\mathrm{Heat}}$ (Gyr)",
     "tcross": r"t$_{\mathrm{Sound}}$ (Gyr)",
@@ -133,6 +137,8 @@ xlimDict = {
     "n_HI" : {"xmin": -13.0, "xmax": 0.0},
     "n_H_col": {"xmin": 19.0, "xmax": 21.5},
     "n_HI_col" : {"xmin": 12.0, "xmax": 21.5},
+    "M_H" : {},
+    "M_HI" : {},
     "B": {"xmin": -2.5, "xmax": 1.0},
     "vrad": {"xmin": -200.0, "xmax": 200.0},
     "vrad_in": {"xmin": -200.0, "xmax": 200.0},
@@ -163,6 +169,9 @@ xlimDict = {
     "e_CR": {"xmin": -8.0, "xmax": 0.0},
 }
 
+if "R" in CRPARAMSMASTER["logParameters"]:
+    ylabel["R"] = r"R (kpc)"
+    
 for entry in CRPARAMSMASTER["logParameters"]:
     ylabel[entry] = r"$\mathrm{Log_{10}}$ " + ylabel[entry]
     ylabel[entry] = ylabel[entry].replace("(","[")
@@ -207,16 +216,11 @@ snapRange = [
 if __name__ == "__main__":
 
     if determineXlimits is True: 
-        print(
-            "!!!!!"
-            +"\n"
-            +"WARNING! determineXlimits set to True!"
+        warnings.warn("determineXlimits set to True!"
             +"\n"
             +"This feature is intended for exploratory purposes to determine desired axis limits for xlimDict."
             +"\n"
             +"Time averaging will NOT work with this feature enabled!"
-            +"\n"
-            +"!!!!!"
         )
 
     for halo, allSimsDict in CRSELECTEDHALOES.items():
@@ -408,7 +412,7 @@ if __name__ == "__main__":
                         
                         CRPARAMSHALO.update({selectKey: CRPARAMS})
 
-                        innerDataDict, innerStarsDict, innerColDict, _, rotation_matrix = cr.cr_analysis_radial(
+                        innerDataDict, innerStarsDict, innerColDict, _, _, rotation_matrix = cr.cr_analysis_radial(
                             snapNumber=snapNumber,
                             CRPARAMS=CRPARAMS,
                             ylabel=ylabel,
@@ -645,16 +649,44 @@ if __name__ == "__main__":
                 else:
                     xlimDict["R"]['xmin'] = 0.0
                     xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
+                    
+                tmp = np.asarray(list(CRPARAMS["nonMassWeightDict"].values()))
+                whereNone = np.where(tmp==None)[0]
+                whereNOTNone = np.where(tmp!=None)[0]
 
-                statsWeightkeys = ["mass"] + np.unique(np.asarray(list(CRPARAMS["nonMassWeightDict"].values()))).tolist()
+                statsWeightkeys = ["mass"] + np.unique(tmp[whereNOTNone]).tolist()
                 exclusions = [] 
                 
                 for param in CRPARAMS["saveEssentials"]:
                     if param not in statsWeightkeys:
                         exclusions.append(param)
 
+                if ((np.nanmax(dataDict[selectKey]["R"])<=1.0) & ("R" in CRPARAMS["logParameters"])):
+                    warnings.warn(
+                          "xParam == R has been set to log scale, but the maximum value found in the dta is <= 1 ."
+                          +"\n"
+                          +"Assuming R has been set as R/R200c (R/Rvir in code variables) which is incompatible with log scaling."
+                          +"\n"
+                          +"Will return R to kpc units before calculating further values, but please ensure this is desired and that"
+                          +" this logic has triggered correctly."
+                          )
+                
+                    dataDict[selectKey]["R"] = (dataDict[selectKey]["R"])*dataDict[selectKey]["Rvir"]
+
+                    xlimDict["R"]['xmin'] = 1.0
+                    xlimDict["R"]['xmax'] = xlimDict["R"]['xmax']*dataDict[selectKey]["Rvir"]
+                    
                 print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
                     xlimDict["R"]['xmax'])
+                
+                # # # if (("M_H" not in list(dataDict[selectKey].keys()))
+                # # #     |("M_HI" not in list(dataDict[selectKey].keys()))
+                # # #     ):
+                # # #     dataDict[selectKey]["M_H"] = (dataDict[selectKey]["n_H"]*((c.parsec * 1e3) ** 3)*dataDict[selectKey]["vol"]*c.amu*dataDict[selectKey]["gmet"][:,0]/(c.msol))
+                # # #     dataDict[selectKey]["M_HI"] = (dataDict[selectKey]["n_HI"]*((c.parsec * 1e3) ** 3)*dataDict[selectKey]["vol"]*c.amu*dataDict[selectKey]["gmet"][:,0]/(c.msol))
+                # # #     tmpCRPARAMS["saveParams"] = tmpCRPARAMS["saveParams"] + ["M_H"]
+                # # #     tmpCRPARAMS["saveParams"] = tmpCRPARAMS["saveParams"] + ["M_HI"]
+
                 dat = cr.cr_calculate_statistics(
                     dataDict=dataDict[selectKey],
                     CRPARAMS=tmpCRPARAMS,
@@ -663,6 +695,20 @@ if __name__ == "__main__":
                     xlimDict=xlimDict,
                     exclusions=exclusions,
                 )
+
+                # # for pressureRatio in ["Pthermal_Pmagnetic","PCR_Pthermal","PCR_Pmagnetic"]:
+                # #     if pressureRatio in list(dataDict[selectKey].keys()):
+                # #         pressures = pressureRatio.split("_")
+                # #         pr1, pr2 = pressures
+                # #         pr1proper = pr1[0]+"_"+pr1[1:]
+                # #         pr2proper = pr2[0]+"_"+pr2[1:]
+                        
+                # #         for percentile in CRPARAMS["percentiles"]:
+                # #             newPr = pressureRatio + "_" + f"{percentile:2.2f}" + "%"
+                # #             ps1 = pr1proper + "_" + f"{percentile:2.2f}" + "%"
+                # #             ps2 = pr2proper + "_" + f"{percentile:2.2f}" + "%"
+                # #             dat[newPr] = copy.deepcopy(dat[ps1]/dat[ps2])
+
 
                 innerStatsDict = {selectKey: dat}
                 statsDict.update(innerStatsDict)
@@ -847,8 +893,11 @@ if __name__ == "__main__":
 
                 tmpDataDict = {selectKey : copy.deepcopy(dataDict[selectKey])}
 
+                tmp = np.asarray(list(CRPARAMS["nonMassWeightDict"].values()))
+                whereNone = np.where(tmp==None)[0]
+                whereNOTNone = np.where(tmp!=None)[0]
 
-                statsWeightkeys = ["mass"] + np.unique(np.asarray(list(CRPARAMS["nonMassWeightDict"].values()))).tolist()
+                statsWeightkeys = ["mass"] + np.unique(tmp[whereNOTNone]).tolist()
                 exclusions = [] 
 
                 labels = ["x", "y", "z"]
@@ -1224,7 +1273,6 @@ if __name__ == "__main__":
                     savePathBaseFigureData = STARSCRPARAMS["savepathdata"] + figureDataSavePathModifier,
                     saveFigureData = True,
                     SFR = False,
-                    
                     normalise = False,
                     verbose = DEBUG,
                     inplace = inplace,

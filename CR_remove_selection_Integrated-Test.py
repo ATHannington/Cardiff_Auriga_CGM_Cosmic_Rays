@@ -18,14 +18,14 @@ import pytest
 
 def _load_snap(loadTypes,loadonlyhalo=0):
     # load in the subfind group files
-    snap_subfind = load_subfind(100, dir="/home/cosmos/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/")
+    snap_subfind = load_subfind(127, dir="/home/cosmos/spxfv/Auriga/level4_cgm/h5_standard/output/")
 
     # load in the gas particles mass and position only for HaloID 0.
     #   0 is gas, 1 is DM, 4 is stars, 5 is BHs, 6 is tracers
     #       gas and stars (type 0 and 4) MUST be loaded first!!
     snap = gadget_readsnap(
-        100,
-        "/home/cosmos/spxfv/Auriga/level4_cgm/h12_standard_CRs/output/",
+        127,
+        "/home/cosmos/spxfv/Auriga/level4_cgm/h5_standard/output/",
         hdf5=True,
         loadonlytype=loadTypes,
         loadonlyhalo=loadonlyhalo,
@@ -40,7 +40,7 @@ def test_single_type_sensible_remove(loadTypes,loadonlyhalo):
     snap = _load_snap(loadTypes,loadonlyhalo=loadonlyhalo)
     snap, _, _ = map_params_to_types(snap)
     whereToRemove = np.isin(snap.data["type"],np.array(loadTypes))
-    whereToRemove[0] = False
+    whereToRemove[127] = False
     snap = remove_selection(
         snap=snap,
         removalConditionMask=whereToRemove,
@@ -56,7 +56,7 @@ def test_multi_type_sensible_remove(loadTypes):
     snap = _load_snap(loadTypes)
     snap, _, _ = map_params_to_types(snap)
     whereToRemove = np.isin(snap.data["type"],np.array(loadTypes))
-    whereToRemove[0] = False
+    whereToRemove[583] = False
     snap = remove_selection(
         snap=snap,
         removalConditionMask=whereToRemove,
@@ -75,11 +75,11 @@ def test_multi_type_degeneracy_test_xfail(loadTypes):
     types = pd.unique(snap.data["type"])
     for tp in types:
         whereType = np.where(snap.data["type"]==tp)[0]
-        firstIndexOfType = whereType[0]
-        whereToRemove[firstIndexOfType] = False
+        secondIndexOfType = whereType[1]
+        whereToRemove[secondIndexOfType] = False
         print(whereType)
-        print(firstIndexOfType)
-        print(whereToRemove[firstIndexOfType])
+        print(secondIndexOfType)
+        print(whereToRemove[secondIndexOfType])
     snap = remove_selection(
         snap=snap,
         removalConditionMask=whereToRemove,
@@ -92,11 +92,11 @@ def test_multi_type_degeneracy_test_xfail(loadTypes):
     types = pd.unique(snap.data["type"])
     for tp in types:
         whereType = np.where(snap.data["type"]==tp)[0]
-        firstIndexOfType = whereType[0]
-        whereToRemove[firstIndexOfType] = False
+        secondIndexOfType = whereType[1]
+        whereToRemove[secondIndexOfType] = False
         print(whereType)
-        print(firstIndexOfType)
-        print(whereToRemove[firstIndexOfType])
+        print(secondIndexOfType)
+        print(whereToRemove[secondIndexOfType])
 
     snap = remove_selection(
         snap=snap,
@@ -117,8 +117,8 @@ def test_multi_type_degeneracy_test_pass(loadTypes):
 
     for tp in types:
         whereType = np.where(snap.data["type"]==tp)[0]
-        firstIndexOfType = whereType[0]
-        whereToRemove[firstIndexOfType] = False
+        secondIndexOfType = whereType[1]
+        whereToRemove[secondIndexOfType] = False
 
     snap = remove_selection(
         snap=snap,
@@ -133,8 +133,8 @@ def test_multi_type_degeneracy_test_pass(loadTypes):
 
     for tp in types:
         whereType = np.where(snap.data["type"]==tp)[0]
-        firstIndexOfType = whereType[0]
-        whereToRemove[firstIndexOfType] = False
+        secondIndexOfType = whereType[1]
+        whereToRemove[secondIndexOfType] = False
 
     snap = remove_selection(
         snap=snap,
