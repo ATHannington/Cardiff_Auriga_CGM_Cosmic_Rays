@@ -617,7 +617,7 @@ def pdf_versus_plot(
     allSavePathsSuffix = "",
     saveFigureData = False,
     SFR = False,
-    forceYAxisLog = False,
+    forceLogPDF = False,
     normalise = False,
     allowPlotsWithoutxlimits = False,
     inplace = False,
@@ -940,7 +940,7 @@ def pdf_versus_plot(
 
                 # If log10 desired: set zeros to nan for convenience of
                 # not having to drop inf's later, and mask them from plots
-                if ((weightKey in logParameters)&(forceYAxisLog is True)):
+                if ((weightKey in logParameters)&(forceLogPDF is True)):
                     hist[hist == 0.0] = np.nan
 
                 if (weightKey == "mass"):
@@ -1059,7 +1059,7 @@ def pdf_versus_plot(
             
             # # # if (analysisParam in logParameters):
             # # #     ax.set_xscale("log")
-            if ((weightKey in logParameters)&(forceYAxisLog == True)):
+            if ((weightKey in logParameters)&(forceLogPDF == True)):
                 ax.set_yscale("log")
 
         ax.xaxis.set_minor_locator(AutoMinorLocator())
@@ -1082,7 +1082,7 @@ def pdf_versus_plot(
             titleKeyword = "CDF"
         else:
             titleKeyword = "Histogram"
-            if (forceYAxisLog is False):
+            if (forceLogPDF is False):
                 adaptedylabel = ylabel_prefix + (copy.deepcopy(ylabel[weightKey])).replace(r"$\mathrm{Log_{10}}$ ", "")
             else:
                 adaptedylabel = ylabel_prefix + ylabel[weightKey]
@@ -1130,7 +1130,7 @@ def pdf_versus_plot(
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
 
-            if (forceYAxisLog is False)&(SFRBool is False):
+            if (forceLogPDF is False)&(SFRBool is False):
                 try:
                     finalymin = 0.0
                     finalymax = np.nanmax(np.asarray(ymaxList))
@@ -1175,7 +1175,7 @@ def pdf_versus_plot(
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
 
-            if (forceYAxisLog is False)&(SFRBool is False):
+            if (forceLogPDF is False)&(SFRBool is False):
                 try:
                     finalymin = 0.0
                     finalymax = np.nanmax(np.asarray(ymaxList))
@@ -3980,7 +3980,7 @@ def cr_pdf_versus_plot(
     allSavePathsSuffix = "",
     saveFigureData = True,
     SFR = False,    
-    forceYAxisLog = False,
+    forceLogPDF = False,
     normalise = False,
     verbose = False,
     inplace = False,
@@ -4073,7 +4073,7 @@ def cr_pdf_versus_plot(
                     allSavePathsSuffix = allSavePathsSuffix,
                     saveFigureData = saveFigureData,
                     SFR = SFR,
-                    forceYAxisLog = forceYAxisLog,
+                    forceLogPDF = forceLogPDF,
                     normalise = normalise,
                     replotFromData = replotFromData,
                     combineMultipleOntoAxis = combineMultipleOntoAxis,
@@ -4162,7 +4162,7 @@ def cr_pdf_versus_plot(
                     allSavePathsSuffix = allSavePathsSuffix,
                     saveFigureData = saveFigureData,
                     SFR = SFR,
-                    forceYAxisLog = forceYAxisLog,
+                    forceLogPDF = forceLogPDF,
                     normalise = normalise,
                     replotFromData = replotFromData,
                     combineMultipleOntoAxis = combineMultipleOntoAxis,

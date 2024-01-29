@@ -391,7 +391,7 @@ if __name__ == "__main__":
         savePathBaseFigureData = savePathBaseFigureData,
         saveFigureData = True,
         SFR = False,
-        forceYAxisLog = HYPARAMS["forceYAxisLog"],
+        forceLogPDF = HYPARAMS["forceLogPDF"],
         normalise = False,
         verbose = DEBUG,
         inplace = inplace,
@@ -435,7 +435,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -476,7 +476,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -517,7 +517,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = True,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -553,7 +553,7 @@ if __name__ == "__main__":
             # # # #    savePathBaseFigureData = savePathBaseFigureData,
             # # # #    saveFigureData = True,
             # # # #    
-            # # # #    forceYAxisLog = HYPARAMS["forceYAxisLog"],
+            # # # #    forceLogPDF = HYPARAMS["forceLogPDF"],
             # # # # )
 
             # # # # print(
@@ -573,7 +573,7 @@ if __name__ == "__main__":
             # # # #    savePathBaseFigureData = savePathBaseFigureData,
             # # # #    saveFigureData = True,
             # # # #    
-            # # # #    forceYAxisLog = HYPARAMS["forceYAxisLog"],
+            # # # #    forceLogPDF = HYPARAMS["forceLogPDF"],
             # # # # )
 
             # # # # print(
@@ -594,7 +594,7 @@ if __name__ == "__main__":
             # # # #    savePathBaseFigureData = savePathBaseFigureData,
             # # # #    saveFigureData = True,
             # # # #    
-            # # # #    forceYAxisLog = HYPARAMS["forceYAxisLog"],
+            # # # #    forceLogPDF = HYPARAMS["forceLogPDF"],
             # # # # )
 
 
@@ -645,7 +645,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = True,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -687,7 +687,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = True,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -729,7 +729,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = True,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = True,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -808,7 +808,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -863,7 +863,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -918,7 +918,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = True,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -1075,7 +1075,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -1112,7 +1112,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -1145,7 +1145,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -1179,7 +1179,7 @@ if __name__ == "__main__":
                 saveFigureData = True,
                 SFR = False,
                 
-                forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                forceLogPDF = HYPARAMS["forceLogPDF"],
                 normalise = True,
                 verbose = DEBUG,
                 inplace = inplace,
@@ -1241,7 +1241,7 @@ if __name__ == "__main__":
                     saveFigureData = True,
                     SFR = False,
                     
-                    forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                    forceLogPDF = HYPARAMS["forceLogPDF"],
                     normalise = False,
                     verbose = DEBUG,
                     inplace = inplace,
@@ -1278,7 +1278,7 @@ if __name__ == "__main__":
                     saveFigureData = True,
                     SFR = False,
                     
-                    forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                    forceLogPDF = HYPARAMS["forceLogPDF"],
                     normalise = False,
                     verbose = DEBUG,
                     inplace = inplace,
@@ -1311,7 +1311,7 @@ if __name__ == "__main__":
                     saveFigureData = True,
                     SFR = False,
                     
-                    forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                    forceLogPDF = HYPARAMS["forceLogPDF"],
                     normalise = False,
                     verbose = DEBUG,
                     inplace = inplace,
@@ -1345,7 +1345,7 @@ if __name__ == "__main__":
                     saveFigureData = True,
                     SFR = False,
                     
-                    forceYAxisLog = HYPARAMS["forceYAxisLog"],
+                    forceLogPDF = HYPARAMS["forceLogPDF"],
                     normalise = True,
                     verbose = DEBUG,
                     inplace = inplace,
