@@ -32,13 +32,13 @@ matplotlib.use("Agg")  # For suppressing plotting on clusters
 DEBUG = False
 
 keepPercentiles = [
-    (f"high",f"no_CRs"),
-    (f"high",f"with_CRs"),
-    (f"high",f"with_CRs_no_Alfven"),
+    (f"standard",f"no_CRs"),
+    (f"standard",f"with_CRs"),
+    (f"standard",f"with_CRs_no_Alfven"),
+    # (f"high",f"no_CRs"),
+    # (f"high",f"with_CRs"),
+    # (f"high",f"with_CRs_no_Alfven"),
 ]
-    # (f"standard",f"no_CRs"),
-    # (f"standard",f"with_CRs"),
-    # (f"standard",f"with_CRs_no_Alfven"),
 
 ordering = [
     (f"high",f"no_CRs"),
@@ -152,39 +152,39 @@ yaxisZeroLineDict = {
     "PCR_Pthermal": True,
     "PCR_Pmagnetic": True,
 }
-
 xlimDict = {
     "R": {}, #{"xmin": CRPARAMSMASTER["Rinner"], "xmax": CRPARAMSMASTER["Router"]},
     "mass": {"xmin": 4.0, "xmax": 9.0},
     "L": {"xmin": 1.5, "xmax": 4.5},
     "T": {"xmin": 3.5, "xmax": 7.0},
-    "n_H":  {"xmin": -6.0, "xmax": 1.0}, #{"xmin": -6.0, "xmax": -2.0},
-    "n_HI" : {"xmin": -12.0, "xmax": -2.0},
-    "n_H_col": {"xmin": 19.0, "xmax": 23.0},
-    "n_HI_col" : {"xmin": 13.0, "xmax": 22.0},
-    "B":{"xmin": -2.5, "xmax": 2.0},# {"xmin": -7.0, "xmax": 2.0},
+    "n_H": {"xmin": -6.0, "xmax": 1.0},
+    "n_HI" : {"xmin": -13.0, "xmax": 0.0},
+    "n_H_col": {"xmin": 19.0, "xmax": 22.0},
+    "n_HI_col" : {"xmin": 12.5, "xmax": 22.0},
+    "B": {"xmin": -2.5, "xmax": 2.0},
     "vrad": {"xmin": -200.0, "xmax": 200.0},
     "vrad_in": {"xmin": -200.0, "xmax": 200.0},
     "vrad_out": {"xmin": -200.0, "xmax": 200.0},
     "gz": {"xmin": -2.0, "xmax": 1.0},
     "Pressure" : {"xmin": -16.0, "xmax": -10.0},
-    "P_thermal": {"xmin": -16.0, "xmax": -12.0},
-    "P_CR": {"xmin": -20.0, "xmax": -10.0},
-    "PCR_Pthermal": {"xmin": -4.5, "xmax": 2.5},#{"xmin": -8.0, "xmax": 2.5},
-    "PCR_Pmagnetic": {"xmin": -3.5, "xmax": 2.5},#{"xmin": -6.0, "xmax": 4.0},
-    "Pthermal_Pmagnetic": {"xmin": -2.5, "xmax": 3.5},#{"xmin": -2.0, "xmax": 5.0},
-    "P_magnetic": {"xmin": -23.0, "xmax": -13.0},
-    "P_kinetic":  {"xmin": -16.0, "xmax": -10.0},
-    "P_tot": {"xmin": -16.0, "xmax": -12.0},
-    "P_tot+k": {"xmin": -15.5, "xmax": -11.5},
+    "P_thermal": {"xmin": -16.0, "xmax": -10.0},
+    "P_CR": {"xmin": -19.5, "xmax": -10.0},
+    "PCR_Pthermal": {"xmin": -4.5, "xmax": 2.5},
+    "PCR_Pmagnetic": {"xmin": -3.5, "xmax": 2.5},
+    "Pthermal_Pmagnetic": {"xmin": -2.5, "xmax": 3.5},
+    "P_magnetic": {"xmin": -19.5, "xmax": -10.0},
+    "P_kinetic": {"xmin": -19.5, "xmax": -10.0},
+    "P_tot": {"xmin": -19.5, "xmax": -10.0},
+    "P_tot+k": {"xmin": -19.5, "xmax": -10.0},
     "tcool": {"xmin": -4.0, "xmax": 4.0},
     "theat": {"xmin": -4.0, "xmax": 4.0},
     "tff": {"xmin": -1.5, "xmax": 0.75},
     "tcool_tff": {"xmin": -2.5, "xmax": 2.0},
-    "rho_rhomean": {"xmin": 1.5, "xmax": 5.5},
-    "dens": {}, #{"xmin": -30.0, "xmax": -22.0},
-    "ndens": {"xmin": -6.0, "xmax": -1.0},
-    "rho" : {}, #{"xmin": 2.0, "xmax": 7.0},
+    "rho_rhomean": {"xmin": 1.5, "xmax": 6.0},
+    "dens": {"xmin": -30.0, "xmax": -22.0},
+    "ndens": {"xmin": -6.0, "xmax": 2.0},
+    "rho_rhomean": {"xmin": 0.25, "xmax": 6.5},
+    "rho" : {"xmin": 2.0, "xmax": 7.0},
     "vol": {},
     "cool_length" : {"xmin": -1.0, "xmax": 2.0},
     "csound" : {},
@@ -271,8 +271,7 @@ if __name__ == "__main__":
                 xlimDict["R"]['xmin'] = 0.0
                 xlimDict["R"]['xmax'] = CRPARAMS['Router']
 
-            if ("R" in CRPARAMS["logParameters"]):
-                xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+        
         # ----------------------------------------------------------------------#
         #  Plots...
         # ----------------------------------------------------------------------#
@@ -288,166 +287,159 @@ if __name__ == "__main__":
 
         keepPercentiles = copy.deepcopy(tmp)
 
+
+        # # loadpath = CRPARAMS["savepathdata"]
+
+        # tmp = apt.cr_load_slice_plot_data(
+        #     selectKeysList,
+        #     CRPARAMSHALO,
+        #     snapNumber,
+        #     sliceParam = ["n_H","T","gz","vrad"],
+        #     Axes = CRPARAMS["Axes"],
+        #     projection=[False,False,False,False],
+        #     loadPathBase = CRPARAMS["savepathdata"],
+        #     loadPathSuffix = "",
+        #     selectKeyLen=3,
+        #     delimiter="-",
+        #     stack = None,
+        #     allowFindOtherAxesData = False,
+        #     verbose = DEBUG,
+        #     hush = not DEBUG,
+        #     )
+
+        # orderedData = {}
+        # for key in ordering:
+        #     orderedData.update({key : tmp[key]})
+
         highResOnlyLegendLabels = {
-            (f"high",f"no_CRs") : f"no CRs",
-            (f"high",f"with_CRs") : f"with CRs",
-            (f"high",f"with_CRs_no_Alfven") : f"with CRs no Alfven",
+            (f"standard",f"no_CRs") : f"no CRs",
+            (f"standard",f"with_CRs") : f"with CRs",
+            (f"standard",f"with_CRs_no_Alfven") : f"with CRs no Alfven",
         }
 
-
-        loadpath = CRPARAMS["savepathdata"]
-
-        tmp = apt.cr_load_slice_plot_data(
-            selectKeysList,
-            CRPARAMSHALO,
-            snapNumber,
-            sliceParam = ["n_H","T","gz","vrad"],
-            Axes = CRPARAMS["Axes"],
-            projection=[False,False,False,False],
-            loadPathBase = CRPARAMS["savepathdata"],
-            loadPathSuffix = "",
-            selectKeyLen=3,
-            delimiter="-",
-            stack = None,
-            allowFindOtherAxesData = False,
-            verbose = DEBUG,
-            hush = not DEBUG,
-            )
-
-        orderedData = {}
-        for key in ordering:
-            orderedData.update({key : tmp[key]})
-
-        tmpdict = apt.plot_slices(orderedData,
-            ylabel=ylabel,
-            xlimDict=xlimDict,
-            logParameters = CRPARAMS["logParameters"],
-            snapNumber=snapNumber,
-            sliceParam = [["n_H","T","gz","vrad"]],
-            Axes=CRPARAMS["Axes"],
-            averageAcrossAxes = False,
-            saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
-            xsize = CRPARAMS["xsizeImages"]*1.8,
-            ysize = CRPARAMS["ysizeImages"]*1.8,
-            fontsize = CRPARAMS["fontsize"],
-            colourmapMain = CRPARAMS["colourmapMain"],
-            colourmapsUnique = imageCmapDict,
-            boxsize = CRPARAMS["boxsize"],
-            boxlos = CRPARAMS["boxlos"],
-            pixreslos = CRPARAMS["pixreslos"],
-            pixres = CRPARAMS["pixres"],
-            projection = [[False,False,False,False]],
-            DPI = CRPARAMS["DPI"],
-            numthreads=CRPARAMS["numthreads"],
-            savePathBase = CRPARAMS["savepathfigures"]+ f"/type-{analysisType}/{CRPARAMS['halo']}/",
-            savePathBaseFigureData = CRPARAMS["savepathdata"],
-            saveFigureData = False,
-            saveFigure = CRPARAMS["SaveImages"],
-            selectKeysList = keepPercentiles,
-            compareSelectKeysOn = CRPARAMS["compareSelectKeysOn"],
-            subfigures = True,
-            subfigureDatasetLabelsDict = highResOnlyLegendLabels,
-            subfigureDatasetLabelsBool = True,
-            subfigureOffAlignmentAxisLabels = False,
-            offAlignmentAxisLabels = None,
-            inplace = False,
-            replotFromData = True,
-        )
+        # tmpdict = apt.plot_slices(orderedData,
+        #     ylabel=ylabel,
+        #     xlimDict=xlimDict,
+        #     logParameters = CRPARAMS["logParameters"],
+        #     snapNumber=snapNumber,
+        #     sliceParam = [["n_H","T","gz","vrad"]],
+        #     Axes=CRPARAMS["Axes"],
+        #     averageAcrossAxes = False,
+        #     saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
+        #     xsize = CRPARAMS["xsizeImages"]*1.8,
+        #     ysize = CRPARAMS["ysizeImages"]*1.8,
+        #     fontsize = CRPARAMS["fontsize"],
+        #     colourmapMain = CRPARAMS["colourmapMain"],
+        #     colourmapsUnique = imageCmapDict,
+        #     boxsize = CRPARAMS["boxsize"],
+        #     boxlos = CRPARAMS["boxlos"],
+        #     pixreslos = CRPARAMS["pixreslos"],
+        #     pixres = CRPARAMS["pixres"],
+        #     projection = [[False,False,False,False]],
+        #     DPI = CRPARAMS["DPI"],
+        #     numthreads=CRPARAMS["numthreads"],
+        #     savePathBase = CRPARAMS["savepathfigures"]+ f"/type-{analysisType}/{CRPARAMS['halo']}/",
+        #     savePathBaseFigureData = CRPARAMS["savepathdata"],
+        #     saveFigureData = False,
+        #     saveFigure = CRPARAMS["SaveImages"],
+        #     selectKeysList = keepPercentiles,
+        #     compareSelectKeysOn = "vertical",
+        #     subfigures = True,
+        #     subfigureDatasetLabelsDict = highResOnlyLegendLabels,
+        #     subfigureDatasetLabelsBool = True,
+        #     subfigureOffAlignmentAxisLabels = False,
+        #     offAlignmentAxisLabels = None,
+        #     inplace = False,
+        #     replotFromData = True,
+        # )
 
         
-        tmp = apt.cr_load_slice_plot_data(
-            selectKeysList,
-            CRPARAMSHALO,
-            snapNumber,
-            sliceParam = ["n_H_col","n_HI_col"],
-            Axes = CRPARAMS["Axes"],
-            projection=[True,True],
-            loadPathBase = CRPARAMS["savepathdata"],
-            loadPathSuffix = "",
-            selectKeyLen=3,
-            delimiter="-",
-            stack = None,
-            allowFindOtherAxesData = False,
-            verbose = DEBUG,
-            hush = not DEBUG,
-            )
+        # tmp = apt.cr_load_slice_plot_data(
+        #     selectKeysList,
+        #     CRPARAMSHALO,
+        #     snapNumber,
+        #     sliceParam = ["n_H_col","n_HI_col"],
+        #     Axes = CRPARAMS["Axes"],
+        #     projection=[True,True],
+        #     loadPathBase = CRPARAMS["savepathdata"],
+        #     loadPathSuffix = "",
+        #     selectKeyLen=3,
+        #     delimiter="-",
+        #     stack = None,
+        #     allowFindOtherAxesData = False,
+        #     verbose = DEBUG,
+        #     hush = not DEBUG,
+        #     )
     
 
-        orderedData = {}
-        for key in ordering:
-            orderedData.update({key : tmp[key]})
+        # orderedData = {}
+        # for key in ordering:
+        #     orderedData.update({key : tmp[key]})
 
-        variableAdjust = "2"
+        # variableAdjust = "2"
 
-        tmp3 = {}
-        for key in orderedData.keys():
-            newkey = key[-1]
-            inner = orderedData[key]
-            for kk in inner.keys():
-                dat = copy.deepcopy(inner[kk])
-                if key[0] == "high":
-                    newinnerkey = variableAdjust+kk
-                else:
-                    newinnerkey = kk  
+        # tmp3 = {}
+        # for key in orderedData.keys():
+        #     newkey = key[-1]
+        #     inner = orderedData[key]
+        #     for kk in inner.keys():
+        #         dat = copy.deepcopy(inner[kk])
+        #         if key[0] == "high":
+        #             newinnerkey = variableAdjust+kk
+        #         else:
+        #             newinnerkey = kk  
 
-                if newkey not in list(tmp3.keys()):
-                    tmp3.update({newkey : {newinnerkey : dat}})
-                else:
-                    tmp3[newkey][newinnerkey] = dat
+        #         if newkey not in list(tmp3.keys()):
+        #             tmp3.update({newkey : {newinnerkey : dat}})
+        #         else:
+        #             tmp3[newkey][newinnerkey] = dat
 
 
-        for key in orderedData[list(orderedData.keys())[0]].keys():
-            ylabel[variableAdjust+key] = ylabel[key]
-            xlimDict[variableAdjust+key] = xlimDict[key]
-            CRPARAMS["logParameters"] = CRPARAMS["logParameters"]+[variableAdjust+key]
-            imageCmapDict[variableAdjust+key] = imageCmapDict[key]
+        # for key in orderedData[list(orderedData.keys())[0]].keys():
+        #     ylabel[variableAdjust+key] = ylabel[key]
+        #     xlimDict[variableAdjust+key] = xlimDict[key]
+        #     CRPARAMS["logParameters"] = CRPARAMS["logParameters"]+[variableAdjust+key]
+        #     imageCmapDict[variableAdjust+key] = imageCmapDict[key]
 
-        # # offAxisLabels = ["High Res." if xx[0]=="2" else "Standard Res." for xx in tmp3[list(tmp3.keys())[0]].keys()]
+        # # # offAxisLabels = ["High Res." if xx[0]=="2" else "Standard Res." for xx in tmp3[list(tmp3.keys())[0]].keys()]
             
-        plotOrder = ["n_H_col","2n_H_col","n_HI_col","2n_HI_col"]
-        offAxisLabels = ["High Res." if xx[0]=="2" else "Standard Res." for xx in plotOrder]
+        # plotOrder = ["n_H_col","2n_H_col","n_HI_col","2n_HI_col"]
+        # offAxisLabels = ["High Res." if xx[0]=="2" else "Standard Res." for xx in plotOrder]
 
-        # Create variant of xlimDict specifically for images of col params
-        tmpxlimDict = copy.deepcopy(xlimDict)
-
-        # Add the col param specific limits to the xlimDict variant
-        for key, value in colImagexlimDict.items():
-            tmpxlimDict[key] = value
-
-        tmpdict = apt.plot_slices(tmp3,
-            ylabel=ylabel,
-            xlimDict=tmpxlimDict,
-            logParameters = CRPARAMS["logParameters"],
-            snapNumber=snapNumber,
-            sliceParam = [plotOrder],
-            Axes=CRPARAMS["Axes"],
-            averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
-            saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
-            xsize = CRPARAMS["xsizeImages"]*1.8,
-            ysize = CRPARAMS["ysizeImages"]*1.8,
-            fontsize = CRPARAMS["fontsize"],
-            colourmapMain = CRPARAMS["colourmapMain"],
-            colourmapsUnique = imageCmapDict,
-            boxsize = CRPARAMS["boxsize"],
-            boxlos = CRPARAMS["boxlos"],
-            pixreslos = CRPARAMS["pixreslos"],
-            pixres = CRPARAMS["pixres"],
-            projection = [[True,True,True,True]],
-            DPI = CRPARAMS["DPI"],
-            numthreads=CRPARAMS["numthreads"],
-            savePathBase = CRPARAMS["savepathfigures"]+ f"/type-{analysisType}/{CRPARAMS['halo']}/Col-Projection-Mapped/",
-            savePathBaseFigureData = CRPARAMS["savepathdata"],
-            saveFigureData = False,
-            saveFigure = CRPARAMS["SaveImages"],
-            selectKeysList = None,
-            compareSelectKeysOn = CRPARAMS["compareSelectKeysOn"],
-            subfigures = True,
-            subfigureDatasetLabelsBool = True,
-            subfigureOffAlignmentAxisLabels = True,
-            offAlignmentAxisLabels = offAxisLabels,
-            inplace = False,
-            replotFromData = True,
-        )
+        # tmpdict = apt.plot_slices(tmp3,
+        #     ylabel=ylabel,
+        #     xlimDict=xlimDict,
+        #     logParameters = CRPARAMS["logParameters"],
+        #     snapNumber=snapNumber,
+        #     sliceParam = [plotOrder],
+        #     Axes=CRPARAMS["Axes"],
+        #     averageAcrossAxes = CRPARAMS["averageAcrossAxes"],
+        #     saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
+        #     xsize = CRPARAMS["xsizeImages"]*1.8,
+        #     ysize = CRPARAMS["ysizeImages"]*1.8,
+        #     fontsize = CRPARAMS["fontsize"],
+        #     colourmapMain = CRPARAMS["colourmapMain"],
+        #     colourmapsUnique = imageCmapDict,
+        #     boxsize = CRPARAMS["boxsize"],
+        #     boxlos = CRPARAMS["boxlos"],
+        #     pixreslos = CRPARAMS["pixreslos"],
+        #     pixres = CRPARAMS["pixres"],
+        #     projection = [[True,True,True,True]],
+        #     DPI = CRPARAMS["DPI"],
+        #     numthreads=CRPARAMS["numthreads"],
+        #     savePathBase = CRPARAMS["savepathfigures"]+ f"/type-{analysisType}/{CRPARAMS['halo']}/Col-Projection-Mapped/",
+        #     savePathBaseFigureData = CRPARAMS["savepathdata"],
+        #     saveFigureData = False,
+        #     saveFigure = CRPARAMS["SaveImages"],
+        #     selectKeysList = None,
+        #     compareSelectKeysOn = "vertical",
+        #     subfigures = True,
+        #     subfigureDatasetLabelsBool = True,
+        #     subfigureOffAlignmentAxisLabels = True,
+        #     offAlignmentAxisLabels = offAxisLabels,
+        #     inplace = False,
+        #     replotFromData = True,
+        # )
 
         snapNumber="Averaged"
 
@@ -465,20 +457,63 @@ if __name__ == "__main__":
             loadPathBase = CRPARAMS["savepathdata"],
             loadFile = "statsDict",
             fileType = ".h5",
-            stack = True,
+            stack = False,
             verbose = DEBUG,
             )
 
         statsOut = copy.deepcopy(tmp)    
+        # statsOutRaw = copy.deepcopy(tmp)
 
-        if (len(snapRange)>1)&(stack is True):
+        # if (len(snapRange)>1)&(stack is True):
+        #     for sKey, data in statsOut.items():
+        #         dataCopy = copy.deepcopy(data)
+        #         for key,dd in data.items():
+        #             for kk, value in dd.items():
+        #                 dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
+        #         statsOut[sKey].update(dataCopy)
+
+
+        if (len(snapRange)>1):
             for sKey, data in statsOut.items():
                 dataCopy = copy.deepcopy(data)
                 for key,dd in data.items():
                     for kk, value in dd.items():
-                        dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})#np.nanpercentile(value,q=80.0,axis=-1,interpolation="lower")})
+                        if "_"  in kk:
+                            splitlist = kk.split("_")
+                            newkey = "_".join(splitlist[:-1])
+                            if newkey != CRPARAMS['xParam']:
+                                dataCopy[key].update({newkey : copy.deepcopy(value)})
+                        else:
+                            dataCopy[key].update({kk : copy.deepcopy(value)})
                 statsOut[sKey].update(dataCopy)
 
+
+        tmpCRPARAMS = copy.deepcopy(CRPARAMS)
+        if "R" in tmpCRPARAMS["logParameters"]:
+            tmpCRPARAMS["logParameters"].remove("R")
+
+        approxRvir = 210.0
+        if "R" in tmpCRPARAMS["logParameters"]:
+            xlimDict["R"].update({"xmin": 0,"xmax": np.log10(xlimDict["R"]["xmax"]*approxRvir)})
+        else:
+            xlimDict["R"].update({"xmin": xlimDict["R"]["xmin"]*approxRvir,"xmax": xlimDict["R"]["xmax"]*approxRvir})
+
+
+        if (len(snapRange)>1):
+            for sKey, data in statsOut.items():
+                dataCopy = copy.deepcopy(data)
+                for key,dd in data.items():
+                    dat = cr.cr_calculate_statistics(
+                        dataDict=dd,
+                        CRPARAMS=tmpCRPARAMS,
+                        xParam=tmpCRPARAMS["xParam"],
+                        Nbins=tmpCRPARAMS["NStatsBins"]-1,
+                        xlimDict=xlimDict,
+                        weightedStatsBool = False,
+                    )
+                    dataCopy[key].update(copy.deepcopy(dat)) 
+
+                statsOut[sKey].update(dataCopy)
 
         loadPercentilesTypes = [
                 str(percentile) + "%"
@@ -517,6 +552,13 @@ if __name__ == "__main__":
         # #                     tmpdat[newPr] = copy.deepcopy(dat[ps1]/dat[ps2])
         # #         dataCopy[sKey] = copy.deepcopy(tmpdat)
         # #     statsOut[sKey] = copy.deepcopy(dataCopy)
+
+        if "R" in tmpCRPARAMS["logParameters"]:
+            xlimDict["R"].update({"xmin": max(np.log10(xlimDict["R"]["xmin"]*approxRvir),1),
+                                  "xmax": np.log10(xlimDict["R"]["xmax"]*approxRvir)}
+                            )
+        else:
+            xlimDict["R"].update({"xmin": max(xlimDict["R"]["xmin"],1),"xmax": xlimDict["R"]["xmax"]})
 
         orderedData = {}
         for key in ordering:
@@ -623,6 +665,7 @@ if __name__ == "__main__":
             hush = not DEBUG,
             )
         
+        STOP649
 
         if len(CRPARAMS["colParams"])>0:
             print(
@@ -829,11 +872,10 @@ if __name__ == "__main__":
                 snapNumber = snapNumber,
                 weightKeys = COLCRPARAMS['nonMassWeightDict'],
                 xParams = COLCRPARAMS["colParams"],
-                titleBool=COLCRPARAMS["titleBool"],
-                legendBool=COLCRPARAMS["legendBool"],
+                titleBool=CRPARAMS["titleBool"],
                 DPI=COLCRPARAMS["DPI"],
-                xsize=COLCRPARAMS["xsize"]*0.75,
-                ysize=COLCRPARAMS["ysize"]*0.75,
+                xsize=COLCRPARAMS["xsize"],
+                ysize=COLCRPARAMS["ysize"],
                 fontsize=COLCRPARAMS["fontsize"],
                 fontsizeTitle=COLCRPARAMS["fontsizeTitle"],
                 linewidth=COLCRPARAMS["linewidth"],
@@ -868,10 +910,9 @@ if __name__ == "__main__":
                 weightKeys = COLCRPARAMS['nonMassWeightDict'],
                 xParams = COLCRPARAMS["colParams"],
                 titleBool=COLCRPARAMS["titleBool"],
-                legendBool=COLCRPARAMS["legendBool"],
                 DPI=COLCRPARAMS["DPI"],
-                xsize=COLCRPARAMS["xsize"]*0.75,
-                ysize=COLCRPARAMS["ysize"]*0.75,
+                xsize=COLCRPARAMS["xsize"],
+                ysize=COLCRPARAMS["ysize"],
                 fontsize=COLCRPARAMS["fontsize"],
                 fontsizeTitle=COLCRPARAMS["fontsizeTitle"],
                 linewidth=COLCRPARAMS["linewidth"],
@@ -952,10 +993,9 @@ if __name__ == "__main__":
                         weightKeys = COLCRPARAMS['nonMassWeightDict'],
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
-                        legendBool=COLCRPARAMS["legendBool"],
                         DPI=COLCRPARAMS["DPI"],
-                        xsize=COLCRPARAMS["xsize"]*0.75,
-                        ysize=COLCRPARAMS["ysize"]*0.75,
+                        xsize=COLCRPARAMS["xsize"],
+                        ysize=COLCRPARAMS["ysize"],
                         fontsize=COLCRPARAMS["fontsize"],
                         fontsizeTitle=COLCRPARAMS["fontsizeTitle"],
                         linewidth=COLCRPARAMS["linewidth"],
@@ -989,10 +1029,9 @@ if __name__ == "__main__":
                         weightKeys = COLCRPARAMS['nonMassWeightDict'],
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
-                        legendBool=COLCRPARAMS["legendBool"],
                         DPI=COLCRPARAMS["DPI"],
-                        xsize=COLCRPARAMS["xsize"]*0.75,
-                        ysize=COLCRPARAMS["ysize"]*0.75,
+                        xsize=COLCRPARAMS["xsize"],
+                        ysize=COLCRPARAMS["ysize"],
                         fontsize=COLCRPARAMS["fontsize"],
                         fontsizeTitle=COLCRPARAMS["fontsizeTitle"],
                         linewidth=COLCRPARAMS["linewidth"],
@@ -1023,25 +1062,12 @@ if __name__ == "__main__":
                 )
                 matplotlib.rc_file_defaults()
                 plt.close("all")  
-                tmpxlimDict = copy.deepcopy(xlimDict)
 
-                if COLCRPARAMS['analysisType'] == 'cgm':
-                    tmpxlimDict["R"]['xmin'] = 0.0#tmpCOLCRPARAMS["Rinner"]
-                    tmpxlimDict["R"]['xmax'] = COLCRPARAMS['Router']
-
-                elif COLCRPARAMS['analysisType'] == 'ism':
-                    tmpxlimDict["R"]['xmin'] = 0.0
-                    tmpxlimDict["R"]['xmax'] = COLCRPARAMS['Rinner']
-                else:
-                    tmpxlimDict["R"]['xmin'] = 0.0
-                    tmpxlimDict["R"]['xmax'] = COLCRPARAMS['Router']
-
-                
                 binIndices = range(0,COLCRPARAMS["NParamBins"]+1,1)
                 for ii,(lowerIndex,upperIndex) in enumerate(zip(binIndices[:-1],binIndices[1:])):
                     print("Starting Binned PDF plot load ",ii+1," of ",COLCRPARAMS["NParamBins"])
                     
-                    bins = np.round(np.linspace(start=tmpxlimDict[COLCRPARAMS["xParam"]]["xmin"],stop=tmpxlimDict[COLCRPARAMS["xParam"]]["xmax"],num=COLCRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
+                    bins = np.round(np.linspace(start=xlimDict[COLCRPARAMS["xParam"]]["xmin"],stop=xlimDict[COLCRPARAMS["xParam"]]["xmax"],num=COLCRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
                     
                     subdir = f"/{bins[lowerIndex]}-{COLCRPARAMS['xParam']}-{bins[upperIndex]}/"
                     tmp = apt.cr_load_pdf_versus_plot_data(
@@ -1089,10 +1115,9 @@ if __name__ == "__main__":
                         weightKeys = COLCRPARAMS['nonMassWeightDict'],
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
-                        legendBool=COLCRPARAMS["legendBool"],
                         DPI=COLCRPARAMS["DPI"],
-                        xsize=COLCRPARAMS["xsize"]*0.75,
-                        ysize=COLCRPARAMS["ysize"]*0.75,
+                        xsize=COLCRPARAMS["xsize"],
+                        ysize=COLCRPARAMS["ysize"],
                         fontsize=COLCRPARAMS["fontsize"],
                         fontsizeTitle=COLCRPARAMS["fontsizeTitle"],
                         linewidth=COLCRPARAMS["linewidth"],
@@ -1126,10 +1151,9 @@ if __name__ == "__main__":
                         weightKeys = COLCRPARAMS['nonMassWeightDict'],
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
-                        legendBool=COLCRPARAMS["legendBool"],
                         DPI=COLCRPARAMS["DPI"],
-                        xsize=COLCRPARAMS["xsize"]*0.75,
-                        ysize=COLCRPARAMS["ysize"]*0.75,
+                        xsize=COLCRPARAMS["xsize"],
+                        ysize=COLCRPARAMS["ysize"],
                         fontsize=COLCRPARAMS["fontsize"],
                         fontsizeTitle=COLCRPARAMS["fontsizeTitle"],
                         linewidth=COLCRPARAMS["linewidth"],
@@ -1205,10 +1229,9 @@ if __name__ == "__main__":
             weightKeys = CRPARAMS['nonMassWeightDict'],
             xParams = CRPARAMS["pdfParams"] + [CRPARAMS["xParam"]],
             titleBool=CRPARAMS["titleBool"],
-            legendBool=CRPARAMS["legendBool"],
             DPI=CRPARAMS["DPI"],
-            xsize=CRPARAMS["xsize"]*0.75,
-            ysize=CRPARAMS["ysize"]*0.75,
+            xsize=CRPARAMS["xsize"],
+            ysize=CRPARAMS["ysize"],
             fontsize=CRPARAMS["fontsize"],
             fontsizeTitle=CRPARAMS["fontsizeTitle"],
             linewidth=CRPARAMS["linewidth"],
@@ -1243,10 +1266,9 @@ if __name__ == "__main__":
             weightKeys = CRPARAMS['nonMassWeightDict'],
             xParams = CRPARAMS["pdfParams"] + [CRPARAMS["xParam"]],
             titleBool=CRPARAMS["titleBool"],
-            legendBool=CRPARAMS["legendBool"],
             DPI=CRPARAMS["DPI"],
-            xsize=CRPARAMS["xsize"]*0.75,
-            ysize=CRPARAMS["ysize"]*0.75,
+            xsize=CRPARAMS["xsize"],
+            ysize=CRPARAMS["ysize"],
             fontsize=CRPARAMS["fontsize"],
             fontsizeTitle=CRPARAMS["fontsizeTitle"],
             linewidth=CRPARAMS["linewidth"],
@@ -1281,10 +1303,9 @@ if __name__ == "__main__":
             weightKeys = CRPARAMS['nonMassWeightDict'],
             xParams = [CRPARAMS["xParam"], "n_H", "n_HI"],
             titleBool=CRPARAMS["titleBool"],
-            legendBool=CRPARAMS["legendBool"],
             DPI=CRPARAMS["DPI"],
-            xsize=CRPARAMS["xsize"]*0.75,
-            ysize=CRPARAMS["ysize"]*0.75,
+            xsize=CRPARAMS["xsize"],
+            ysize=CRPARAMS["ysize"],
             fontsize=CRPARAMS["fontsize"],
             fontsizeTitle=CRPARAMS["fontsizeTitle"],
             linewidth=CRPARAMS["linewidth"],
@@ -1319,10 +1340,9 @@ if __name__ == "__main__":
             weightKeys = CRPARAMS['nonMassWeightDict'],
             xParams = [CRPARAMS["xParam"],"n_H", "n_HI"],
             titleBool=CRPARAMS["titleBool"],
-            legendBool=CRPARAMS["legendBool"],
             DPI=CRPARAMS["DPI"],
-            xsize=CRPARAMS["xsize"]*0.75,
-            ysize=CRPARAMS["ysize"]*0.75,
+            xsize=CRPARAMS["xsize"],
+            ysize=CRPARAMS["ysize"],
             fontsize=CRPARAMS["fontsize"],
             fontsizeTitle=CRPARAMS["fontsizeTitle"],
             linewidth=CRPARAMS["linewidth"],
@@ -1400,10 +1420,9 @@ if __name__ == "__main__":
                     weightKeys = CRPARAMS['nonMassWeightDict'],
                     xParams = CRPARAMS["pdfParams"] + [CRPARAMS["xParam"]],
                     titleBool=CRPARAMS["titleBool"],
-                    legendBool=CRPARAMS["legendBool"],
                     DPI=CRPARAMS["DPI"],
-                    xsize=CRPARAMS["xsize"]*0.75,
-                    ysize=CRPARAMS["ysize"]*0.75,
+                    xsize=CRPARAMS["xsize"],
+                    ysize=CRPARAMS["ysize"],
                     fontsize=CRPARAMS["fontsize"],
                     fontsizeTitle=CRPARAMS["fontsizeTitle"],
                     linewidth=CRPARAMS["linewidth"],
@@ -1437,10 +1456,9 @@ if __name__ == "__main__":
                     weightKeys = CRPARAMS['nonMassWeightDict'],
                     xParams = CRPARAMS["pdfParams"] + [CRPARAMS["xParam"]],
                     titleBool=CRPARAMS["titleBool"],
-                    legendBool=CRPARAMS["legendBool"],
                     DPI=CRPARAMS["DPI"],
-                    xsize=CRPARAMS["xsize"]*0.75,
-                    ysize=CRPARAMS["ysize"]*0.75,
+                    xsize=CRPARAMS["xsize"],
+                    ysize=CRPARAMS["ysize"],
                     fontsize=CRPARAMS["fontsize"],
                     fontsizeTitle=CRPARAMS["fontsizeTitle"],
                     linewidth=CRPARAMS["linewidth"],
@@ -1474,10 +1492,9 @@ if __name__ == "__main__":
                     weightKeys = CRPARAMS['nonMassWeightDict'],
                     xParams = [CRPARAMS["xParam"],"n_H", "n_HI"],
                     titleBool=CRPARAMS["titleBool"],
-                    legendBool=CRPARAMS["legendBool"],
                     DPI=CRPARAMS["DPI"],
-                    xsize=CRPARAMS["xsize"]*0.75,
-                    ysize=CRPARAMS["ysize"]*0.75,
+                    xsize=CRPARAMS["xsize"],
+                    ysize=CRPARAMS["ysize"],
                     fontsize=CRPARAMS["fontsize"],
                     fontsizeTitle=CRPARAMS["fontsizeTitle"],
                     linewidth=CRPARAMS["linewidth"],
@@ -1511,10 +1528,9 @@ if __name__ == "__main__":
                     weightKeys = CRPARAMS['nonMassWeightDict'],
                     xParams = [CRPARAMS["xParam"],"n_H", "n_HI"],
                     titleBool=CRPARAMS["titleBool"],
-                    legendBool=CRPARAMS["legendBool"],
                     DPI=CRPARAMS["DPI"],
-                    xsize=CRPARAMS["xsize"]*0.75,
-                    ysize=CRPARAMS["ysize"]*0.75,
+                    xsize=CRPARAMS["xsize"],
+                    ysize=CRPARAMS["ysize"],
                     fontsize=CRPARAMS["fontsize"],
                     fontsizeTitle=CRPARAMS["fontsizeTitle"],
                     linewidth=CRPARAMS["linewidth"],
@@ -1537,22 +1553,6 @@ if __name__ == "__main__":
                     hush = not DEBUG,                                
                 )
         if ((CRPARAMS["binByParam"] is True)&(len(CRPARAMS["pdfParams"])>0)):
-
-            tmpxlimDict = copy.deepcopy(xlimDict)
-
-            if CRPARAMS['analysisType'] == 'cgm':
-                tmpxlimDict["R"]['xmin'] = 0.0#tmpCRPARAMS["Rinner"]
-                tmpxlimDict["R"]['xmax'] = CRPARAMS['Router']
-
-            elif CRPARAMS['analysisType'] == 'ism':
-                tmpxlimDict["R"]['xmin'] = 0.0
-                tmpxlimDict["R"]['xmax'] = CRPARAMS['Rinner']
-            else:
-                tmpxlimDict["R"]['xmin'] = 0.0
-                tmpxlimDict["R"]['xmax'] = CRPARAMS['Router']
-
-            
-
             print(
                 "\n" + f"[@{CRPARAMS['halo']}]: Time averaged PDF of gas, binned by {CRPARAMS['xParam']} plot"
             )
@@ -1563,7 +1563,7 @@ if __name__ == "__main__":
             for ii,(lowerIndex,upperIndex) in enumerate(zip(binIndices[:-1],binIndices[1:])):
                 print("Starting Binned PDF plot load ",ii+1," of ",CRPARAMS["NParamBins"])
                 
-                bins = np.round(np.linspace(start=tmpxlimDict[CRPARAMS["xParam"]]["xmin"],stop=tmpxlimDict[CRPARAMS["xParam"]]["xmax"],num=CRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
+                bins = np.round(np.linspace(start=xlimDict[CRPARAMS["xParam"]]["xmin"],stop=xlimDict[CRPARAMS["xParam"]]["xmax"],num=CRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
                 
                 subdir = f"/{bins[lowerIndex]}-{CRPARAMS['xParam']}-{bins[upperIndex]}/"
                 tmp = apt.cr_load_pdf_versus_plot_data(
@@ -1610,10 +1610,9 @@ if __name__ == "__main__":
                     weightKeys = CRPARAMS['nonMassWeightDict'],
                     xParams = CRPARAMS["pdfParams"] + [CRPARAMS["xParam"]],
                     titleBool=CRPARAMS["titleBool"],
-                    legendBool=CRPARAMS["legendBool"],
                     DPI=CRPARAMS["DPI"],
-                    xsize=CRPARAMS["xsize"]*0.75,
-                    ysize=CRPARAMS["ysize"]*0.75,
+                    xsize=CRPARAMS["xsize"],
+                    ysize=CRPARAMS["ysize"],
                     fontsize=CRPARAMS["fontsize"],
                     fontsizeTitle=CRPARAMS["fontsizeTitle"],
                     linewidth=CRPARAMS["linewidth"],
@@ -1647,10 +1646,9 @@ if __name__ == "__main__":
                     weightKeys = CRPARAMS['nonMassWeightDict'],
                     xParams = [CRPARAMS["xParam"],"n_H", "n_HI"],
                     titleBool=CRPARAMS["titleBool"],
-                    legendBool=CRPARAMS["legendBool"],
                     DPI=CRPARAMS["DPI"],
-                    xsize=CRPARAMS["xsize"]*0.75,
-                    ysize=CRPARAMS["ysize"]*0.75,
+                    xsize=CRPARAMS["xsize"],
+                    ysize=CRPARAMS["ysize"],
                     fontsize=CRPARAMS["fontsize"],
                     fontsizeTitle=CRPARAMS["fontsizeTitle"],
                     linewidth=CRPARAMS["linewidth"],
@@ -1734,10 +1732,9 @@ if __name__ == "__main__":
             weightKeys = STARSCRPARAMS['nonMassWeightDict'],
             xParams = [STARSCRPARAMS["xParam"]],
             titleBool=STARSCRPARAMS["titleBool"],
-            legendBool=STARSCRPARAMS["legendBool"],
             DPI=STARSCRPARAMS["DPI"],
-            xsize=STARSCRPARAMS["xsize"]*0.75,
-            ysize=STARSCRPARAMS["ysize"]*0.75,
+            xsize=STARSCRPARAMS["xsize"],
+            ysize=STARSCRPARAMS["ysize"],
             fontsize=STARSCRPARAMS["fontsize"],
             fontsizeTitle=STARSCRPARAMS["fontsizeTitle"],
             linewidth=STARSCRPARAMS["linewidth"],
@@ -1772,10 +1769,9 @@ if __name__ == "__main__":
             weightKeys = STARSCRPARAMS['nonMassWeightDict'],
             xParams = [STARSCRPARAMS["xParam"]],
             titleBool=STARSCRPARAMS["titleBool"],
-            legendBool=STARSCRPARAMS["legendBool"],
             DPI=STARSCRPARAMS["DPI"],
-            xsize=STARSCRPARAMS["xsize"]*0.75,
-            ysize=STARSCRPARAMS["ysize"]*0.75,
+            xsize=STARSCRPARAMS["xsize"],
+            ysize=STARSCRPARAMS["ysize"],
             fontsize=STARSCRPARAMS["fontsize"],
             fontsizeTitle=STARSCRPARAMS["fontsizeTitle"],
             linewidth=STARSCRPARAMS["linewidth"],
@@ -1915,10 +1911,9 @@ if __name__ == "__main__":
             snapNumber = snapNumber,
             xParams = ["age"],
             titleBool=CRPARAMS["titleBool"],
-            legendBool=CRPARAMS["legendBool"],
             DPI=CRPARAMS["DPI"],
-            xsize=CRPARAMS["xsize"]*0.75,
-            ysize=CRPARAMS["ysize"]*0.75,
+            xsize=CRPARAMS["xsize"],
+            ysize=CRPARAMS["ysize"],
             fontsize=CRPARAMS["fontsize"],
             fontsizeTitle=CRPARAMS["fontsizeTitle"],
             linewidth=CRPARAMS["linewidth"],
@@ -1950,10 +1945,9 @@ if __name__ == "__main__":
             snapNumber = snapNumber,
             xParams = ["age"],
             titleBool=CRPARAMS["titleBool"],
-            legendBool=CRPARAMS["legendBool"],
             DPI=CRPARAMS["DPI"],
-            xsize=CRPARAMS["xsize"]*0.75,
-            ysize=CRPARAMS["ysize"]*0.75,
+            xsize=CRPARAMS["xsize"],
+            ysize=CRPARAMS["ysize"],
             fontsize=CRPARAMS["fontsize"],
             fontsizeTitle=CRPARAMS["fontsizeTitle"],
             linewidth=CRPARAMS["linewidth"],

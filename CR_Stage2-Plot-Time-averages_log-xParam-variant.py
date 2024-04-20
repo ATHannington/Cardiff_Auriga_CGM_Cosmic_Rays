@@ -18,6 +18,7 @@ import json
 import copy
 import os
 import math
+import warnings
 
 # =============================================================================#
 #
@@ -276,7 +277,22 @@ if __name__ == "__main__":
             # else:
             #     xlimDict["R"]['xmin'] = 0.0
             #     xlimDict["R"]['xmax'] = CRPARAMS['Router']/2.0
+            if ((np.nanmax(xlimDict["R"]['xmax'])<=1.0) & ("R" in CRPARAMS["logParameters"])):
+                warnings.warn(
+                        "xParam == R has been set to log scale, but the xlimDict maximum value found is <= 1 ."
+                        +"\n"
+                        +"Assuming R has been set as R/R200c (R/Rvir in code variables) which is incompatible with log scaling."
+                        +"\n"
+                        +"Will return R to kpc units before calculating further values, but please ensure this is desired and that"
+                        +" this logic has triggered correctly."
+                        )
+            
+            --- check logic for non R/rvir averaging. Code wasn't intended for such usecase, so may be averaging bins in unexpected ways
 
+                dataDict[selectKey]["R"] = (dataDict[selectKey]["R"])*dataDict[selectKey]["Rvir"]
+
+                xlimDict["R"]['xmin'] = 0.0
+                xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax']*dataDict[selectKey]["Rvir"])
         
         # ----------------------------------------------------------------------#
         #  Plots...
@@ -344,7 +360,7 @@ if __name__ == "__main__":
         #     saveFigureData = False,
         #     saveFigure = CRPARAMS["SaveImages"],
         #     selectKeysList = keepPercentiles,
-        #     alignSelectKeys = "vertical",
+        #     compareSelectKeysOn = "vertical",
         #     subfigures = True,
         #     subfigureDatasetLabelsBool = True,
         #     subfigureOffAlignmentAxisLabels = False,
@@ -432,7 +448,7 @@ if __name__ == "__main__":
         #     saveFigureData = False,
         #     saveFigure = CRPARAMS["SaveImages"],
         #     selectKeysList = None,
-        #     alignSelectKeys = "vertical",
+        #     compareSelectKeysOn = "vertical",
         #     subfigures = True,
         #     subfigureDatasetLabelsBool = True,
         #     subfigureOffAlignmentAxisLabels = True,

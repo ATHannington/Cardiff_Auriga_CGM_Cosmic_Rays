@@ -1496,7 +1496,7 @@ def plot_slices(snap,
     saveFigureData = False,
     saveFigure = True,
     selectKeysList = None,
-    alignSelectKeys = "vertical",
+    compareSelectKeysOn = "vertical",
     rasterized = True,
     subfigures = False,
     cbarscale = 0.4,
@@ -1549,13 +1549,13 @@ def plot_slices(snap,
         multrows = 1
         multcols = 1
         if selectKeysList is not None:
-            if (alignSelectKeys.lower() == "vertical"):
+            if (compareSelectKeysOn.lower() == "vertical"):
                 multrows = np.shape(selectKeysList)[0]
-            elif (alignSelectKeys.lower() == "horizontal"):
+            elif (compareSelectKeysOn.lower() == "horizontal"):
                 multrows = np.shape(selectKeysList)[0]
                 multcols = np.shape(selectKeysList)[0]
             else:
-                raise Exception(f"[@plot_slices]: FAILURE! Unkown alignSelectKeys = {alignSelectKeys} requested! Please use 'vertical' or 'horizontal'! ")
+                raise Exception(f"[@plot_slices]: FAILURE! Unkown compareSelectKeysOn = {compareSelectKeysOn} requested! Please use 'vertical' or 'horizontal'! ")
 
             tmp = []
             tmpprojection = []
@@ -1587,9 +1587,9 @@ def plot_slices(snap,
                             
                             key = sliceParam[rr][cc]
                             if selectKeysList is not None:
-                                # if (alignSelectKeys.lower() == "vertical"):
+                                # if (compareSelectKeysOn.lower() == "vertical"):
                                 hasData = tmpdataSources[kk][key]
-                                # elif (alignSelectKeys.lower() == "horizontal"):
+                                # elif (compareSelectKeysOn.lower() == "horizontal"):
                                 #     hasData = tmpdataSources[ll][key]
                             else:
                                 hasData = inputDict[key]
@@ -1601,7 +1601,7 @@ def plot_slices(snap,
                             else:
                                 hasPlot = False
                         except:
-                        #     if (selectKeysList is not None) & (alignSelectKeys.lower() == "horizontal"):
+                        #     if (selectKeysList is not None) & (compareSelectKeysOn.lower() == "horizontal"):
                         #         hasPlot = False
                         #         tmp1 = copy.deepcopy(tmpsliceParam[cc])
                         #         tmp1[rr] = None
@@ -1627,7 +1627,7 @@ def plot_slices(snap,
         hasPlotMask = np.asarray(hasPlotMask)
         figshape = np.shape(hasPlotMask)
 
-        if (selectKeysList is not None) & (alignSelectKeys.lower() == "horizontal"):
+        if (selectKeysList is not None) & (compareSelectKeysOn.lower() == "horizontal"):
             sliceParam = sliceParam.T
             projection = projection.T
             hasPlotMask = hasPlotMask.T
@@ -1727,7 +1727,7 @@ def plot_slices(snap,
                 projection[subplotCount] = None
                 continue
             if (selectKeysList is not None):
-                if(alignSelectKeys.lower() == "horizontal"):
+                if(compareSelectKeysOn.lower() == "horizontal"):
                     datasourceindex = axindex[1]
                 else:
                     datasourceindex = axindex[0]
@@ -1774,7 +1774,7 @@ def plot_slices(snap,
     if subfigures:
         newxsize = xsize
         newysize = ysize
-        if (alignSelectKeys.lower() == "horizontal"):
+        if (compareSelectKeysOn.lower() == "horizontal"):
             width = float(figshape[1])+cbarscale
             height = float(figshape[0])
             aspect_ratio = width/height
@@ -1792,7 +1792,7 @@ def plot_slices(snap,
             projection = np.pad(np.asarray(projection).reshape(figshape[0],-1),((0,0),(0,1)),constant_values=None)
             projection = projection.flatten().tolist()
             hasPlotMask = np.pad(hasPlotMask,((0,0),(0,1)),constant_values=False)
-        elif (alignSelectKeys.lower() == "vertical"):
+        elif (compareSelectKeysOn.lower() == "vertical"):
             width = float(figshape[1])
             height = float(figshape[0])+cbarscale
             aspect_ratio = height/width
@@ -1810,7 +1810,7 @@ def plot_slices(snap,
             hasPlotMask = np.pad(hasPlotMask,((0,1),(0,0)),constant_values=False)
 
     if subfigures:
-        if (alignSelectKeys.lower() == "horizontal"):
+        if (compareSelectKeysOn.lower() == "horizontal"):
             fig, axes = plt.subplots(
                 nrows=figshape[0],
                 ncols=figshape[1],
@@ -1818,7 +1818,7 @@ def plot_slices(snap,
                 dpi=DPI,
                 gridspec_kw={'width_ratios': [1]*multcols + [cbarscale]}
             )
-        elif (alignSelectKeys.lower() == "vertical"):
+        elif (compareSelectKeysOn.lower() == "vertical"):
             fig, axes = plt.subplots(
                 nrows=figshape[0],
                 ncols=figshape[1],
@@ -1843,7 +1843,7 @@ def plot_slices(snap,
 
             axindex = np.unravel_index(subplotCount, shape=figshape)
             if (selectKeysList is not None):
-                if(alignSelectKeys.lower() == "horizontal"):
+                if(compareSelectKeysOn.lower() == "horizontal"):
                     datasourceindex = axindex[1]
                 else:
                     datasourceindex = axindex[0]
@@ -1852,10 +1852,10 @@ def plot_slices(snap,
                 if saveFigure:
                     currentAx = axes[axindex]
                     currentAx.axis('off')
-                    if (axindex[0]==(figshape[0]-2))&(alignSelectKeys.lower() == "vertical"): 
+                    if (axindex[0]==(figshape[0]-2))&(compareSelectKeysOn.lower() == "vertical"): 
                         cax = axes[axindex[0]+1,axindex[1]]
                         cax.axis("off")
-                    elif (axindex[1]==(figshape[1]-2))&(alignSelectKeys.lower() == "horizontal"): 
+                    elif (axindex[1]==(figshape[1]-2))&(compareSelectKeysOn.lower() == "horizontal"): 
                         cax = axes[axindex[0],axindex[1]+1]
                         cax.axis("off")
                     plotlist.append(None)
@@ -2039,7 +2039,7 @@ def plot_slices(snap,
                 currentAx.tick_params(axis="both", direction="in")
                 if subfigures == True:
                     if (selectKeysList is not None):
-                        if(alignSelectKeys.lower() == "horizontal"):
+                        if(compareSelectKeysOn.lower() == "horizontal"):
                             datasourceindex = axindex[1]
                         else:
                             datasourceindex = axindex[0]
@@ -2133,7 +2133,7 @@ def plot_slices(snap,
             # currentAx.set_xlabel(f"{AxesLabels[Axes[0]]}" + " (kpc)", fontsize=fontsize)
             # Pad snapNumber with zeroes to enable easier video making
             if ((subfigures == True)&(sharex == True)&(sharey == True)):
-                if (alignSelectKeys.lower() == "vertical"):
+                if (compareSelectKeysOn.lower() == "vertical"):
                     rowoffset = 2
                 else:
                     rowoffset = 1
@@ -2157,7 +2157,7 @@ def plot_slices(snap,
                     else:
                         currentAx.set_xticks(ticks=[])
 
-                if (axindex[0]==(figshape[0]-2))&(alignSelectKeys.lower() == "vertical"): 
+                if (axindex[0]==(figshape[0]-2))&(compareSelectKeysOn.lower() == "vertical"): 
                     caxorient = "horizontal"
                     caxtickloc = "bottom"
                     cax = axes[axindex[0]+1,axindex[1]]
@@ -2178,7 +2178,7 @@ def plot_slices(snap,
                     clb.ax.xaxis.set_major_formatter(formatter)
                     clb.ax.xaxis.set_minor_formatter(formatter) 
 
-                elif (axindex[1]==(figshape[1]-2))&(alignSelectKeys.lower() == "horizontal"): 
+                elif (axindex[1]==(figshape[1]-2))&(compareSelectKeysOn.lower() == "horizontal"): 
                     caxorient = "vertical"
                     caxtickloc = "left"
                     labellocation = "left"

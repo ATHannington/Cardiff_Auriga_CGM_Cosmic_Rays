@@ -101,6 +101,8 @@
 
   "legendBool": true,
 
+  "compareSelectKeysOn": "horizontal",
+
   "fontsize": 12,
 
   "fontsizeTitle": 13,

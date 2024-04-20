@@ -127,7 +127,6 @@ imageCmapDict = {
     "n_HI_col": (CRPARAMSMASTER["colourmapMain"].split("_"))[0],
 }
 
-
 xlimDict = {
     "R": {}, #{"xmin": CRPARAMSMASTER["Rinner"], "xmax": CRPARAMSMASTER["Router"]},
     "mass": {"xmin": 4.0, "xmax": 9.0},
@@ -135,20 +134,19 @@ xlimDict = {
     "T": {"xmin": 3.5, "xmax": 7.0},
     "n_H": {"xmin": -6.0, "xmax": 1.0},
     "n_HI" : {"xmin": -13.0, "xmax": 0.0},
-    "n_H_col": {"xmin": 19.0, "xmax": 21.5},
-    "n_HI_col" : {"xmin": 12.0, "xmax": 21.5},
-    "M_H" : {},
-    "M_HI" : {},
-    "B": {"xmin": -2.5, "xmax": 1.0},
+    "n_H_col": {"xmin": 19.0, "xmax": 22.0},
+    "n_HI_col" : {"xmin": 12.5, "xmax": 22.0},
+    "B": {"xmin": -2.5, "xmax": 2.0},
     "vrad": {"xmin": -200.0, "xmax": 200.0},
     "vrad_in": {"xmin": -200.0, "xmax": 200.0},
     "vrad_out": {"xmin": -200.0, "xmax": 200.0},
     "gz": {"xmin": -2.0, "xmax": 1.0},
+    "Pressure" : {"xmin": -16.0, "xmax": -10.0},
     "P_thermal": {"xmin": -16.0, "xmax": -10.0},
     "P_CR": {"xmin": -19.5, "xmax": -10.0},
     "PCR_Pthermal": {"xmin": -4.5, "xmax": 2.5},
     "PCR_Pmagnetic": {"xmin": -3.5, "xmax": 2.5},
-    "Pthermal_Pmagnetic": {"xmin": -2.0, "xmax": 4.0},
+    "Pthermal_Pmagnetic": {"xmin": -2.5, "xmax": 3.5},
     "P_magnetic": {"xmin": -19.5, "xmax": -10.0},
     "P_kinetic": {"xmin": -19.5, "xmax": -10.0},
     "P_tot": {"xmin": -19.5, "xmax": -10.0},
@@ -168,9 +166,8 @@ xlimDict = {
     "nh" : {"xmin": -7.0, "xmax": 1.0},
     "e_CR": {"xmin": -8.0, "xmax": 0.0},
 }
-
-if "R" in CRPARAMSMASTER["logParameters"]:
-    ylabel["R"] = r"R (kpc)"
+# if "R" in CRPARAMSMASTER["logParameters"]:
+#     ylabel["R"] = r"R (kpc)"
     
 for entry in CRPARAMSMASTER["logParameters"]:
     ylabel[entry] = r"$\mathrm{Log_{10}}$ " + ylabel[entry]
@@ -332,6 +329,9 @@ if __name__ == "__main__":
                     else:
                         xlimDict["R"]['xmin'] = 0.0
                         xlimDict["R"]['xmax'] = CRPARAMS['Router']
+
+                    if ("R" in CRPARAMS["logParameters"]):
+                        xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
 
                 except Exception as e:
 
@@ -642,14 +642,16 @@ if __name__ == "__main__":
                 if tmpCRPARAMS['analysisType'] == 'cgm':
                     xlimDict["R"]['xmin'] = 0.0#tmpCRPARAMS["Rinner"]
                     xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
-
                 elif tmpCRPARAMS['analysisType'] == 'ism':
                     xlimDict["R"]['xmin'] = 0.0
                     xlimDict["R"]['xmax'] = tmpCRPARAMS['Rinner']
                 else:
                     xlimDict["R"]['xmin'] = 0.0
                     xlimDict["R"]['xmax'] = tmpCRPARAMS['Router']
-                    
+
+                if ("R" in CRPARAMS["logParameters"]):
+                    xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+
                 tmp = np.asarray(list(CRPARAMS["nonMassWeightDict"].values()))
                 whereNone = np.where(tmp==None)[0]
                 whereNOTNone = np.where(tmp!=None)[0]
@@ -661,20 +663,20 @@ if __name__ == "__main__":
                     if param not in statsWeightkeys:
                         exclusions.append(param)
 
-                if ((np.nanmax(dataDict[selectKey]["R"])<=1.0) & ("R" in CRPARAMS["logParameters"])):
-                    warnings.warn(
-                          "xParam == R has been set to log scale, but the maximum value found in the dta is <= 1 ."
-                          +"\n"
-                          +"Assuming R has been set as R/R200c (R/Rvir in code variables) which is incompatible with log scaling."
-                          +"\n"
-                          +"Will return R to kpc units before calculating further values, but please ensure this is desired and that"
-                          +" this logic has triggered correctly."
-                          )
+                # if ((np.nanmax(dataDict[selectKey]["R"])<=1.0) & ("R" in CRPARAMS["logParameters"])):
+                #     warnings.warn(
+                #           "xParam == R has been set to log scale, but the maximum value found in the dta is <= 1 ."
+                #           +"\n"
+                #           +"Assuming R has been set as R/R200c (R/Rvir in code variables) which is incompatible with log scaling."
+                #           +"\n"
+                #           +"Will return R to kpc units before calculating further values, but please ensure this is desired and that"
+                #           +" this logic has triggered correctly."
+                #           )
                 
-                    dataDict[selectKey]["R"] = (dataDict[selectKey]["R"])*dataDict[selectKey]["Rvir"]
+                #     dataDict[selectKey]["R"] = (dataDict[selectKey]["R"])*dataDict[selectKey]["Rvir"]
 
-                    xlimDict["R"]['xmin'] = 1.0
-                    xlimDict["R"]['xmax'] = xlimDict["R"]['xmax']*dataDict[selectKey]["Rvir"]
+                #     xlimDict["R"]['xmin'] = 0.0
+                #     xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax']*dataDict[selectKey]["Rvir"])[0]
                     
                 print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
                     xlimDict["R"]['xmax'])
@@ -695,6 +697,9 @@ if __name__ == "__main__":
                     xlimDict=xlimDict,
                     exclusions=exclusions,
                 )
+
+                if ("R" in CRPARAMS["logParameters"]):
+                    xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
 
                 # # for pressureRatio in ["Pthermal_Pmagnetic","PCR_Pthermal","PCR_Pmagnetic"]:
                 # #     if pressureRatio in list(dataDict[selectKey].keys()):
@@ -717,12 +722,25 @@ if __name__ == "__main__":
 
                 if len(CRPARAMS["colParams"])>0:
 
+                    if CRPARAMS['analysisType'] == 'cgm':
+                        xlimDict["R"]['xmin'] = 0.0#tmpCRPARAMS["Rinner"]
+                        xlimDict["R"]['xmax'] = CRPARAMS['Router']
+                    elif CRPARAMS['analysisType'] == 'ism':
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] = CRPARAMS['Rinner']
+                    else:
+                        xlimDict["R"]['xmin'] = 0.0
+                        xlimDict["R"]['xmax'] = CRPARAMS['Router']
+
+                    if ("R" in CRPARAMS["logParameters"]):
+                        xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+
                     # Create variant of xlimDict specifically for images of col params
                     tmpxlimDict = copy.deepcopy(xlimDict)
 
-                    # Add the col param specific limits to the xlimDict variant
-                    for key, value in colImagexlimDict.items():
-                        tmpxlimDict[key] = value
+                    # # # # # Add the col param specific limits to the xlimDict variant
+                    # # # # for key, value in colImagexlimDict.items():
+                    # # # #     tmpxlimDict[key] = value
 
                     #---------------#
                     # Check for any none-position-based parameters we need to track for col params:
@@ -785,6 +803,20 @@ if __name__ == "__main__":
                 f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Medians profile plots..."
                 )
 
+
+                if CRPARAMS['analysisType'] == 'cgm':
+                    xlimDict["R"]['xmin'] = 0.0#tmpCRPARAMS["Rinner"]
+                    xlimDict["R"]['xmax'] = CRPARAMS['Router']
+                elif CRPARAMS['analysisType'] == 'ism':
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] = CRPARAMS['Rinner']
+                else:
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] = CRPARAMS['Router']
+
+                if ("R" in CRPARAMS["logParameters"]):
+                    xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+                    
                 apt.cr_medians_versus_plot(
                     tmpStatsDict,
                     CRPARAMSHALO,
@@ -822,9 +854,9 @@ if __name__ == "__main__":
                     # # # Create variant of xlimDict specifically for images of col params
                     # # tmpxlimDict = copy.deepcopy(xlimDict)
 
-                    # # # Add the col param specific limits to the xlimDict variant
-                    # # for key, value in colImagexlimDict.items():
-                    # #     tmpxlimDict[key] = value
+                    # # # # Add the col param specific limits to the xlimDict variant
+                    # # # for key, value in colImagexlimDict.items():
+                    # # #     tmpxlimDict[key] = value
 
                     #---------------#
                     # Check for any none-position-based parameters we need to track for col params:
@@ -956,11 +988,25 @@ if __name__ == "__main__":
                         )
 
                 if ((CRPARAMS["binByParam"] is True)&(len(CRPARAMS["pdfParams"])>0)):
+
+                    tmpxlimDict = copy.deepcopy(xlimDict)
+
+                    if CRPARAMS['analysisType'] == 'cgm':
+                        tmpxlimDict["R"]['xmin'] = 0.0#tmpCRPARAMS["Rinner"]
+                        tmpxlimDict["R"]['xmax'] = CRPARAMS['Router']
+
+                    elif CRPARAMS['analysisType'] == 'ism':
+                        tmpxlimDict["R"]['xmin'] = 0.0
+                        tmpxlimDict["R"]['xmax'] = CRPARAMS['Rinner']
+                    else:
+                        tmpxlimDict["R"]['xmin'] = 0.0
+                        tmpxlimDict["R"]['xmax'] = CRPARAMS['Router']
+
                     binIndices = range(0,CRPARAMS["NParamBins"]+1,1)
                     for ii,(lowerIndex,upperIndex) in enumerate(zip(binIndices[:-1],binIndices[1:])):
                         print("Starting Binned PDF plot ",ii+1," of ",CRPARAMS["NParamBins"])
                         
-                        bins = np.round(np.linspace(start=xlimDict[CRPARAMS["binParam"]]["xmin"],stop=xlimDict[CRPARAMS["binParam"]]["xmax"],num=CRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
+                        bins = np.round(np.linspace(start=tmpxlimDict[CRPARAMS["binParam"]]["xmin"],stop=tmpxlimDict[CRPARAMS["binParam"]]["xmax"],num=CRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
                         
                         whereNotInBin = ((tmpDataDict[selectKey][CRPARAMS["binParam"]]>=bins[lowerIndex])&(tmpDataDict[selectKey][CRPARAMS["binParam"]]<=bins[upperIndex]))==False
 
@@ -1047,9 +1093,9 @@ if __name__ == "__main__":
                     # Create variant of xlimDict specifically for images of col params
                     tmpxlimDict = copy.deepcopy(xlimDict)
 
-                    # Add the col param specific limits to the xlimDict variant
-                    for key, value in colImagexlimDict.items():
-                        tmpxlimDict[key] = value
+                    # # # # Add the col param specific limits to the xlimDict variant
+                    # # # for key, value in colImagexlimDict.items():
+                    # # #     tmpxlimDict[key] = value
 
                     #---------------#
                     # Check for any none-position-based parameters we need to track for col params:
@@ -1149,11 +1195,26 @@ if __name__ == "__main__":
                             )
 
                     if ((COLCRPARAMS["binByParam"] is True)&(len(COLCRPARAMS["pdfParams"])>0)):
+
+                        tmp2xlimDict = copy.deepcopy(tmpxlimDict)
+
+                        if COLCRPARAMS['analysisType'] == 'cgm':
+                            tmp2xlimDict["R"]['xmin'] = 0.0#tmpCRPARAMS["Rinner"]
+                            tmp2xlimDict["R"]['xmax'] = COLCRPARAMS['Router']
+
+                        elif COLCRPARAMS['analysisType'] == 'ism':
+                            tmp2xlimDict["R"]['xmin'] = 0.0
+                            tmp2xlimDict["R"]['xmax'] = COLCRPARAMS['Rinner']
+                        else:
+                            tmp2xlimDict["R"]['xmin'] = 0.0
+                            tmp2xlimDict["R"]['xmax'] = COLCRPARAMS['Router']
+
+
                         binIndices = range(0,COLCRPARAMS["NParamBins"]+1,1)
                         for ii,(lowerIndex,upperIndex) in enumerate(zip(binIndices[:-1],binIndices[1:])):
                             print("Starting Binned PDF plot ",ii+1," of ",COLCRPARAMS["NParamBins"])
                             
-                            bins = np.round(np.linspace(start=xlimDict[COLCRPARAMS["binParam"]]["xmin"],stop=xlimDict[COLCRPARAMS["binParam"]]["xmax"],num=COLCRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
+                            bins = np.round(np.linspace(start=tmp2xlimDict[COLCRPARAMS["binParam"]]["xmin"],stop=tmp2xlimDict[COLCRPARAMS["binParam"]]["xmax"],num=COLCRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
                             
                             whereNotInBin = ((tmpColDict[selectKeyCol][COLCRPARAMS["binParam"]]>=bins[lowerIndex])&(tmpColDict[selectKeyCol][COLCRPARAMS["binParam"]]<=bins[upperIndex]))==False
 
@@ -1208,7 +1269,7 @@ if __name__ == "__main__":
                         tmpColDict,
                         COLCRPARAMSHALO,
                         ylabel,
-                        tmpxlimDict,
+                        xlimDict,
                         snapNumber,
                         weightKeys = COLCRPARAMS['nonMassWeightDict'],
                         xParams = COLCRPARAMS["colParams"],

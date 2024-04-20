@@ -407,6 +407,11 @@ def cr_analysis_radial(
 
     whereSatellite = np.isin(snap.data["subhalo"],np.array([-1,int(CRPARAMS["HaloID"]),np.nan]))==False
 
+    print(
+        f"[@{CRPARAMS['halo']}, @{CRPARAMS['resolution']}, @{CRPARAMS['CR_indicator']}{CRPARAMS['no-alfven_indicator']}, @{int(snapNumber)}]: Remove Satellites ..."
+    )
+
+
     snap = remove_selection(
         snap,
         removalConditionMask = whereSatellite,
@@ -754,6 +759,11 @@ def cr_parameters(CRPARAMSMASTER, simDict):
     else:
         CRPARAMS["no-alfven_indicator"] = ""
 
+    try:
+        if CRPARAMS["CR_diff_coeff"] is not None:
+            CRPARAMS["CR_indicator"] += "_" + CRPARAMS["CR_diff_coeff"]
+    except:
+        pass
 
     return CRPARAMS
 
@@ -986,18 +996,14 @@ def cr_calculate_statistics(
     
     print(f"[@cr_calculate_statistics]: Excluded properties (as passed into 'exclusions' kwarg): {exclusions}")
 
+
     print("[@cr_calculate_statistics]: Generate bins")
-    if xParam in CRPARAMS["logParameters"]:
-        xBins = np.logspace(
-            start=np.log10(xlimDict[xParam]["xmin"]),
-            stop=np.log10(xlimDict[xParam]["xmax"]),
-            num=Nbins+1,
-            base=10.0,
-        )
-    else:
-        xBins = np.linspace(
-            start=xlimDict[xParam]["xmin"], stop=xlimDict[xParam]["xmax"], num=Nbins+1
-        )
+    xBins = np.linspace(
+        start=xlimDict[xParam]["xmin"], stop=xlimDict[xParam]["xmax"], num=Nbins+1
+    )
+
+    if ((xParam in CRPARAMS["logParameters"])):
+        xBins = np.power(10.0,xBins)
 
     xmin, xmax = np.nanmin(xBins), np.nanmax(xBins)
 
