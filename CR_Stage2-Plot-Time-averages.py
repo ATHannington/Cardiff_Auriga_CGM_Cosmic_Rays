@@ -31,24 +31,74 @@ matplotlib.use("Agg")  # For suppressing plotting on clusters
 
 DEBUG = False
 
-keepPercentiles = [
-    (f"high",f"no_CRs"),
-    (f"high",f"with_CRs"),
-    (f"high",f"with_CRs_no_Alfven"),
-]
+keepPercentiles = []
+# keepPercentiles = [
+#     (f"high",f"no_CRs"),
+#     (f"high",f"with_CRs"),
+#     (f"high",f"with_CRs_no_Alfven"),
+#     (f"high",f"with_CRs_CR29"),
+#     (f"high",f"with_CRs_no_Alfven_CR29"),
+# ]
     # (f"standard",f"no_CRs"),
     # (f"standard",f"with_CRs"),
     # (f"standard",f"with_CRs_no_Alfven"),
+
+dataToInclude = [
+    (f"high",f"no_CRs"),
+    (f"high",f"with_CRs"),
+    (f"high",f"with_CRs_no_Alfven"),
+    (f"high",f"with_CRs_CR29"),
+    (f"high",f"with_CRs_CR29_no_Alfven"),
+]
 
 ordering = [
     (f"high",f"no_CRs"),
     (f"high",f"with_CRs"),
     (f"high",f"with_CRs_no_Alfven"),
+    (f"high",f"with_CRs_CR29"),
+    (f"high",f"with_CRs_CR29_no_Alfven"),
     (f"standard",f"no_CRs"),
     (f"standard",f"with_CRs"),
     (f"standard",f"with_CRs_no_Alfven"),
+    (f"standard",f"with_CRs_CR29"),
+    (f"standard",f"with_CRs_CR29_no_Alfven"),
 ]
+styleDictGroupingKeys = {skey : skey for skey in ordering}
 
+# styleDictGroupingKeys = {
+#     (f"high",f"no_CRs") : (f"high",f"no_CRs",f"CR28"),
+#     (f"high",f"with_CRs"): (f"high",f"with_CRs",f"CR28"),
+#     (f"high",f"with_CRs_no_Alfven"): (f"high",f"with_CRs_no_Alfven",f"CR28"),
+#     (f"high",f"with_CRs_CR29"): (f"high",f"with_CRs",f"CR29"),
+#     (f"high",f"with_CRs_CR29_no_Alfven"): (f"high",f"with_CRs_no_Alfven",f"CR29"),
+#     (f"standard",f"no_CRs") : (f"standard",f"no_CRs",f"CR28"),
+#     (f"standard",f"with_CRs"): (f"standard",f"with_CRs",f"CR28"),
+#     (f"standard",f"with_CRs_no_Alfven"): (f"standard",f"with_CRs_no_Alfven",f"CR28"),
+#     (f"standard",f"with_CRs_CR29"): (f"standard",f"with_CRs",f"CR29"),
+#     (f"standard",f"with_CRs_CR29_no_Alfven"): (f"standard",f"with_CRs_no_Alfven",f"CR29"),
+# }
+
+
+customLegendLabels = {
+            (f"high",f"no_CRs") : f"no CRs",
+            (f"high",f"with_CRs") : f"CR28: with CRs",
+            (f"high",f"with_CRs_no_Alfven") : f"CR28: with CRs \n no Alfven",
+            (f"high",f"with_CRs_CR29") : f"CR29: with CRs",
+            (f"high",f"with_CRs_CR29_no_Alfven"): f"CR29: with CRs \n no Alfven",
+            (f"standard",f"no_CRs") : f"Std. Res. no CRs",
+            (f"standard",f"with_CRs") : f"Std. Res. CR28: \n with CRs",
+            (f"standard",f"with_CRs_no_Alfven") : f"Std. Res. CR28: \n with CRs  no Alfven",
+            (f"standard",f"with_CRs_CR29") : f"Std. Res. CR29: \n with CRs",
+            (f"standard",f"with_CRs_CR29_no_Alfven"): f"Std. Res. CR29: \n with CRs no Alfven",
+            # (f"high",f"with_CRs_no_Alfven") : f"CR28: with CRs \n no Alfven",
+            # (f"high",f"with_CRs_CR29") : f"CR29: with CRs",
+            # (f"high",f"with_CRs_CR29_no_Alfven"): f"CR29: with CRs \n no Alfven",
+            # (f"standard",f"no_CRs") : f"standard res. no CRs",
+            # (f"standard",f"with_CRs") : f"standard res. CR28: \n with CRs",
+            # (f"standard",f"with_CRs_no_Alfven") : f"standard res. CR28: \n with CRs  no Alfven",
+            # (f"standard",f"with_CRs_CR29") : f"standard res. CR29: \n with CRs",
+            # (f"standard",f"with_CRs_CR29_no_Alfven"): f"standard res. CR29: \n with CRs no Alfven",
+ }
 medianString = "50.00%"
 
 stack = True
@@ -235,6 +285,7 @@ snapRange = [
 
 if __name__ == "__main__":
 
+    styleKeys = []
     for halo, allSimsDict in CRSELECTEDHALOES.items():
         DataSavepathBase = CRPARAMSMASTER["savepathdata"]
         FigureSavepathBase = CRPARAMSMASTER["savepathfigures"]
@@ -249,6 +300,7 @@ if __name__ == "__main__":
             
             selectKeysList.append(selectKey)
             CRPARAMSHALO.update({selectKey: CRPARAMS})
+            styleKeys.append(styleDictGroupingKeys[selectKey])
 
             if CRPARAMS['simfile'] is not None:
                 analysisType = CRPARAMS["analysisType"]
@@ -277,7 +329,12 @@ if __name__ == "__main__":
         #  Plots...
         # ----------------------------------------------------------------------#
         
-        styleDict = apt.get_linestyles_and_colours(selectKeysList,colourmapMain="plasma",colourGroupBy=["no_CRs", "with_CRs_no_Alfven", "with_CRs"],linestyleGroupBy=["high","standard"],lastColourOffset=0.0)
+        tmpstyleDict = apt.get_linestyles_and_colours(styleKeys,colourmapMain="plasma",colourGroupBy=[f"no_CRs",f"with_CRs",f"with_CRs_no_Alfven",f"with_CRs_CR29",f"with_CRs_CR29_no_Alfven"],linestyleGroupBy=["high","standard"],lastColourOffset=0.0)
+
+        styleDict = {}
+
+        for selectKey,dd in zip(selectKeysList,tmpstyleDict.values()):
+            styleDict.update({selectKey : dd})
 
         snapNumber=snapRange[-1]
 
@@ -287,13 +344,6 @@ if __name__ == "__main__":
                 tmp.append(key)
 
         keepPercentiles = copy.deepcopy(tmp)
-
-        highResOnlyLegendLabels = {
-            (f"high",f"no_CRs") : f"no CRs",
-            (f"high",f"with_CRs") : f"with CRs",
-            (f"high",f"with_CRs_no_Alfven") : f"with CRs no Alfven",
-        }
-
 
         loadpath = CRPARAMS["savepathdata"]
 
@@ -329,7 +379,7 @@ if __name__ == "__main__":
             saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
             xsize = CRPARAMS["xsizeImages"]*1.8,
             ysize = CRPARAMS["ysizeImages"]*1.8,
-            fontsize = CRPARAMS["fontsize"],
+            fontsize = CRPARAMS["fontsize"]*1.2,
             colourmapMain = CRPARAMS["colourmapMain"],
             colourmapsUnique = imageCmapDict,
             boxsize = CRPARAMS["boxsize"],
@@ -343,10 +393,10 @@ if __name__ == "__main__":
             savePathBaseFigureData = CRPARAMS["savepathdata"],
             saveFigureData = False,
             saveFigure = CRPARAMS["SaveImages"],
-            selectKeysList = keepPercentiles,
+            selectKeysList = dataToInclude,
             compareSelectKeysOn = CRPARAMS["compareSelectKeysOn"],
             subfigures = True,
-            subfigureDatasetLabelsDict = highResOnlyLegendLabels,
+            subfigureDatasetLabelsDict = customLegendLabels,
             subfigureDatasetLabelsBool = True,
             subfigureOffAlignmentAxisLabels = False,
             offAlignmentAxisLabels = None,
@@ -414,6 +464,9 @@ if __name__ == "__main__":
         for key, value in colImagexlimDict.items():
             tmpxlimDict[key] = value
 
+        dataToIncludeCol = [tuple(list(sKey)+["col"]) for sKey in dataToInclude]
+        customLegendLabelsCol = {tuple(list(sKey)+["col"]):label for sKey,label in customLegendLabels.items()}
+
         tmpdict = apt.plot_slices(tmp3,
             ylabel=ylabel,
             xlimDict=tmpxlimDict,
@@ -425,7 +478,7 @@ if __name__ == "__main__":
             saveAllAxesImages = CRPARAMS["saveAllAxesImages"],
             xsize = CRPARAMS["xsizeImages"]*1.8,
             ysize = CRPARAMS["ysizeImages"]*1.8,
-            fontsize = CRPARAMS["fontsize"],
+            fontsize = CRPARAMS["fontsize"]*1.2,
             colourmapMain = CRPARAMS["colourmapMain"],
             colourmapsUnique = imageCmapDict,
             boxsize = CRPARAMS["boxsize"],
@@ -442,6 +495,7 @@ if __name__ == "__main__":
             selectKeysList = None,
             compareSelectKeysOn = CRPARAMS["compareSelectKeysOn"],
             subfigures = True,
+            subfigureDatasetLabelsDict = None,
             subfigureDatasetLabelsBool = True,
             subfigureOffAlignmentAxisLabels = True,
             offAlignmentAxisLabels = offAxisLabels,
@@ -532,6 +586,7 @@ if __name__ == "__main__":
             xParam=CRPARAMS["xParam"],
             titleBool=CRPARAMS["titleBool"],
             legendBool=CRPARAMS["legendBool"],
+            labels = customLegendLabels,
             yaxisZeroLine = yaxisZeroLineDict,
             DPI = CRPARAMS["DPI"],
             xsize = CRPARAMS["xsize"],
@@ -548,7 +603,7 @@ if __name__ == "__main__":
             saveFigureData = False,
             replotFromData = True,
             combineMultipleOntoAxis = True,
-            selectKeysList = keepPercentiles,
+            selectKeysList = dataToInclude,
             styleDict = styleDict,
             hush = not DEBUG,
             )
@@ -563,7 +618,7 @@ if __name__ == "__main__":
             xParam=CRPARAMS["xParam"],
             titleBool=CRPARAMS["titleBool"],
             legendBool=CRPARAMS["legendBool"],
-            labels = highResOnlyLegendLabels,
+            labels = customLegendLabels,
             yaxisZeroLine = yaxisZeroLineDict,
             DPI = CRPARAMS["DPI"],
             xsize = CRPARAMS["xsize"]*0.60*0.85*2.0,
@@ -583,7 +638,7 @@ if __name__ == "__main__":
             saveFigureData = False,
             replotFromData = True,
             combineMultipleOntoAxis = True,
-            selectKeysList = keepPercentiles,
+            selectKeysList = dataToInclude,
             styleDict = styleDict,
             hush = not DEBUG,
             )
@@ -599,7 +654,7 @@ if __name__ == "__main__":
             xParam=CRPARAMS["xParam"],
             titleBool=CRPARAMS["titleBool"],
             legendBool=CRPARAMS["legendBool"],
-            labels = highResOnlyLegendLabels,
+            labels = customLegendLabels,
             DPI = CRPARAMS["DPI"],
             xsize = CRPARAMS["xsize"]*0.60*0.85*2.0,
             ysize = CRPARAMS["ysize"]*0.60*0.85,
@@ -618,7 +673,7 @@ if __name__ == "__main__":
             saveFigureData = False,
             replotFromData = True,
             combineMultipleOntoAxis = True,
-            selectKeysList = keepPercentiles,
+            selectKeysList = dataToInclude,
             styleDict = styleDict,
             hush = not DEBUG,
             )
@@ -728,6 +783,8 @@ if __name__ == "__main__":
                 xParam=COLCRPARAMS["xParam"],
                 titleBool=COLCRPARAMS["titleBool"],
                 legendBool=COLCRPARAMS["legendBool"],
+                separateLegend = True,
+                labels = customLegendLabelsCol,
                 DPI = COLCRPARAMS["DPI"],
                 xsize = COLCRPARAMS["xsize"],
                 ysize = COLCRPARAMS["ysize"],
@@ -757,7 +814,9 @@ if __name__ == "__main__":
                 yParam=[["n_H_col"],[ "n_HI_col" ]],
                 xParam=COLCRPARAMS["xParam"],
                 titleBool=COLCRPARAMS["titleBool"],
-                legendBool=COLCRPARAMS["legendBool"],
+                legendBool= False,#COLCRPARAMS["legendBool"],
+                separateLegend = False,
+                labels = customLegendLabelsCol,
                 DPI = COLCRPARAMS["DPI"],
                 xsize = COLCRPARAMS["xsize"]*0.60*0.85*2.0,
                 ysize = COLCRPARAMS["ysize"]*0.60*0.85,
