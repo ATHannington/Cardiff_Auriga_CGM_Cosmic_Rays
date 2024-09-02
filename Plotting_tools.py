@@ -135,7 +135,6 @@ class AdaptedLogFormatterExponent(matplotlib.ticker.LogFormatterExponent):
             s = s.rstrip('0').rstrip('.')
         return s
 
-
 def phase_plot(
     dataDict,
     ylabel,
@@ -221,6 +220,9 @@ def phase_plot(
     zlimDict = copy.deepcopy(xlimDict)
 
     if subfigures:
+        # FIXME: update so logic and functionality is in line with plot_slices
+        raise Exception("Not implemented!!!")
+    
         if (type(xParams[0]) == list):
             xParams = list(itertools.chain.from_iterable(xParams))
         if (type(yParams[0]) == list):
@@ -277,6 +279,8 @@ def phase_plot(
 
     subplotCount = -1
     if subfigures:
+        # FIXME: update so logic and functionality is in line with plot_slices
+        raise Exception("Not implemented!!!")
         fig, ax = plt.subplots(
             nrows=figshape[1],
             ncols=figshape[0],
@@ -295,6 +299,8 @@ def phase_plot(
         print(f"Starting xParam {xParam}")
         for jj, yParam in enumerate(yParams):
             if subfigures:
+                # FIXME: update so logic and functionality is in line with plot_slices
+                raise Exception("Not implemented!!!")
                 print(jj)
                 yParam = yParams[ii]
                 if (jj>0):
@@ -320,6 +326,8 @@ def phase_plot(
 
                 plt.tick_params(axis="both", which="both", direction="in",  top=True, bottom=True, left=True, right=True)
                 if subfigures:
+                    # FIXME: update so logic and functionality is in line with plot_slices
+                    raise Exception("Not implemented!!!")
                     print(jj,kk)
                     colourBarKey = colourBarKeys[ii]
                     if ((jj>0)|(kk>0)):
@@ -385,6 +393,8 @@ def phase_plot(
                 if replotFromData is False:
                     try:
                         if subfigures:
+                            # FIXME: update so logic and functionality is in line with plot_slices
+                            raise Exception("Not implemented!!!")
                             tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(copy.deepcopy(simDict))
                         else:
                             tmpdataDict, paramToTypeMap, _ = cr.map_params_to_types(simDict)
@@ -613,7 +623,8 @@ def phase_plot(
                     SaveSnapNumber = ""
 
                 if subfigures:
-
+                    # FIXME: update so logic and functionality is in line with plot_slices
+                    raise Exception("Not implemented!!!")
                     cb = plt.colorbar(img1, ax=currentAx, orientation="vertical", pad=0.05)
 
                     cb.set_label(
@@ -663,6 +674,8 @@ def phase_plot(
                         tr.hdf5_save(opslaanData+"_data.h5",out)
 
     if subfigures:
+        # FIXME: update so logic and functionality is in line with plot_slices
+        raise Exception("Not implemented!!!")
         opslaan = (
             savePath
             + f"Phases-Plot{SaveSnapNumber}"
@@ -684,6 +697,7 @@ def pdf_versus_plot(
     xParams = ["T"],
     titleBool=False,
     legendBool=True,
+    separateLegend = False,
     labels = None,
     DPI=150,
     xsize=6.0,
@@ -1025,9 +1039,18 @@ def pdf_versus_plot(
                 if (SFRBool is True):
                     hist = np.flip(hist)
                     delta = np.mean(np.diff(xBins))
+                    # if cumulative is False: 
                     hist /= (delta*1e9) # convert to SFR per yr
+                    if cumulative is True:
+                        #Move to integrated histogram for SFR when cumulative is true
+                        tmphist = copy.deepcopy(hist)
+                        hist = np.asarray([delta*(tmphist[ii]+tmphist[ii+1])/2.0 for ii in range(0,len(hist)-1)])
+                        if np.shape(hist)[0] != (np.shape(bin_edges)[0]+1):
+                            hist = np.pad(hist,(1,0), "constant", constant_values=(tmphist[0]))
+                        hist = hist/1e10   #1e10 Msol units
 
-                if cumulative is True:
+
+                elif cumulative is True:
                     hist = np.cumsum(hist)
                     if normalise is True:
                         hist /= np.nanmax(hist)
@@ -1139,9 +1162,18 @@ def pdf_versus_plot(
                         if verbose: print(f"[@pdf_versus_plot]: Adapting to normalised cumulative version!")
 
                 elif (cumulative is True)&((np.all(np.diff(hist,axis=0)>=0.0)==False)|(np.all(np.diff(hist,axis=0)<=0.0)==False)):
+                    if (SFRBool is True)&(cumulative is True):
+                        dx = np.diff(xFromBins,axis=0)
+                        dx = np.mean(np.abs(dx))*1e9
+                        #Move to integrated histogram for SFR when cumulative is true
+                        tmphist = copy.deepcopy(hist)
+                        hist = np.asarray([dx*(tmphist[ii]+tmphist[ii+1])/2.0 for ii in range(0,len(hist)-1)])
+                        if np.shape(hist)[0] != np.shape(xFromBins)[0]:
+                            hist = np.pad(hist,(1,0), "constant", constant_values=(tmphist[0]))
+                        hist = hist/1e10   #1e10 Msol units
 
                     hist = np.cumsum(hist)
-
+                    
                     if verbose: print(f"[@pdf_versus_plot]: Adapting to cumulative version!")
 
             if np.all(np.isfinite(hist)==False) == True:
@@ -1149,8 +1181,12 @@ def pdf_versus_plot(
                 continue
 
             try:
-                ymin = np.nanmin(hist[np.isfinite(hist)])
-                ymax = np.nanmax(hist[np.isfinite(hist)])
+                if (forceLogPDF is False):
+                    ymin = np.nanmin(hist[np.isfinite(hist)])
+                    ymax = np.nanmax(hist[np.isfinite(hist)])
+                else:
+                    ymin = np.nanmin(hist[np.where((np.isfinite(hist)==True)&(hist!=0.0))[0]])
+                    ymax = np.nanmax(hist[np.where((np.isfinite(hist)==True)&(hist!=0.0))[0]])
                 yminList.append(ymin)
                 ymaxList.append(ymax)
                 skipBool = False
@@ -1172,7 +1208,6 @@ def pdf_versus_plot(
                 linewidth = linewidth,
                 label = label,
             )
-
             # # # if (analysisParam in logParameters):
             # # #     ax.set_xscale("log")
             if ((weightKey in logParameters)&(forceLogPDF == True)):
@@ -1186,7 +1221,11 @@ def pdf_versus_plot(
 
         ylabel_prefix = ""
         if cumulative is True:
-            ylabel_prefix = "Cumulative "
+            if SFRBool is False:
+                ylabel_prefix = "Cumulative "
+            else:
+                ylabel_prefix = "Integrated "
+
             if normalise is True:
                 ylabel_prefix = "Normalised " + ylabel_prefix
 
@@ -1205,6 +1244,11 @@ def pdf_versus_plot(
                     adaptedylabel = ylabel_prefix + (copy.deepcopy(ylabel[weightKey])).replace(r"$\mathrm{Log_{10}}$ ", "")
                 else:
                     adaptedylabel = ylabel_prefix + ylabel[weightKey]
+
+                if (SFRBool is True)&(cumulative is True):
+                    tmpylabel = (copy.deepcopy(ylabel[weightKey])).replace(r" yr$^{-1}$", "")
+                    adaptedylabel = ylabel_prefix + tmpylabel.replace(r"M$_{\odot}$", r"$10^{10}$M$_{\odot}$")
+                    
             ax.set_ylabel(adaptedylabel, fontsize=fontsize)
 
         if titleBool is True:
@@ -1224,21 +1268,8 @@ def pdf_versus_plot(
 
         if replotFromData is False:
 
-            #try:
-            #    finalxmin = max(
-            #        np.nanmin(xmin), xlimDict[analysisParam]["xmin"]
-            #    )
-            #    finalxmax = min(
-            #        np.nanmax(xmax), xlimDict[analysisParam]["xmax"]
-            #    )
-            #except:
-            # # # if analysisParam in logParameters:
-            # # #     finalxmin = 10**(xmin)
-            # # #     finalxmax = 10**(xmax)
-            # # # else:
             finalxmin = alwaysLinearXmin
             finalxmax = alwaysLinearXmax
-
 
             if (
                 (np.isinf(finalxmax) == True)
@@ -1249,8 +1280,7 @@ def pdf_versus_plot(
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
 
-            if ((SFRBool is False)|(forceLogPDF is False)): 
-
+            if ((SFRBool is False)&(forceLogPDF is False)): 
                 try:
                     finalymin = 0.0
                     finalymax = np.nanmax(np.asarray(ymaxList))
@@ -1259,15 +1289,21 @@ def pdf_versus_plot(
                     continue
             else:
                 try:
-                    finalymin = np.nanmin(np.asarray(yminList))
-                    finalymax = np.nanmax(np.asarray(ymaxList))
+                    logyminList = np.log10(np.asarray(yminList))
+                    logymaxList = np.log10(np.asarray(ymaxList))
+                    tmplogfinalymin = np.nanmin(logyminList[np.where(np.isfinite(logyminList))[0]])
+                    logfinalymax = np.nanmax(logymaxList[np.where(np.isfinite(logymaxList))[0]])
+
+                    dex = logfinalymax - tmplogfinalymin
+                    logfinalymin = logfinalymax - np.round(dex*0.8413,decimals=0)
+
+                    finalymin = np.power(10.0,logfinalymin)
+                    finalymax = np.power(10.0,logfinalymax)
                 except:
                     print("Data All Inf/NaN! Skipping entry!")
                     continue
 
             custom_ylim = (finalymin, finalymax)
-
-            if forceLogPDF is True: custom_ylim = (np.log10(finalymin),np.log10(finalymax))
 
             if (SFR is True)|(SFRBool is True):
                 custom_xlim = (finalxmax, finalxmin)
@@ -1285,17 +1321,11 @@ def pdf_versus_plot(
             if ((label != "")&(legendBool == True)): ax.legend(loc="best", fontsize=fontsize)
 
         else:
-            finalxmin = np.nanmin(xFromBins)
-            finalxmax = np.nanmax(xFromBins)
-
-
-            # # if analysisParam in logParameters:
-            # #     finalxmin = 10**(finalxmin)
-            # #     finalxmax = 10**(finalxmax)
-            # # else:
-            # #     finalxmin = xmin
-            # #     finalxmax = xmax
-
+            if analysisParam in logParameters:
+                finalxmin, finalxmax = np.power(10.0,xlimDict[analysisParam]["xmin"]), np.power(10.0,xlimDict[analysisParam]["xmax"])
+            else:
+                finalxmin = np.nanmin(xFromBins)
+                finalxmax = np.nanmax(xFromBins)
 
             if (
                 (np.isinf(finalxmax) == True)
@@ -1306,7 +1336,7 @@ def pdf_versus_plot(
                 print("Data All Inf/NaN! Skipping entry!")
                 continue
 
-            if ((SFRBool is False)|(forceLogPDF is False)): 
+            if ((SFRBool is False)&(forceLogPDF is False)): 
                 try:
                     finalymin = 0.0
                     finalymax = np.nanmax(np.asarray(ymaxList))
@@ -1315,21 +1345,32 @@ def pdf_versus_plot(
                     continue
             else:
                 try:
-                    finalymin = np.nanmin(np.asarray(yminList))
-                    finalymax = np.nanmax(np.asarray(ymaxList))
+                    logyminList = np.log10(np.asarray(yminList))
+                    logymaxList = np.log10(np.asarray(ymaxList))
+                    tmplogfinalymin = np.nanmin(logyminList[np.where(np.isfinite(logyminList))[0]])
+                    logfinalymax = np.nanmax(logymaxList[np.where(np.isfinite(logymaxList))[0]])
+
+                    dex = logfinalymax - tmplogfinalymin
+                    logfinalymin = logfinalymax - np.round(dex*0.8413,decimals=0)#8413,decimals=0)
+
+                    finalymin = np.power(10.0,logfinalymin)
+                    finalymax = np.power(10.0,logfinalymax)
                 except:
                     print("Data All Inf/NaN! Skipping entry!")
                     continue
+
+            custom_ylim = (finalymin, finalymax)
 
             if (SFR is True)|(SFRBool is True):
                 custom_xlim = (finalxmax, finalxmin)
             else:
                 custom_xlim = (finalxmin, finalxmax)
+
+            # if forceLogPDF is True: 
+            #     logyminList = np.log10(np.asarray(yminList))
+            #     logymaxList = np.log10(np.asarray(ymaxList))
+            #     custom_ylim = (np.nanmin(logyminList[np.where(np.isfinite(logyminList))[0]]),np.nanmax(logymaxList[np.where(np.isfinite(logymaxList))[0]]))
                 
-            custom_ylim = (finalymin, finalymax)
-
-            if forceLogPDF is True: custom_ylim = (np.log10(finalymin),np.log10(finalymax))
-
             if custom_xlim[0] == custom_xlim[1]:
                 raise Exception(f"[@pdf_versus_plot]: xmin == xmax! Logic failure!")
             elif custom_ylim[0] == custom_ylim[1]:
@@ -1352,8 +1393,12 @@ def pdf_versus_plot(
             tmp2FigureData = savePathFigureData
 
         if cumulative is True:
-            tmp2 = tmp2 +"Cumulative-"
-            tmp2FigureData = tmp2FigureData +"Cumulative-"
+            if SFRBool is True:
+                tmp2 = tmp2 +"Integrated-"
+                tmp2FigureData = tmp2FigureData +"Integrated-"
+            else:
+                tmp2 = tmp2 +"Cumulative-"
+                tmp2FigureData = tmp2FigureData +"Cumulative-"
 
         # # tmp2 = savePath + titleKeyword
         # # tmp2FigureData = savePathFigureData + titleKeyword
@@ -1384,8 +1429,32 @@ def pdf_versus_plot(
                 opslaanFigureData = tmp2FigureData + f"{weightKey}-{analysisParam}" + saveType
 
         if combineMultipleOntoAxis is True: opslaan = opslaan + "-Simulations-Combined"
+        
+        if (separateLegend is True):
+            ax.get_legend().remove()
 
-        plt.savefig(opslaan + ".pdf", dpi=DPI, transparent=False)
+            figl, axl = plt.subplots(figsize=(4,4))
+            axl.xaxis.set_minor_locator(AutoMinorLocator())
+            axl.yaxis.set_minor_locator(AutoMinorLocator())
+            axl.tick_params(bottom=True, top=True, left=True, right=True, which="both", direction="in")
+            hh, ll = ax.get_legend_handles_labels()
+            axl.axis(False)
+            axl.legend(
+                handles=hh,
+                # labels=iter(legendLabels),
+                ncol=1,
+                loc="center",
+                bbox_to_anchor=(0.5, 0.5),
+                fontsize=fontsize,
+            )
+            plt.tight_layout()
+            figl.savefig(
+                savePath
+                +"/"
+                + f"PDF_versus_plot_Legend.pdf"
+            )
+
+        fig.savefig(opslaan + ".pdf", dpi=DPI, transparent=False)
         print(opslaan)
         plt.close()
         matplotlib.rc_file_defaults()
@@ -1395,6 +1464,12 @@ def pdf_versus_plot(
             print(f"Saving Figure Data as {opslaanFigureData}")
             out = {"data":{"x" : xFromBins, "y" : hist}}
             tr.hdf5_save(opslaanFigureData+"_data.h5",out)
+
+
+
+
+            
+            
 
     
     return
@@ -1509,7 +1584,8 @@ def load_phase_plot_data(
     snapRange,
     yParams = ["T"],
     xParams = ["rho_rhomean","R"],
-    weightKeys = ["mass","vol"],
+    colourBarKeys = ["mass","vol"],
+    weightKeys = None,
     loadPathBase = "./",
     stack = True,
     selectKeyLen=2,
@@ -1525,16 +1601,16 @@ def load_phase_plot_data(
         if verbose:  print(f"{yParam}")
         for xParam in xParams:
             if verbose:  print(f"{xParam}")
-            for weightKey in weightKeys:
-                if verbose:  print(f"{weightKey}")
+            for colourBarKey in weightKeys:
+                if verbose:  print(f"{colourBarKey}")
 
-                if weightKey == xParam:
-                    if verbose:  print("\n" + f"WeightKey same as xParam! Skipping...")
+                if colourBarKey == xParam:
+                    if verbose:  print("\n" + f"colourBarKey same as xParam! Skipping...")
                     skipBool = True
                     continue
 
-                if weightKey == yParam:
-                    if verbose:  print("\n" + f"WeightKey same as yParam! Skipping...")
+                if colourBarKey == yParam:
+                    if verbose:  print("\n" + f"colourBarKey same as yParam! Skipping...")
                     skipBool = True
                     continue
 
@@ -1543,7 +1619,7 @@ def load_phase_plot_data(
                     skipBool = True
                     continue
 
-                if np.all(np.isin(np.array(["tcool","theat"]),np.array([xParam,yParam,weightKey]))) == True:
+                if np.all(np.isin(np.array(["tcool","theat"]),np.array([xParam,yParam,colourBarKey]))) == True:
                     if verbose:  print("\n" + f"tcool and theat aren't compatible! Skipping...")
                     skipBool = True
                     continue
@@ -1561,7 +1637,7 @@ def load_phase_plot_data(
 
                     opslaanData = (
                         loadPath
-                        + f"Phases-Plot_{yParam}-vs-{xParam}_weighted-by-{weightKey}{SaveSnapNumber}"
+                        + f"Phases-Plot_{yParam}-vs-{xParam}_weighted-by-{colourBarKey}{SaveSnapNumber}"
                     )
 
                     # print(f"Loading Figure Data from {opslaanFigureData}")
@@ -1581,7 +1657,7 @@ def load_phase_plot_data(
                     if skipBool is False: toCombine.update({("data",int(snapNumber)) : copy.deepcopy(tmp[tmpkey])})
                 if skipBool is False:
                     flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = not verbose)
-                    out.update({(xParam, yParam, weightKey) : flattened["data"]})
+                    out.update({(xParam, yParam, colourBarKey) : flattened["data"]})
 
     return out
 
@@ -1653,16 +1729,16 @@ def hy_load_individual_slice_plot_data(
     hush = False,
     ):
 
-    from itertools import permutations
+    from itertools import permutations, combinations
 
     if type(sliceParam) == str:
         sliceParam = [sliceParam]
 
     out = {}
 
-    AxesLabels = ["z","x","y"]
+    # AxesLabels = ["z","x","y"]
     # # #Legacy labelling...
-    # # AxesLabels = ["x","y","z"]
+    AxesLabels = ["x","y","z"]
 
     if averageAcrossAxes & allowFindOtherAxesData:
         print(f"[hy_load_individual_slice_plot_data]: WARNING! Cannot have both averageAcrossAxes AND allowFindOtherAxesData both set to True"
@@ -1696,33 +1772,85 @@ def hy_load_individual_slice_plot_data(
         else:
             tmpsliceParam = param
 
-        if averageAcrossAxes is True:
-            if proj is False:
-                loadPathFigureData = "/Plots/Slices/" + f"Slice_Plot_AxAv_{param}{SaveSnapNumber}"
-            else:
-                loadPathFigureData = "/Plots/Slices/" + f"Projection_Plot_AxAv_{param}{SaveSnapNumber}"
-        else:
+        if averageAcrossAxes is False:
+            #     if proj is False:
+            #         loadPathFigureData = "/Plots/Slices/" + f"Slice_Plot_AxAv_{param}{SaveSnapNumber}"
+            #     else:
+            #         loadPathFigureData = "/Plots/Slices/" + f"Projection_Plot_AxAv_{param}{SaveSnapNumber}"
+            # else:
             if proj is False:
                 loadPathFigureData = "/Plots/Slices/" + f"Slice_Plot_{AxesLabels[Axes[0]]}-{AxesLabels[Axes[1]]}_{param}{SaveSnapNumber}"
             else:
                 loadPathFigureData = "/Plots/Slices/" + f"Projection_Plot_{AxesLabels[Axes[0]]}-{AxesLabels[Axes[1]]}_{param}{SaveSnapNumber}"
 
-        datapath = loadPathBase + loadPathFigureData
-        if verbose: print("\n"+f"[@{int(snapNumber)}]: Loading {datapath}")
-        try:
-            tmp = tr.hdf5_load(
-                datapath+"_data.h5",
-                selectKeyLen = selectKeyLen,
-                delimiter=delimiter,
-                )
-            inner.update(tmp)
-            fileFound = True
-        except Exception as e:
-            if hush == False: print(str(e))
-            if hush == False: print("File not found! Skipping ...")
-            fileFound = False
+            datapath = loadPathBase + loadPathFigureData
+            if verbose: print("\n"+f"[@{int(snapNumber)}]: Loading {datapath}")
+            try:
+                tmp = tr.hdf5_load(
+                    datapath+"_data.h5",
+                    selectKeyLen = selectKeyLen,
+                    delimiter=delimiter,
+                    )
+                inner.update(tmp)
+                fileFound = True
+            except Exception as e:
+                if hush == False: print(str(e))
+                if hush == False: print("File not found! Skipping ...")
+                fileFound = False
 
 
+        elif (((fileFound == False) & (allowFindOtherAxesData == True) ) | (averageAcrossAxes == True)):
+            if averageAcrossAxes == False:
+                possibleAxes = permutations(range(len(AxesLabels)),2)
+
+                print(f"[@hy_load_individual_slice_plot_data]: Data not found for Axes selection provided for"
+                        + "\n"
+                        + f"{datapath}"
+                        + "\n"
+                        +"Attempting to recover other single-axis data!")
+            else:
+                possibleAxes = combinations(range(len(AxesLabels)),2)
+
+                toCombine = {}
+            for jj, (ax0, ax1) in enumerate(possibleAxes):
+                print(f"[@hy_load_individual_slice_plot_data]: Attempting {AxesLabels[ax0]} {AxesLabels[ax1]} data load...")
+                paramSplitList = param.split("_")
+
+
+                if paramSplitList[-1] == "col":
+                    ## If _col variant is called we want to calculate a projection of the non-col parameter
+                    ## Thus, we force projection to now be true, and incorporate a dummy variable tmpsliceParam
+                    ## to force plots to generate non-col variants but save output as column density version
+
+                    tmpsliceParam = "_".join(paramSplitList[:-1])
+                    proj = True
+                else:
+                    tmpsliceParam = param
+
+                if proj is False:
+                    loadPathFigureData = "/Plots/Slices/" + f"Slice_Plot_{AxesLabels[ax0]}-{AxesLabels[ax1]}_{param}{SaveSnapNumber}"
+                else:
+                    loadPathFigureData = "/Plots/Slices/" + f"Projection_Plot_{AxesLabels[ax0]}-{AxesLabels[ax1]}_{param}{SaveSnapNumber}"
+
+                datapath = loadPathBase + loadPathFigureData
+                if verbose: print("\n"+f"[@{int(snapNumber)}]: Loading {datapath}")
+                try:
+                    tmp = tr.hdf5_load(datapath+"_data.h5",selectKeyLen = selectKeyLen,delimiter=delimiter)
+                    print(f"[@hy_load_individual_slice_plot_data]: {AxesLabels[ax0]} {AxesLabels[ax1]} data load successful!")
+                    fileFound = True
+
+                    ## Want to continue looping over orthogonal axes if averageAcrossAxes is True
+                    if averageAcrossAxes is False:
+                        inner.update(tmp)
+                        break
+                    else:
+                        axisSpecificTmp = {tuple(list([key, jj])): vals for key,vals in tmp.items()}
+                        toCombine.update(axisSpecificTmp)
+                except Exception as e:
+                    fileFound = False
+                    if hush == False: print(str(e))
+                    if hush == False: print("File not found! Skipping ...")
+        
         if ((fileFound == False) & (allowNoAxes == True)):
             print(f"[@hy_load_individual_slice_plot_data]: Data not found for Axes selection provided for"
                     + "\n"
@@ -1761,46 +1889,12 @@ def hy_load_individual_slice_plot_data(
                 if hush == False: print(str(e))
                 if hush == False: print("File not found! Skipping ...")
 
-
-        if ((fileFound == False) & (allowFindOtherAxesData == True)):
-            possibleAxes = permutations(range(len(AxesLabels)),2)
-            print(f"[@hy_load_individual_slice_plot_data]: Data not found for Axes selection provided for"
-                    + "\n"
-                    + f"{datapath}"
-                    + "\n"
-                    +"Attempting to recover other single-axis data!")
-            for ax0, ax1 in possibleAxes:
-                print(f"[@hy_load_individual_slice_plot_data]: Attempting {AxesLabels[ax0]} {AxesLabels[ax1]} data load...")
-                paramSplitList = param.split("_")
-
-
-                if paramSplitList[-1] == "col":
-                    ## If _col variant is called we want to calculate a projection of the non-col parameter
-                    ## Thus, we force projection to now be true, and incorporate a dummy variable tmpsliceParam
-                    ## to force plots to generate non-col variants but save output as column density version
-
-                    tmpsliceParam = "_".join(paramSplitList[:-1])
-                    proj = True
-                else:
-                    tmpsliceParam = param
-
-                if proj is False:
-                    loadPathFigureData = "/Plots/Slices/" + f"Slice_Plot_{AxesLabels[ax0]}-{AxesLabels[ax1]}_{param}{SaveSnapNumber}"
-                else:
-                    loadPathFigureData = "/Plots/Slices/" + f"Projection_Plot_{AxesLabels[ax0]}-{AxesLabels[ax1]}_{param}{SaveSnapNumber}"
-
-                datapath = loadPathBase + loadPathFigureData
-                if verbose: print("\n"+f"[@{int(snapNumber)}]: Loading {datapath}")
-                try:
-                    tmp = tr.hdf5_load(datapath+"_data.h5",selectKeyLen = selectKeyLen,delimiter=delimiter)
-                    inner.update(tmp)
-                    print(f"[@hy_load_individual_slice_plot_data]: {AxesLabels[ax0]} {AxesLabels[ax1]} data load successful!")
-                    fileFound = True
-                    break
-                except Exception as e:
-                    fileFound = False
-                    if hush == False: print(str(e))
-                    if hush == False: print("File not found! Skipping ...")
+    if averageAcrossAxes is True:
+        tmp2 = cr.cr_flatten_wrt_time(toCombine, stack = False, verbose = verbose, hush = hush)
+        # if paramSplitList[-1] == "col": STOP1891
+        inner.update(tmp2)
+    
+    # """Andy, go and update all time-averaging scirpt instances of colDens plots to stack=False merge colDens data _again_ before plotting, and debug to ensure flattened versions of x, y, and grid map correctly to one another!"""
 
     if bool(inner) is False:
         raise Exception(f"[hy_load_individual_slice_plot_data]: FAILURE! No data found! Please check file locations and kwargs entered for this call!")
@@ -1808,6 +1902,7 @@ def hy_load_individual_slice_plot_data(
     out.update(inner)
 
     return out
+
 def plot_slices(snap,
     ylabel,
     xlimDict,
@@ -2237,11 +2332,11 @@ def plot_slices(snap,
 
                 if xlimBool is True:
                     if cbarparam in logParameters:
-                        zmin = 10**(np.floor(xlimDict[cbarparam]['xmin']))
-                        zmax = 10**(np.ceil(xlimDict[cbarparam]['xmax']))
+                        zmin = 10**(xlimDict[cbarparam]['xmin'])
+                        zmax = 10**(xlimDict[cbarparam]['xmax'])
                         norm = matplotlib.colors.LogNorm(vmin = zmin, vmax = zmax,clip=True)
 
-                        numdecs = (np.ceil(xlimDict[cbarparam]['xmax']) - np.floor(xlimDict[cbarparam]['xmin']))
+                        numdecs = np.ceil(xlimDict[cbarparam]['xmax'] - xlimDict[cbarparam]['xmin']).astype("int64")+1
                         if numdecs<3:
                             subs = [10.0**0.5,1.0]
                         else:
@@ -2410,11 +2505,12 @@ def plot_slices(snap,
                     toCombine.update({(param, str(jj)): copy.deepcopy(tmp[param])})
                 out = cr.cr_flatten_wrt_time(toCombine, stack = True, verbose = verbose, hush = not verbose)
 
-                for sKey, data in out.items():
-                    dataCopy = copy.deepcopy(data)
-                    for key,value in data.items():
-                        dataCopy.update({key: np.nanmedian(value,axis=-1)})
-                    out[sKey].update(dataCopy)
+
+                # # # for sKey, data in out.items():
+                # # #     dataCopy = copy.deepcopy(data)
+                # # #     for key,value in data.items():
+                # # #         dataCopy.update({key: np.nanmedian(value,axis=-1)})
+                # # #     out[sKey].update(dataCopy)
 
 
                 # Pad snapNumber with zeroes to enable easier video making
@@ -2508,6 +2604,9 @@ def plot_slices(snap,
                     slice["grid"] = slice["grid"]/ int(boxlos / pixreslos)
         elif replotFromData is True:
             slice = snap[param]
+            paramSplitList = param.split("_")
+            if slice["x"].ndim >1:
+                raise Exception(f"[@replot_slices]: Failure! Cannot understand data shape! replot_slices() called with replotFromData = True, and is attempting to plot slice['x'][{param}].ndim>1 ! If you meant to replot a single axis for ax av then pass in only the desired axis data!")
 
         if saveFigure is True:
             if subfigures == False:
@@ -2556,8 +2655,8 @@ def plot_slices(snap,
 
             if xlimBool is True:
                 if param in logParameters:
-                    zmin = 10**(np.floor(xlimDict[param]['xmin']))
-                    zmax = 10**(np.ceil(xlimDict[param]['xmax']))
+                    zmin = 10**(xlimDict[param]['xmin'])
+                    zmax = 10**(xlimDict[param]['xmax'])
                     norm = matplotlib.colors.LogNorm(vmin = zmin, vmax = zmax,clip=True)
                 else:
                     zmin = xlimDict[param]['xmin']
@@ -2596,11 +2695,11 @@ def plot_slices(snap,
             if subfigures == False:
                 if xlimBool is True:
                     if param in logParameters:
-                        zmin = 10**(np.floor(xlimDict[param]['xmin']))
-                        zmax = 10**(np.ceil(xlimDict[param]['xmax']))
+                        zmin = 10**(xlimDict[param]['xmin'])
+                        zmax = 10**(xlimDict[param]['xmax'])
                         norm = matplotlib.colors.LogNorm(vmin = zmin, vmax = zmax,clip=True)
 
-                        numdecs = (np.ceil(xlimDict[param]['xmax']) - np.floor(xlimDict[param]['xmin']))
+                        numdecs = np.ceil(xlimDict[param]['xmax'] - xlimDict[param]['xmin']).astype("int64")+1
                         if numdecs<3:
                             subs = [10.0**0.5,1.0]
                         else:
@@ -2622,7 +2721,7 @@ def plot_slices(snap,
                         zmax = 10**np.ceil(np.log10(np.nanmin(slice["grid"])))
                         norm = matplotlib.colors.LogNorm(vmin = zmin, vmax = zmax,clip=True)
 
-                        numdecs = (np.ceil(np.log10(np.nanmin(slice["grid"]))) - np.floor(np.log10(np.nanmax(slice["grid"]))))
+                        numdecs = np.ceil((np.log10(np.nanmax(slice["grid"]))) - np.log10(np.nanmin(slice["grid"]))).astype("int64")
                         if numdecs<3:
                             subs = [10.0**0.5,1.0]
                         else:
@@ -2639,39 +2738,38 @@ def plot_slices(snap,
                         cbarticklocator = matplotlib.ticker.MaxNLocator(nbins=6,steps=[1, 2, 2.5, 5, 10])
                         formatter = matplotlib.ticker.ScalarFormatter()
 
-                    caxorient = "vertical"
-                    caxtickloc = "left"
-                    labellocation = "left"
 
-                    cax = currentAx
-                    im = imageArray[0]
-
-                    clb = plt.colorbar(im, ax = cax, ticks=cbarticklocator, format=formatter, orientation = caxorient, ticklocation = caxtickloc, shrink=0.85)
-                    clb.set_label(label=f"{ylabel[param]}", size=fontsize)
-                    clb.ax.yaxis.set_ticks_position(labellocation)
-                    clb.ax.tick_params(axis="both", which="both", labelsize=fontsize)
-                    clb.ax.xaxis.set_major_formatter(formatter)
-                    # clb.ax.xaxis.set_minor_formatter(formatter)
-                    clb.ax.yaxis.set_major_formatter(formatter)
-                    # clb.ax.yaxis.set_minor_formatter(formatter)
-                    # clb.ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
-
+                caxorient = "vertical"
+                caxtickloc = "left"
+                labellocation = "left"
+                im = imageArray[0]
+                clb = plt.colorbar(im, ax = currentAx, ticks=cbarticklocator, format=formatter, orientation = caxorient, ticklocation = caxtickloc)#, shrink=0.85)
+                clb.set_label(label=f"{ylabel[param]}", size=fontsize)
+                clb.ax.yaxis.set_ticks_position(labellocation)
+                clb.ax.tick_params(axis="both", which="both", labelsize=fontsize)
+                clb.ax.xaxis.set_major_formatter(formatter)
+                # clb.ax.xaxis.set_minor_formatter(formatter)
+                clb.ax.yaxis.set_major_formatter(formatter)
+                # clb.ax.yaxis.set_minor_formatter(formatter)
+                # clb.ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+                # clb.ax.yaxis.set_minor_formatter(formatter)
+                # clb.ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
                 # # # cbardrawn[cbarPerAx] = True
 
-
-                currentAx.set_xticks(fullTicks)
-                currentAx.set_yticks(fullTicks)
-                currentAx.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
-                currentAx.set_xlabel(f"{AxesLabels[Axes[0]]}" + " (kpc)", fontsize=fontsize)
-                cax1 = inset_axes(currentAx, width="5%", height="95%", loc="right")
-                fig.colorbar(pcm, cax=cax1, ticks=cbarticklocator, format=formatter, orientation="vertical").set_label(
-                    label=f"{ylabel[param]}", size=fontsize, weight="bold"
-                )
-                cax1.yaxis.set_ticks_position("left")
-                cax1.yaxis.set_label_position("left")
-                # cax1.yaxis.label.set_color("white")
-                cax1.tick_params(axis="y", which="major", labelsize=fontsize)#colors="white",
-                cax1.tick_params(axis="y", which="minor", labelsize=fontsize)#colors="white",
+            # elif subfigures == False:
+            #     currentAx.set_xticks(fullTicks)
+            #     currentAx.set_yticks(fullTicks)
+            #     currentAx.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
+            #     currentAx.set_xlabel(f"{AxesLabels[Axes[0]]}" + " (kpc)", fontsize=fontsize)
+            #     cax1 = inset_axes(currentAx, width="5%", height="95%", loc="right")
+            #     fig.colorbar(pcm, cax=cax1, ticks=cbarticklocator, format=formatter, orientation="vertical").set_label(
+            #         label=f"{ylabel[param]}", size=fontsize, weight="bold"
+            #     )
+            #     cax1.yaxis.set_ticks_position("left")
+            #     cax1.yaxis.set_label_position("left")
+            #     # cax1.yaxis.label.set_color("white")
+            #     cax1.tick_params(axis="y", which="major", labelsize=fontsize)#colors="white",
+            #     cax1.tick_params(axis="y", which="minor", labelsize=fontsize)#colors="white",
 
             currentAx.set_aspect("equal")
             if snapNumber is not None:
@@ -2726,59 +2824,64 @@ def plot_slices(snap,
             #
             if subfigureDatasetLabelsBool:
                 if subfigureDatasetLabelsDict is None:
-                    labelsList = [dataKey  if (type(dataKey)==list) | (type(dataKey)==tuple) else dataKey[-1].split("_") for dataKey in selectKeysList]
+                    if ((type(selectKeysList[0])==list)|(type(selectKeysList[0])==tuple)):
+                        labelsList = [("_".join(list(dataKey))).split("_") for dataKey in selectKeysList]
+                    else:
+                        labelsList = [dataKey.split("_") for dataKey in selectKeysList]
                 else:
                     labelsList = [tuple([subfigureDatasetLabelsDict[dataKey]]) for dataKey in selectKeysList]
                 for ax,datasetLabel in zip(axes[:,0],labelsList):
                     datasetLabel = [yy if yy!="Alfven" else "Alfvén" for yy in datasetLabel]
-                    datasetLabel[0] = datasetLabel[0].title()
+                    # datasetLabel[0] = datasetLabel[0].title()
                     datasetLabel = " ".join(datasetLabel)
                     ax.annotate(datasetLabel, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
                         xycoords=ax.yaxis.label, textcoords='offset points',
-                        size='large', ha='right', va='center', rotation = 90)
+                        size='large', ha='right', va='center', rotation = 90, fontsize=fontsize)
 
             if subfigureDatasetLabelsBool:
                 plt.gca()
                 ## Make sure top-bottom == right-left for equal aspect!
-                if ((sharex == True)&(sharey == True)):plt.subplots_adjust(hspace=0.0, wspace=0.0, top=0.90, bottom=0.10, left=0.15, right=0.95)
-                elif (sharex == True):plt.subplots_adjust(hspace=0.0, top=0.90, bottom=0.10, left=0.15, right=0.95)
-                elif (sharey == True):plt.subplots_adjust(wspace=0.0, top=0.90, bottom=0.10, left=0.15, right=0.95)
+                plt.subplots_adjust(hspace=0.0, wspace=0.0, top=0.90, bottom=0.10, left=0.175, right=0.975)
 
             if (subfigureOffAlignmentAxisLabels == True)&(offAlignmentAxisLabels is not None):
                 for ax,offAxisLabel in zip(axes[0,:],offAlignmentAxisLabels):
                     ax.annotate(offAxisLabel,xy=(0.5, 1), xytext=(0, pad),
                         xycoords='axes fraction', textcoords='offset points',
-                        size='large', ha='center', va='baseline')
+                        size='large', ha='center', va='baseline', fontsize=fontsize)
 
         elif (compareSelectKeysOn.lower() == "horizontal"):
             for ax in axes[-1,:]:
                 ax.set_xlabel(f"{AxesLabels[Axes[0]]}" + " (kpc)", fontsize=fontsize)
 
             if subfigureDatasetLabelsBool:
-                for ax,dataKey in zip(axes[0,:],selectKeysList):
-                    if (type(dataKey)==list) | (type(dataKey)==tuple):
-                        datasetLabel = dataKey[-1].split("_")
+                if subfigureDatasetLabelsDict is None:
+                    if ((type(selectKeysList[0])==list)|(type(selectKeysList[0])==tuple)):
+                        labelsList = [("_".join(list(dataKey))).split("_") for dataKey in selectKeysList]
                     else:
-                        datasetLabel = dataKey.split("_")
+                        labelsList = [dataKey.split("_") for dataKey in selectKeysList]
+                else:
+                    labelsList = [tuple([subfigureDatasetLabelsDict[dataKey]]) for dataKey in selectKeysList]
+                for ax,datasetLabel in zip(axes[0,:],labelsList):
                     datasetLabel = [yy if yy!="Alfven" else "Alfvén" for yy in datasetLabel]
-                    datasetLabel[0] = datasetLabel[0].title()
+                    # datasetLabel[0] = datasetLabel[0].title()
                     datasetLabel = " ".join(datasetLabel)
                     ax.annotate(datasetLabel,xy=(0.5, 1), xytext=(0, pad),
                         xycoords='axes fraction', textcoords='offset points',
-                        size='large', ha='center', va='baseline')
-
+                        size='large', ha='center', va='baseline', fontsize=fontsize)
             if subfigureDatasetLabelsBool:
                 plt.gca()
                 ## Make sure top-bottom == right-left for equal aspect!
-                if ((sharex == True)&(sharey == True)):plt.subplots_adjust(hspace=0.0, wspace=0.0, top=0.925, bottom=0.125, left=0.15, right=0.95)
-                elif (sharex == True):plt.subplots_adjust(hspace=0.0, top=0.925, bottom=0.125, left=0.15, right=0.95)
-                elif (sharey == True):plt.subplots_adjust(wspace=0.0, top=0.925, bottom=0.125, left=0.15, right=0.95)
+                plt.subplots_adjust(hspace=0.0, wspace=0.0, top=0.925, bottom=0.125, left=0.15, right=0.95)
+
 
             if (subfigureOffAlignmentAxisLabels == True)&(offAlignmentAxisLabels is not None):
                 for ax,offAxisLabel in zip(axes[:,0],offAlignmentAxisLabels):
                     ax.annotate(offAxisLabel, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
                         xycoords=ax.yaxis.label, textcoords='offset points',
-                        size='large', ha='right', va='center', rotation = 90)
+                        size='large', ha='right', va='center', rotation = 90, fontsize=fontsize)
+                if (compareSelectKeysOn.lower() == "horizontal"): 
+                    plt.subplots_adjust(hspace=0.0, wspace=0.0, top=0.90, bottom=0.10, left=0.175, right=0.975)
+
 
         for ax in axes[:,0]:
                 ax.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
@@ -2818,6 +2921,7 @@ def medians_versus_plot(
     xParam="R",
     titleBool=False,
     legendBool = True,
+    separateLegend = False,
     labels = None,
     yaxisZeroLine = None,
     DPI=150,
@@ -2869,7 +2973,6 @@ def medians_versus_plot(
     if subfigures:
         nrows = len(plotParams)
         ncols = max([len(zz) for zz in plotParams])
-
         hasPlotMask = []
         tmpplotParams = copy.deepcopy(plotParams)
         for ii in range(0,nrows):
@@ -2936,6 +3039,11 @@ def medians_versus_plot(
             squeeze = False,
         )
 
+        # if nrows==1:
+        #     ## horizontal stacking requires us to drop the row index in the case of single row, otherwise axindex call to matplotlib axes object will raise an exception as a single row axis is 1D rather than 2D...:
+        #     figshape = ncols
+        #     hasPlotMask = copy.deepcopy(hasPlotMask[0])
+
 
 
     if combineMultipleOntoAxis is False:
@@ -2994,7 +3102,6 @@ def medians_versus_plot(
 
 
 
-
     for xx, plotp in enumerate(plotParams):
         if plotp != xParam:
 
@@ -3004,8 +3111,11 @@ def medians_versus_plot(
             # until all curves for this axis have been made.
             #
             # TL;DR keep this iterator OUTSIDE of the 'for analysisParam in tmpparamlist:' for loop!!!
+            #
+            # FIXME:  This method of implementing multiple curves per subplot (e.g. vrad in and vrad out for inflow and outflow) breaks the ability to horizontal stack medians versus plots. Either need to modify counter implementation here, or perhaps adapt methods used in `plot_slices()`
             subplotCount+=1
 
+            
             if type(plotp)==str:
                 tmpparamlist = [plotp]
                 superParamKey = plotp
@@ -3056,7 +3166,6 @@ def medians_versus_plot(
                 ymaxlist = []
 
                 skipBool = False
-
                 for jj, (selectKey, simDict) in enumerate(dataSources.items()):
                     skipBool = False
                     Nkeys = len(list(selectKeysList))
@@ -3351,6 +3460,7 @@ def medians_versus_plot(
                         linestyle = linestyle,
                         linewidth = linewidth,
                     )
+
                     locc = matplotlib.ticker.MaxNLocator(nbins=10,steps=[1, 2, 2.5, 5, 10],prune="both")
                     currentAx.yaxis.set_major_locator(locc)
                     currentAx.yaxis.set_minor_locator(locc)
@@ -3487,7 +3597,31 @@ def medians_versus_plot(
 
                     if combineMultipleOntoAxis is True: opslaan = opslaan + "-Simulations-Combined"
 
-                    plt.savefig(opslaan + ".pdf", dpi=DPI, transparent=False)
+                    if (separateLegend is True):
+                        currentAx.get_legend().remove()
+
+                        figl, axl = plt.subplots(figsize=(4,4))
+                        axl.xaxis.set_minor_locator(AutoMinorLocator())
+                        axl.yaxis.set_minor_locator(AutoMinorLocator())
+                        axl.tick_params(bottom=True, top=True, left=True, right=True, which="both", direction="in")
+
+                        axl.axis(False)
+                        hh, ll = axes.get_legend_handles_labels()
+                        axl.legend(
+                        handles=hh,
+                        # labels=iter(legendLabels),
+                        ncol=1,
+                        loc="center",
+                        bbox_to_anchor=(0.5, 0.5),
+                        fontsize=fontsize,
+                        )
+                        plt.tight_layout()
+                        figl.savefig(
+                        savePath
+                        + "/"
+                        + f"Medians_versus_plot_Legend.pdf"
+                        )
+                    fig.savefig(opslaan + ".pdf", dpi=DPI, transparent=False)
                     matplotlib.rc_file_defaults()
                     plt.close("all")
                     print(opslaan)
@@ -3499,6 +3633,9 @@ def medians_versus_plot(
                     elif (sharex == True):plt.subplots_adjust(hspace=0.0, top=0.925, bottom=0.075, left=0.15, right=0.90)
                     elif (sharey == True):plt.subplots_adjust(wspace=0.0, top=0.925, bottom=0.075, left=0.15, right=0.90)
                     # plt.tight_layout()
+
+                    
+                    
 
     if subfigures:
         if "Stars" in selectKey:
@@ -3522,7 +3659,7 @@ def medians_versus_plot(
                 ylabel[xParam], fontsize=fontsize)
 
         # plt.tight_layout()
-        plt.savefig(opslaan + ".pdf", dpi=DPI, transparent=False)
+        fig.savefig(opslaan + ".pdf", dpi=DPI, transparent=False)
         matplotlib.rc_file_defaults()
         plt.close("all")
         print(opslaan)
@@ -3536,818 +3673,818 @@ def medians_versus_plot(
 ##  Project Specific variants ...
 #==========================================================#
 
-def hy_plot_slices(snap,
-    snapNumber,
-    xsize = 10.0,
-    ysize = 5.0,
-    fontsize=13,
-    fontsizeTitle=14,
-    titleBool=True,
-    Axes=[0, 1],
-    boxsize=400.0,
-    pixres=0.1,
-    DPI=200,
-    colourmapMain=None,
-    numthreads=10,
-    savePathBase = "./",
-):
-    savePath = savePathBase + f"Plots/Slices/"
-    tmp = ""
-
-    for savePathChunk in savePath.split("/")[:-1]:
-        tmp += savePathChunk + "/"
-        try:
-            os.mkdir(tmp)
-        except:
-            pass
-        else:
-            pass
-
-    if colourmapMain is None:
-        cmap = plt.get_cmap("inferno")
-    else:
-        cmap = plt.get_cmap(colourmapMain)
-
-    # Axes Labels to allow for adaptive axis selection
-    AxesLabels = ["z","x","y"]
-
-    # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
-    imgcent = [0.0, 0.0, 0.0]
-
-    # --------------------------#
-    ## Slices and Projections ##
-    # --------------------------#
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    # slice_nH    = snap.get_Aslice("n_H", box = [boxsize,boxsize],\
-    #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
-    #  axes = Axes, proj = False, numthreads=16)
-    #
-    # slice_B   = snap.get_Aslice("B", box = [boxsize,boxsize],\
-    #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
-    #  axes = Axes, proj = False, numthreads=16)
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-    nprojections = 2
-    # print(np.unique(snap.type))
-    print("\n" + f"Projection 1 of {nprojections}")
-
-    slice_T = snap.get_Aslice(
-        "T",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        axes=Axes,
-        proj=False,
-        numthreads=numthreads,
-    )
-
-    print("\n" + f" Projection 2 of {nprojections}")
-
-    slice_vol = snap.get_Aslice(
-        "vol",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        axes=Axes,
-        proj=False,
-        numthreads=numthreads,
-    )
-
-    # ------------------------------------------------------------------------------#
-    # PLOTTING TIME
-
-    # Define halfsize for histogram ranges which are +/-
-    halfbox = boxsize / 2.0
-
-    if titleBool is True:
-        # Redshift
-        redshift = snap.redshift  # z
-        aConst = 1.0 / (1.0 + redshift)  # [/]
-
-        # [0] to remove from numpy array for purposes of plot title
-        tlookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
-            0
-        ]  # [Gyrs]
-    # ==============================================================================#
-    #
-    #           Quad Plot for standard video
-    #
-    # ==============================================================================#
-    print(f" Quad Plot...")
-
-    fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 9)]
-    fudgeTicks = fullTicks[1:]
-
-    aspect = "equal"
-
-    # DPI Controlled by user as lower res needed for videos #
-    fig, axes = plt.subplots(
-        nrows=1, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
-    )
-
-    if titleBool is True:
-        # Add overall figure plot
-        TITLE = (
-            r"Redshift $(z) =$"
-            + f"{redshift:0.03f} "
-            + " "
-            + r"$t_{Lookback}=$"
-            + f"{tlookback :0.03f} Gyr"
-        )
-        fig.suptitle(TITLE, fontsize=fontsizeTitle)
-
-    # cmap = plt.get_cmap(colourmapMain)
-    cmap = copy.copy(cmap)
-    cmap.set_bad(color="grey")
-
-    # -----------#
-    # Plot Temperature #
-    # -----------#
-    # print("pcm1")
-    ax1 = axes[0]
-
-    pcm1 = ax1.pcolormesh(
-        slice_T["x"],
-        slice_T["y"],
-        np.transpose(slice_T["grid"]),
-        norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
-        cmap=cmap,
-        rasterized=True,
-    )
-
-    ax1.set_title(f"Temperature Slice", fontsize=fontsize)
-    cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
-    fig.colorbar(pcm1, cax=cax1, orientation="vertical").set_label(
-        label="T (K)", size=fontsize, weight="bold"
-    )
-    cax1.yaxis.set_ticks_position("left")
-    cax1.yaxis.set_label_position("left")
-    cax1.yaxis.label.set_color("white")
-    cax1.tick_params(axis="y", colors="white", labelsize=fontsize, top=True, bottom=True, left=True, right=True)
-
-    ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
-    # ax1.set_xlabel(f'{AxesLabels[Axes[0]]}"+" [kpc]"', fontsize = fontsize)
-    # ax1.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax1)
-    plt.xticks(fullTicks)
-    plt.yticks(fudgeTicks)
-
-    # -----------#
-    # Plot n_H Projection #
-    # -----------#
-    # print("pcm2")
-    ax2 = axes[1]
-
-    cmapVol = cm.get_cmap("seismic")
-    norm = matplotlib.colors.LogNorm(vmin = 5e-3, vmax = 5e3, clip=True)
-    pcm2 = ax2.pcolormesh(
-        slice_vol["x"],
-        slice_vol["y"],
-        np.transpose(slice_vol["grid"]),
-        norm=norm,
-        cmap=cmapVol,
-        rasterized=True,
-    )
-
-    # cmapVol = cm.get_cmap("seismic")
-    # bounds = [0.5, 2.0, 4.0, 16.0]
-    # norm = matplotlib.colors.BoundaryNorm(bounds, cmapVol.N, extend="both")
-    # pcm2 = ax2.pcolormesh(
-    #     slice_vol["x"],
-    #     slice_vol["y"],
-    #     np.transpose(slice_vol["grid"]),
-    #     norm=norm,
-    #     cmap=cmapVol,
-    #     rasterized=True,
-    # )
-
-    ax2.set_title(r"Volume Slice", fontsize=fontsize)
-
-    cax2 = inset_axes(ax2, width="5%", height="95%", loc="right")
-    fig.colorbar(pcm2, cax=cax2, orientation="vertical").set_label(
-        label=r"V (kpc$^{3}$)", size=fontsize, weight="bold"
-    )
-    cax2.yaxis.set_ticks_position("left")
-    cax2.yaxis.set_label_position("left")
-    cax2.yaxis.label.set_color("white")
-    cax2.tick_params(axis="y", colors="white", labelsize=fontsize)
-    # ax2.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
-    # ax2.set_xlabel(f'{AxesLabels[Axes[0]]} "+r" (kpc)"', fontsize=fontsize)
-    # ax2.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax2)
-    plt.xticks(fullTicks)
-    plt.yticks(fullTicks)
-
-
-    # print("snapnum")
-    # Pad snapnum with zeroes to enable easier video making
-    if titleBool is True:
-        fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.90)
-    else:
-        fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.95)
-
-    # fig.tight_layout()
-
-    SaveSnapNumber = str(snapNumber).zfill(4)
-    savePath = savePath + f"Slice_Plot_{int(SaveSnapNumber)}.pdf" #_binary-split
-
-    print(f" Save {savePath}")
-    plt.savefig(savePath, transparent=False)
-    plt.close()
-    matplotlib.rc_file_defaults()
-    plt.close("all")
-    print(f" ...done!")
-
-    return
-
-def hy_plot_slices_quad(snap,
-    snapNumber,
-    xsize = 10.0,
-    ysize = 10.0,
-    fontsize=13,
-    fontsizeTitle=14,
-    titleBool=True,
-    Axes=[0, 1],
-    boxsize=400.0,
-    pixres=0.1,
-    DPI=200,
-    colourmapMain=None,
-    numthreads=10,
-    savePathBase = "./",
-):
-    savePath = savePathBase + "Plots/Slices/"
-
-    tmp = ""
-
-    for savePathChunk in savePath.split("/")[:-1]:
-        tmp += savePathChunk + "/"
-        try:
-            os.mkdir(tmp)
-        except:
-            pass
-        else:
-            pass
-
-    if colourmapMain is None:
-        cmap = plt.get_cmap("inferno")
-    else:
-        cmap = plt.get_cmap(colourmapMain)
-
-    # Axes Labels to allow for adaptive axis selection
-    AxesLabels = ["z","x","y"]
-
-    # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
-    imgcent = [0.0, 0.0, 0.0]
-
-    # --------------------------#
-    ## Slices and Projections ##
-    # --------------------------#
-    # PLOTTING TIME
-    # Define halfsize for histogram ranges which are +/-
-    halfbox = boxsize / 2.0
-
-    if titleBool is True:
-        # Redshift
-        redshift = snap.redshift  # z
-        aConst = 1.0 / (1.0 + redshift)  # [/]
-
-        # [0] to remove from numpy array for purposes of plot title
-        tlookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
-            0
-        ]  # [Gyrs]
-    # ==============================================================================#
-    #
-    #           Quad Plot for standard video
-    #
-    # ==============================================================================#
-    print(f" Quad Plot...")
-
-    fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 9)]
-    fudgeTicks = fullTicks[1:]
-
-    aspect = "equal"
-
-    # DPI Controlled by user as lower res needed for videos #
-    fig, axes = plt.subplots(
-        nrows=1, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
-    )
-
-    nprojections = 4
-    # print(np.unique(snap.type))
-    print("\n" + f"[@{int(snapNumber)}]: Projection 1 of {nprojections}")
-    slice_T = snap.get_Aslice(
-        "T",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        axes=Axes,
-        proj=False,
-        numthreads=numthreads,
-    )
-
-    print("\n" + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}")
-
-    slice_tcool = snap.get_Aslice(
-        "tcool",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        axes=Axes,
-        proj=False,
-        numthreads=numthreads,
-    )
-
-    print("\n" + f"[@{int(snapNumber)}]: Projection 3 of {nprojections}")
-
-    slice_nH = snap.get_Aslice(
-        "n_H",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        axes=Axes,
-        proj=False,
-        numthreads=numthreads,
-    )
-
-    print("\n" + f"[@{int(snapNumber)}]: Projection 4 of {nprojections}")
-
-    # slice_gz = snap.get_Aslice(
-    #     "gz",
-    #     box=[boxsize, boxsize],
-    #     center=imgcent,
-    #     nx=int(boxsize / pixres),
-    #     ny=int(boxsize / pixres),
-    #     axes=Axes,
-    #     proj=False,
-    #     numthreads=numthreads,
-    # )
-
-    slice_cl = snap.get_Aslice(
-        "cool_length",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        axes=Axes,
-        proj=False,
-        numthreads=numthreads,
-    )
-
-
-    fig, axes = plt.subplots(
-        nrows=2, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
-    )
-
-
-    if titleBool is True:
-        # Add overall figure plot
-        TITLE = (
-            r"Redshift $(z) =$"
-            + f"{redshift:0.03f} "
-            + " "
-            + r"$t_{Lookback}=$"
-            + f"{tlookback :0.03f} Gyr"
-        )
-        fig.suptitle(TITLE, fontsize=fontsizeTitle)
-
-    # cmap = plt.get_cmap(colourmapMain)
-    cmap = copy.copy(cmap)
-    cmap.set_bad(color="grey")
-
-    # -----------#
-    # Plot Temperature #
-    # -----------#
-    # print("pcm1")
-    ax1 = axes[0,0]
-
-    pcm1 = ax1.pcolormesh(
-        slice_T["x"],
-        slice_T["y"],
-        np.transpose(slice_T["grid"]),
-        norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
-        cmap=cmap,
-        rasterized=True,
-    )
-
-    ax1.set_title(f"Temperature Slice", fontsize=fontsize)
-    cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
-    fig.colorbar(pcm1, cax=cax1, orientation="vertical").set_label(
-        label="T (K)", size=fontsize, weight="bold"
-    )
-    cax1.yaxis.set_ticks_position("left")
-    cax1.yaxis.set_label_position("left")
-    cax1.yaxis.label.set_color("white")
-    cax1.tick_params(axis="y", colors="white", labelsize=fontsize)
-
-    ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
-    # ax1.set_xlabel(f'{AxesLabels[Axes[0]]}"+" [kpc]"', fontsize = fontsize)
-    # ax1.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax1)
-    plt.xticks(fullTicks)
-    plt.yticks(fudgeTicks)
-
-    # -----------#
-    # Plot n_H Projection #
-    # -----------#
-    # print("pcm2")
-    ax2 = axes[0,1]
-
-    pcm2 = ax2.pcolormesh(
-        slice_tcool["x"],
-        slice_tcool["y"],
-        np.transpose(slice_tcool["grid"]),
-        norm=matplotlib.colors.LogNorm(vmin = (10)**(-3.5), vmax = 1e2),
-        cmap=cmap,
-        rasterized=True,
-    )
-
-    # cmapVol = cm.get_cmap("seismic")
-    # bounds = [0.5, 2.0, 4.0, 16.0]
-    # norm = matplotlib.colors.BoundaryNorm(bounds, cmapVol.N, extend="both")
-    # pcm2 = ax2.pcolormesh(
-    #     slice_vol["x"],
-    #     slice_vol["y"],
-    #     np.transpose(slice_vol["grid"]),
-    #     norm=norm,
-    #     cmap=cmapVol,
-    #     rasterized=True,
-    # )
-
-    ax2.set_title(r"Cooling Time Slice", fontsize=fontsize)
-
-    cax2 = inset_axes(ax2, width="5%", height="95%", loc="right")
-    fig.colorbar(pcm2, cax=cax2, orientation="vertical").set_label(
-        label=r"t$_{\mathrm{Cool}}$ (Gyr)", size=fontsize, weight="bold"
-    )
-    cax2.yaxis.set_ticks_position("left")
-    cax2.yaxis.set_label_position("left")
-    cax2.yaxis.label.set_color("white")
-    cax2.tick_params(axis="y", colors="white", labelsize=fontsize)
-    # ax2.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
-    # ax2.set_xlabel(f'{AxesLabels[Axes[0]]} "+r" (kpc)"', fontsize=fontsize)
-    # ax2.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax2)
-    plt.xticks(fullTicks)
-    plt.yticks(fullTicks)
-
-    # -----------#
-    # Plot Metallicity #
-    # -----------#
-    # print("pcm3")
-    ax3 = axes[1, 0]
-
-    pcm3 = ax3.pcolormesh(
-        slice_cl["x"],
-        slice_cl["y"],
-        np.transpose(slice_cl["grid"]),
-        norm=matplotlib.colors.LogNorm(vmin=1e-1, vmax=1e4),
-        cmap=cmap,
-        rasterized=True,
-    )
-
-    # ax3.set_title(f"Metallicity Slice", y=-0.2, fontsize=fontsize)
-    #
-    # cax3 = inset_axes(ax3, width="5%", height="95%", loc="right")
-    # fig.colorbar(pcm3, cax=cax3, orientation="vertical").set_label(
-    #     label=r"$Z/Z_{\odot}$", size=fontsize, weight="bold"
-    # )
-    ax3.set_title(f"Cooling Length Slice", y=-0.2, fontsize=fontsize)
-
-    cax3 = inset_axes(ax3, width="5%", height="95%", loc="right")
-    fig.colorbar(pcm3, cax=cax3, orientation="vertical").set_label(
-        label=r"$l_{cool}$ (kpc)", size=fontsize, weight="bold"
-    )
-
-    cax3.yaxis.set_ticks_position("left")
-    cax3.yaxis.set_label_position("left")
-    cax3.yaxis.label.set_color("white")
-    cax3.tick_params(axis="y", colors="white", labelsize=fontsize)
-
-    ax3.set_ylabel(f"{AxesLabels[Axes[1]]} " + r" (kpc)", fontsize=fontsize)
-    ax3.set_xlabel(f"{AxesLabels[Axes[0]]} " + r" (kpc)", fontsize=fontsize)
-
-    # ax3.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax3)
-    plt.xticks(fullTicks)
-    plt.yticks(fullTicks)
-
-    # -----------#
-    # Plot Magnetic Field Projection #
-    # -----------#
-    # print("pcm4")
-    ax4 = axes[1, 1]
-
-    pcm4 = ax4.pcolormesh(
-        slice_nH["x"],
-        slice_nH["y"],
-        np.transpose(slice_nH["grid"]),
-        norm=matplotlib.colors.LogNorm(vmin=1e-7, vmax=1e-1),
-        cmap=cmap,
-        rasterized=True,
-    )
-
-    ax4.set_title(r"HI Number Density Slice",
-                  y=-0.2, fontsize=fontsize)
-
-    cax4 = inset_axes(ax4, width="5%", height="95%", loc="right")
-    fig.colorbar(pcm4, cax=cax4, orientation="vertical").set_label(
-        label=r"n$_{H}$ (cm$^{-3}$)", size=fontsize, weight="bold"
-    )
-    cax4.yaxis.set_ticks_position("left")
-    cax4.yaxis.set_label_position("left")
-    cax4.yaxis.label.set_color("white")
-    cax4.tick_params(axis="y", colors="white", labelsize=fontsize)
-
-    # ax4.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
-    ax4.set_xlabel(f"{AxesLabels[Axes[0]]} " + r" (kpc)", fontsize=fontsize)
-    # ax4.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax4)
-    plt.xticks(fudgeTicks)
-    plt.yticks(fullTicks)
-
-    # print("snapnum")
-    # Pad snapnum with zeroes to enable easier video making
-    if titleBool is True:
-        fig.subplots_adjust(wspace=0.0 ,hspace=0.0, top=0.90)
-    else:
-        fig.subplots_adjust(wspace=0.0 ,hspace=0.0, top=0.95)
-
-    # fig.tight_layout()
-
-    SaveSnapNumber = str(snapNumber).zfill(4)
-    savePath = savePath + f"Slice_Plot_Quad_{int(SaveSnapNumber)}.pdf" #_binary-split
-
-    print(f" Save {savePath}")
-    plt.savefig(savePath, transparent=False)
-    plt.close()
-    matplotlib.rc_file_defaults()
-    plt.close("all")
-    print(f" ...done!")
-
-    return
-
-def hy_plot_projections(snap,
-    snapNumber,
-    xsize = 10.0,
-    ysize = 5.0,
-    fontsize=13,
-    fontsizeTitle=14,
-    titleBool=True,
-    Axes=[0, 1],
-    zAxis = [2],
-    boxsize=400.0,
-    boxlos=50.0,
-    pixreslos=0.3,
-    pixres=0.3,
-    DPI=200,
-    colourmapMain=None,
-    numthreads=10,
-    savePathBase = "./",
-):
-
-    savePath = savePathBase + "Plots/Projections/"
-    tmp = ""
-
-    for savePathChunk in savePath.split("/")[:-1]:
-        tmp += savePathChunk + "/"
-        try:
-            os.mkdir(tmp)
-        except:
-            pass
-        else:
-            pass
-
-    if colourmapMain is None:
-        cmap = plt.get_cmap("inferno")
-    else:
-        cmap = plt.get_cmap(colourmapMain)
-
-    # Axes Labels to allow for adaptive axis selection
-    AxesLabels = ["z","x","y"]
-
-    # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
-    imgcent = [0.0, 0.0, 0.0]
-
-    # --------------------------#
-    ## Slices and Projections ##
-    # --------------------------#
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-    nprojections = 3
-    # print(np.unique(snap.type))
-    print("\n" + f"Projection 1 of {nprojections}")
-
-    proj_T = snap.get_Aslice(
-        "Tdens",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numthreads,
-    )
-
-    print("\n" + f"Projection 2 of {nprojections}")
-
-    proj_dens = snap.get_Aslice(
-        "rho_rhomean",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numthreads,
-    )
-
-    print("\n" + f" Projection 3 of {nprojections}")
-
-    proj_vol = snap.get_Aslice(
-        "vol",
-        box=[boxsize, boxsize],
-        center=imgcent,
-        nx=int(boxsize / pixres),
-        ny=int(boxsize / pixres),
-        nz=int(boxlos / pixreslos),
-        boxz=boxlos,
-        axes=Axes,
-        proj=True,
-        numthreads=numthreads,
-    )
-
-    # ------------------------------------------------------------------------------#
-    # PLOTTING TIME
-    # Define halfsize for histogram ranges which are +/-
-    halfbox = boxsize / 2.0
-
-    if titleBool is True:
-        # Redshift
-        redshift = snap.redshift  # z
-        aConst = 1.0 / (1.0 + redshift)  # [/]
-
-        # [0] to remove from numpy array for purposes of plot title
-        tlookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
-            0
-        ]  # [Gyrs]
-    # ==============================================================================#
-    #
-    #           Quad Plot for standard video
-    #
-    # ==============================================================================#
-    print(f" Quad Plot...")
-
-    fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 9)]
-    fudgeTicks = fullTicks[1:]
-
-    aspect = "equal"
-
-    # DPI Controlled by user as lower res needed for videos #
-    fig, axes = plt.subplots(
-        nrows=1, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
-    )
-
-    if titleBool is True:
-        # Add overall figure plot
-        TITLE = (
-            r"Redshift $(z) =$"
-            + f"{redshift:0.03f} "
-            + " "
-            + r"$t_{Lookback}=$"
-            + f"{tlookback :0.03f} Gyr"
-        )
-        fig.suptitle(TITLE, fontsize=fontsizeTitle)
-
-    # cmap = plt.get_cmap(colourmapMain)
-    cmap = copy.copy(cmap)
-    cmap.set_bad(color="grey")
-
-    # -----------#
-    # Plot Temperature #
-    # -----------#
-    # print("pcm1")
-    ax1 = axes[0]
-
-    pcm1 = ax1.pcolormesh(
-        proj_T["x"],
-        proj_T["y"],
-        np.transpose(proj_T["grid"] / proj_dens["grid"]),
-        norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
-        cmap=cmap,
-        rasterized=True,
-    )
-
-    ax1.set_title(f"Temperature Projection", fontsize=fontsize)
-    cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
-    fig.colorbar(pcm1, cax=cax1, orientation="vertical").set_label(
-        label="T (K)", size=fontsize, weight="bold"
-    )
-    cax1.yaxis.set_ticks_position("left")
-    cax1.yaxis.set_label_position("left")
-    cax1.yaxis.label.set_color("white")
-    cax1.tick_params(axis="y", colors="white", labelsize=fontsize)
-
-    ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
-    # ax1.set_xlabel(f'{AxesLabels[Axes[0]]}"+" [kpc]"', fontsize = fontsize)
-    # ax1.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax1)
-    plt.xticks(fullTicks)
-    plt.yticks(fudgeTicks)
-
-    # -----------#
-    # Plot n_H Projection #
-    # -----------#
-    # print("pcm2")
-    ax2 = axes[1]
-
-    cmapVol = cm.get_cmap("seismic")
-    norm = matplotlib.colors.LogNorm(vmin = 5e-3, vmax = 5e3, clip=True)
-    pcm2 = ax2.pcolormesh(
-        proj_vol["x"],
-        proj_vol["y"],
-        np.transpose(proj_vol["grid"]) / int(boxlos / pixreslos),
-        norm=norm,
-        cmap=cmapVol,
-        rasterized=True,
-    )
-
-    # cmapVol = cm.get_cmap("seismic")
-    # bounds = [0.5, 2.0, 4.0, 16.0]
-    # norm = matplotlib.colors.BoundaryNorm(bounds, cmapVol.N, extend="both")
-    # pcm2 = ax2.pcolormesh(
-    #     proj_vol["x"],
-    #     proj_vol["y"],
-    #     np.transpose(proj_vol["grid"]),
-    #     norm=norm,
-    #     cmap=cmapVol,
-    #     rasterized=True,
-    # )
-
-    ax2.set_title(r"Volume Projection", fontsize=fontsize)
-
-    # cax2 = inset_axes(ax2, width="95%", height="5%", loc="bottom")
-    fig.colorbar(pcm2, ax=ax2, orientation="horizontal").set_label(
-        label=r"V (kpc$^{3}$)", size=fontsize, weight="bold"
-    )
-    # cax2.yaxis.set_ticks_position("left")
-    # cax2.yaxis.set_label_position("left")
-    # cax2.yaxis.label.set_color("white")
-    # cax2.tick_params(axis="y", colors="white", labelsize=fontsize)
-    # ax2.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
-    # ax2.set_xlabel(f'{AxesLabels[Axes[0]]} "+r" (kpc)"', fontsize=fontsize)
-    # ax2.set_aspect(aspect)
-
-    # Fudge the tick labels...
-    plt.sca(ax2)
-    plt.xticks(fullTicks)
-    plt.yticks(fullTicks)
-
-
-    # print("snapnum")
-    # Pad snapnum with zeroes to enable easier video making
-    if titleBool is True:
-        fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.90)
-    else:
-        fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.95)
-
-    # fig.tight_layout()
-
-    SaveSnapNumber = str(snapNumber).zfill(4)
-    savePath = savePath + f"Projection_Plot_{int(SaveSnapNumber)}.pdf" #_binary-split
-
-    print(f" Save {savePath}")
-    plt.savefig(savePath, transparent=False)
-    plt.close()
-
-    matplotlib.rc_file_defaults()
-    plt.close("all")
-    print(f" ...done!")
-
-    return
+# # # # def hy_plot_slices(snap,
+# # # #     snapNumber,
+# # # #     xsize = 10.0,
+# # # #     ysize = 5.0,
+# # # #     fontsize=13,
+# # # #     fontsizeTitle=14,
+# # # #     titleBool=True,
+# # # #     Axes=[0, 1],
+# # # #     boxsize=400.0,
+# # # #     pixres=0.1,
+# # # #     DPI=200,
+# # # #     colourmapMain=None,
+# # # #     numthreads=10,
+# # # #     savePathBase = "./",
+# # # # ):
+# # # #     savePath = savePathBase + f"Plots/Slices/"
+# # # #     tmp = ""
+
+# # # #     for savePathChunk in savePath.split("/")[:-1]:
+# # # #         tmp += savePathChunk + "/"
+# # # #         try:
+# # # #             os.mkdir(tmp)
+# # # #         except:
+# # # #             pass
+# # # #         else:
+# # # #             pass
+
+# # # #     if colourmapMain is None:
+# # # #         cmap = plt.get_cmap("inferno")
+# # # #     else:
+# # # #         cmap = plt.get_cmap(colourmapMain)
+
+# # # #     # Axes Labels to allow for adaptive axis selection
+# # # #     AxesLabels = ["z","x","y"]
+
+# # # #     # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
+# # # #     imgcent = [0.0, 0.0, 0.0]
+
+# # # #     # --------------------------#
+# # # #     ## Slices and Projections ##
+# # # #     # --------------------------#
+
+# # # #     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# # # #     # slice_nH    = snap.get_Aslice("n_H", box = [boxsize,boxsize],\
+# # # #     #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
+# # # #     #  axes = Axes, proj = False, numthreads=16)
+# # # #     #
+# # # #     # slice_B   = snap.get_Aslice("B", box = [boxsize,boxsize],\
+# # # #     #  center = imgcent, nx = int(boxsize/pixres), ny = int(boxsize/pixres),\
+# # # #     #  axes = Axes, proj = False, numthreads=16)
+# # # #     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# # # #     nprojections = 2
+# # # #     # print(np.unique(snap.type))
+# # # #     print("\n" + f"Projection 1 of {nprojections}")
+
+# # # #     slice_T = snap.get_Aslice(
+# # # #         "T",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         axes=Axes,
+# # # #         proj=False,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     print("\n" + f" Projection 2 of {nprojections}")
+
+# # # #     slice_vol = snap.get_Aslice(
+# # # #         "vol",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         axes=Axes,
+# # # #         proj=False,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     # ------------------------------------------------------------------------------#
+# # # #     # PLOTTING TIME
+
+# # # #     # Define halfsize for histogram ranges which are +/-
+# # # #     halfbox = boxsize / 2.0
+
+# # # #     if titleBool is True:
+# # # #         # Redshift
+# # # #         redshift = snap.redshift  # z
+# # # #         aConst = 1.0 / (1.0 + redshift)  # [/]
+
+# # # #         # [0] to remove from numpy array for purposes of plot title
+# # # #         tlookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
+# # # #             0
+# # # #         ]  # [Gyrs]
+# # # #     # ==============================================================================#
+# # # #     #
+# # # #     #           Quad Plot for standard video
+# # # #     #
+# # # #     # ==============================================================================#
+# # # #     print(f" Quad Plot...")
+
+# # # #     fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 9)]
+# # # #     fudgeTicks = fullTicks[1:]
+
+# # # #     aspect = "equal"
+
+# # # #     # DPI Controlled by user as lower res needed for videos #
+# # # #     fig, axes = plt.subplots(
+# # # #         nrows=1, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
+# # # #     )
+
+# # # #     if titleBool is True:
+# # # #         # Add overall figure plot
+# # # #         TITLE = (
+# # # #             r"Redshift $(z) =$"
+# # # #             + f"{redshift:0.03f} "
+# # # #             + " "
+# # # #             + r"$t_{Lookback}=$"
+# # # #             + f"{tlookback :0.03f} Gyr"
+# # # #         )
+# # # #         fig.suptitle(TITLE, fontsize=fontsizeTitle)
+
+# # # #     # cmap = plt.get_cmap(colourmapMain)
+# # # #     cmap = copy.copy(cmap)
+# # # #     cmap.set_bad(color="grey")
+
+# # # #     # -----------#
+# # # #     # Plot Temperature #
+# # # #     # -----------#
+# # # #     # print("pcm1")
+# # # #     ax1 = axes[0]
+
+# # # #     pcm1 = ax1.pcolormesh(
+# # # #         slice_T["x"],
+# # # #         slice_T["y"],
+# # # #         np.transpose(slice_T["grid"]),
+# # # #         norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
+# # # #         cmap=cmap,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     ax1.set_title(f"Temperature Slice", fontsize=fontsize)
+# # # #     cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
+# # # #     fig.colorbar(pcm1, cax=cax1, orientation="vertical").set_label(
+# # # #         label="T (K)", size=fontsize, weight="bold"
+# # # #     )
+# # # #     cax1.yaxis.set_ticks_position("left")
+# # # #     cax1.yaxis.set_label_position("left")
+# # # #     cax1.yaxis.label.set_color("white")
+# # # #     cax1.tick_params(axis="y", colors="white", labelsize=fontsize, top=True, bottom=True, left=True, right=True)
+
+# # # #     ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
+# # # #     # ax1.set_xlabel(f'{AxesLabels[Axes[0]]}"+" [kpc]"', fontsize = fontsize)
+# # # #     # ax1.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax1)
+# # # #     plt.xticks(fullTicks)
+# # # #     plt.yticks(fudgeTicks)
+
+# # # #     # -----------#
+# # # #     # Plot n_H Projection #
+# # # #     # -----------#
+# # # #     # print("pcm2")
+# # # #     ax2 = axes[1]
+
+# # # #     cmapVol = cm.get_cmap("seismic")
+# # # #     norm = matplotlib.colors.LogNorm(vmin = 5e-3, vmax = 5e3, clip=True)
+# # # #     pcm2 = ax2.pcolormesh(
+# # # #         slice_vol["x"],
+# # # #         slice_vol["y"],
+# # # #         np.transpose(slice_vol["grid"]),
+# # # #         norm=norm,
+# # # #         cmap=cmapVol,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     # cmapVol = cm.get_cmap("seismic")
+# # # #     # bounds = [0.5, 2.0, 4.0, 16.0]
+# # # #     # norm = matplotlib.colors.BoundaryNorm(bounds, cmapVol.N, extend="both")
+# # # #     # pcm2 = ax2.pcolormesh(
+# # # #     #     slice_vol["x"],
+# # # #     #     slice_vol["y"],
+# # # #     #     np.transpose(slice_vol["grid"]),
+# # # #     #     norm=norm,
+# # # #     #     cmap=cmapVol,
+# # # #     #     rasterized=True,
+# # # #     # )
+
+# # # #     ax2.set_title(r"Volume Slice", fontsize=fontsize)
+
+# # # #     cax2 = inset_axes(ax2, width="5%", height="95%", loc="right")
+# # # #     fig.colorbar(pcm2, cax=cax2, orientation="vertical").set_label(
+# # # #         label=r"V (kpc$^{3}$)", size=fontsize, weight="bold"
+# # # #     )
+# # # #     cax2.yaxis.set_ticks_position("left")
+# # # #     cax2.yaxis.set_label_position("left")
+# # # #     cax2.yaxis.label.set_color("white")
+# # # #     cax2.tick_params(axis="y", colors="white", labelsize=fontsize)
+# # # #     # ax2.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
+# # # #     # ax2.set_xlabel(f'{AxesLabels[Axes[0]]} "+r" (kpc)"', fontsize=fontsize)
+# # # #     # ax2.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax2)
+# # # #     plt.xticks(fullTicks)
+# # # #     plt.yticks(fullTicks)
+
+
+# # # #     # print("snapnum")
+# # # #     # Pad snapnum with zeroes to enable easier video making
+# # # #     if titleBool is True:
+# # # #         fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.90)
+# # # #     else:
+# # # #         fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.95)
+
+# # # #     # fig.tight_layout()
+
+# # # #     SaveSnapNumber = str(snapNumber).zfill(4)
+# # # #     savePath = savePath + f"Slice_Plot_{int(SaveSnapNumber)}.pdf" #_binary-split
+
+# # # #     print(f" Save {savePath}")
+# # # #     plt.savefig(savePath, transparent=False)
+# # # #     plt.close()
+# # # #     matplotlib.rc_file_defaults()
+# # # #     plt.close("all")
+# # # #     print(f" ...done!")
+
+# # # #     return
+
+# # # # def hy_plot_slices_quad(snap,
+# # # #     snapNumber,
+# # # #     xsize = 10.0,
+# # # #     ysize = 10.0,
+# # # #     fontsize=13,
+# # # #     fontsizeTitle=14,
+# # # #     titleBool=True,
+# # # #     Axes=[0, 1],
+# # # #     boxsize=400.0,
+# # # #     pixres=0.1,
+# # # #     DPI=200,
+# # # #     colourmapMain=None,
+# # # #     numthreads=10,
+# # # #     savePathBase = "./",
+# # # # ):
+# # # #     savePath = savePathBase + "Plots/Slices/"
+
+# # # #     tmp = ""
+
+# # # #     for savePathChunk in savePath.split("/")[:-1]:
+# # # #         tmp += savePathChunk + "/"
+# # # #         try:
+# # # #             os.mkdir(tmp)
+# # # #         except:
+# # # #             pass
+# # # #         else:
+# # # #             pass
+
+# # # #     if colourmapMain is None:
+# # # #         cmap = plt.get_cmap("inferno")
+# # # #     else:
+# # # #         cmap = plt.get_cmap(colourmapMain)
+
+# # # #     # Axes Labels to allow for adaptive axis selection
+# # # #     AxesLabels = ["z","x","y"]
+
+# # # #     # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
+# # # #     imgcent = [0.0, 0.0, 0.0]
+
+# # # #     # --------------------------#
+# # # #     ## Slices and Projections ##
+# # # #     # --------------------------#
+# # # #     # PLOTTING TIME
+# # # #     # Define halfsize for histogram ranges which are +/-
+# # # #     halfbox = boxsize / 2.0
+
+# # # #     if titleBool is True:
+# # # #         # Redshift
+# # # #         redshift = snap.redshift  # z
+# # # #         aConst = 1.0 / (1.0 + redshift)  # [/]
+
+# # # #         # [0] to remove from numpy array for purposes of plot title
+# # # #         tlookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
+# # # #             0
+# # # #         ]  # [Gyrs]
+# # # #     # ==============================================================================#
+# # # #     #
+# # # #     #           Quad Plot for standard video
+# # # #     #
+# # # #     # ==============================================================================#
+# # # #     print(f" Quad Plot...")
+
+# # # #     fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 9)]
+# # # #     fudgeTicks = fullTicks[1:]
+
+# # # #     aspect = "equal"
+
+# # # #     # DPI Controlled by user as lower res needed for videos #
+# # # #     fig, axes = plt.subplots(
+# # # #         nrows=1, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
+# # # #     )
+
+# # # #     nprojections = 4
+# # # #     # print(np.unique(snap.type))
+# # # #     print("\n" + f"[@{int(snapNumber)}]: Projection 1 of {nprojections}")
+# # # #     slice_T = snap.get_Aslice(
+# # # #         "T",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         axes=Axes,
+# # # #         proj=False,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     print("\n" + f"[@{int(snapNumber)}]: Projection 2 of {nprojections}")
+
+# # # #     slice_tcool = snap.get_Aslice(
+# # # #         "tcool",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         axes=Axes,
+# # # #         proj=False,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     print("\n" + f"[@{int(snapNumber)}]: Projection 3 of {nprojections}")
+
+# # # #     slice_nH = snap.get_Aslice(
+# # # #         "n_H",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         axes=Axes,
+# # # #         proj=False,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     print("\n" + f"[@{int(snapNumber)}]: Projection 4 of {nprojections}")
+
+# # # #     # slice_gz = snap.get_Aslice(
+# # # #     #     "gz",
+# # # #     #     box=[boxsize, boxsize],
+# # # #     #     center=imgcent,
+# # # #     #     nx=int(boxsize / pixres),
+# # # #     #     ny=int(boxsize / pixres),
+# # # #     #     axes=Axes,
+# # # #     #     proj=False,
+# # # #     #     numthreads=numthreads,
+# # # #     # )
+
+# # # #     slice_cl = snap.get_Aslice(
+# # # #         "cool_length",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         axes=Axes,
+# # # #         proj=False,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+
+# # # #     fig, axes = plt.subplots(
+# # # #         nrows=2, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
+# # # #     )
+
+
+# # # #     if titleBool is True:
+# # # #         # Add overall figure plot
+# # # #         TITLE = (
+# # # #             r"Redshift $(z) =$"
+# # # #             + f"{redshift:0.03f} "
+# # # #             + " "
+# # # #             + r"$t_{Lookback}=$"
+# # # #             + f"{tlookback :0.03f} Gyr"
+# # # #         )
+# # # #         fig.suptitle(TITLE, fontsize=fontsizeTitle)
+
+# # # #     # cmap = plt.get_cmap(colourmapMain)
+# # # #     cmap = copy.copy(cmap)
+# # # #     cmap.set_bad(color="grey")
+
+# # # #     # -----------#
+# # # #     # Plot Temperature #
+# # # #     # -----------#
+# # # #     # print("pcm1")
+# # # #     ax1 = axes[0,0]
+
+# # # #     pcm1 = ax1.pcolormesh(
+# # # #         slice_T["x"],
+# # # #         slice_T["y"],
+# # # #         np.transpose(slice_T["grid"]),
+# # # #         norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
+# # # #         cmap=cmap,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     ax1.set_title(f"Temperature Slice", fontsize=fontsize)
+# # # #     cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
+# # # #     fig.colorbar(pcm1, cax=cax1, orientation="vertical").set_label(
+# # # #         label="T (K)", size=fontsize, weight="bold"
+# # # #     )
+# # # #     cax1.yaxis.set_ticks_position("left")
+# # # #     cax1.yaxis.set_label_position("left")
+# # # #     cax1.yaxis.label.set_color("white")
+# # # #     cax1.tick_params(axis="y", colors="white", labelsize=fontsize)
+
+# # # #     ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
+# # # #     # ax1.set_xlabel(f'{AxesLabels[Axes[0]]}"+" [kpc]"', fontsize = fontsize)
+# # # #     # ax1.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax1)
+# # # #     plt.xticks(fullTicks)
+# # # #     plt.yticks(fudgeTicks)
+
+# # # #     # -----------#
+# # # #     # Plot n_H Projection #
+# # # #     # -----------#
+# # # #     # print("pcm2")
+# # # #     ax2 = axes[0,1]
+
+# # # #     pcm2 = ax2.pcolormesh(
+# # # #         slice_tcool["x"],
+# # # #         slice_tcool["y"],
+# # # #         np.transpose(slice_tcool["grid"]),
+# # # #         norm=matplotlib.colors.LogNorm(vmin = (10)**(-3.5), vmax = 1e2),
+# # # #         cmap=cmap,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     # cmapVol = cm.get_cmap("seismic")
+# # # #     # bounds = [0.5, 2.0, 4.0, 16.0]
+# # # #     # norm = matplotlib.colors.BoundaryNorm(bounds, cmapVol.N, extend="both")
+# # # #     # pcm2 = ax2.pcolormesh(
+# # # #     #     slice_vol["x"],
+# # # #     #     slice_vol["y"],
+# # # #     #     np.transpose(slice_vol["grid"]),
+# # # #     #     norm=norm,
+# # # #     #     cmap=cmapVol,
+# # # #     #     rasterized=True,
+# # # #     # )
+
+# # # #     ax2.set_title(r"Cooling Time Slice", fontsize=fontsize)
+
+# # # #     cax2 = inset_axes(ax2, width="5%", height="95%", loc="right")
+# # # #     fig.colorbar(pcm2, cax=cax2, orientation="vertical").set_label(
+# # # #         label=r"t$_{\mathrm{Cool}}$ (Gyr)", size=fontsize, weight="bold"
+# # # #     )
+# # # #     cax2.yaxis.set_ticks_position("left")
+# # # #     cax2.yaxis.set_label_position("left")
+# # # #     cax2.yaxis.label.set_color("white")
+# # # #     cax2.tick_params(axis="y", colors="white", labelsize=fontsize)
+# # # #     # ax2.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
+# # # #     # ax2.set_xlabel(f'{AxesLabels[Axes[0]]} "+r" (kpc)"', fontsize=fontsize)
+# # # #     # ax2.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax2)
+# # # #     plt.xticks(fullTicks)
+# # # #     plt.yticks(fullTicks)
+
+# # # #     # -----------#
+# # # #     # Plot Metallicity #
+# # # #     # -----------#
+# # # #     # print("pcm3")
+# # # #     ax3 = axes[1, 0]
+
+# # # #     pcm3 = ax3.pcolormesh(
+# # # #         slice_cl["x"],
+# # # #         slice_cl["y"],
+# # # #         np.transpose(slice_cl["grid"]),
+# # # #         norm=matplotlib.colors.LogNorm(vmin=1e-1, vmax=1e4),
+# # # #         cmap=cmap,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     # ax3.set_title(f"Metallicity Slice", y=-0.2, fontsize=fontsize)
+# # # #     #
+# # # #     # cax3 = inset_axes(ax3, width="5%", height="95%", loc="right")
+# # # #     # fig.colorbar(pcm3, cax=cax3, orientation="vertical").set_label(
+# # # #     #     label=r"$Z/Z_{\odot}$", size=fontsize, weight="bold"
+# # # #     # )
+# # # #     ax3.set_title(f"Cooling Length Slice", y=-0.2, fontsize=fontsize)
+
+# # # #     cax3 = inset_axes(ax3, width="5%", height="95%", loc="right")
+# # # #     fig.colorbar(pcm3, cax=cax3, orientation="vertical").set_label(
+# # # #         label=r"$l_{cool}$ (kpc)", size=fontsize, weight="bold"
+# # # #     )
+
+# # # #     cax3.yaxis.set_ticks_position("left")
+# # # #     cax3.yaxis.set_label_position("left")
+# # # #     cax3.yaxis.label.set_color("white")
+# # # #     cax3.tick_params(axis="y", colors="white", labelsize=fontsize)
+
+# # # #     ax3.set_ylabel(f"{AxesLabels[Axes[1]]} " + r" (kpc)", fontsize=fontsize)
+# # # #     ax3.set_xlabel(f"{AxesLabels[Axes[0]]} " + r" (kpc)", fontsize=fontsize)
+
+# # # #     # ax3.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax3)
+# # # #     plt.xticks(fullTicks)
+# # # #     plt.yticks(fullTicks)
+
+# # # #     # -----------#
+# # # #     # Plot Magnetic Field Projection #
+# # # #     # -----------#
+# # # #     # print("pcm4")
+# # # #     ax4 = axes[1, 1]
+
+# # # #     pcm4 = ax4.pcolormesh(
+# # # #         slice_nH["x"],
+# # # #         slice_nH["y"],
+# # # #         np.transpose(slice_nH["grid"]),
+# # # #         norm=matplotlib.colors.LogNorm(vmin=1e-7, vmax=1e-1),
+# # # #         cmap=cmap,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     ax4.set_title(r"HI Number Density Slice",
+# # # #                   y=-0.2, fontsize=fontsize)
+
+# # # #     cax4 = inset_axes(ax4, width="5%", height="95%", loc="right")
+# # # #     fig.colorbar(pcm4, cax=cax4, orientation="vertical").set_label(
+# # # #         label=r"n$_{H}$ (cm$^{-3}$)", size=fontsize, weight="bold"
+# # # #     )
+# # # #     cax4.yaxis.set_ticks_position("left")
+# # # #     cax4.yaxis.set_label_position("left")
+# # # #     cax4.yaxis.label.set_color("white")
+# # # #     cax4.tick_params(axis="y", colors="white", labelsize=fontsize)
+
+# # # #     # ax4.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
+# # # #     ax4.set_xlabel(f"{AxesLabels[Axes[0]]} " + r" (kpc)", fontsize=fontsize)
+# # # #     # ax4.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax4)
+# # # #     plt.xticks(fudgeTicks)
+# # # #     plt.yticks(fullTicks)
+
+# # # #     # print("snapnum")
+# # # #     # Pad snapnum with zeroes to enable easier video making
+# # # #     if titleBool is True:
+# # # #         fig.subplots_adjust(wspace=0.0 ,hspace=0.0, top=0.90)
+# # # #     else:
+# # # #         fig.subplots_adjust(wspace=0.0 ,hspace=0.0, top=0.95)
+
+# # # #     # fig.tight_layout()
+
+# # # #     SaveSnapNumber = str(snapNumber).zfill(4)
+# # # #     savePath = savePath + f"Slice_Plot_Quad_{int(SaveSnapNumber)}.pdf" #_binary-split
+
+# # # #     print(f" Save {savePath}")
+# # # #     plt.savefig(savePath, transparent=False)
+# # # #     plt.close()
+# # # #     matplotlib.rc_file_defaults()
+# # # #     plt.close("all")
+# # # #     print(f" ...done!")
+
+# # # #     return
+
+# # # # def hy_plot_projections(snap,
+# # # #     snapNumber,
+# # # #     xsize = 10.0,
+# # # #     ysize = 5.0,
+# # # #     fontsize=13,
+# # # #     fontsizeTitle=14,
+# # # #     titleBool=True,
+# # # #     Axes=[0, 1],
+# # # #     zAxis = [2],
+# # # #     boxsize=400.0,
+# # # #     boxlos=50.0,
+# # # #     pixreslos=0.3,
+# # # #     pixres=0.3,
+# # # #     DPI=200,
+# # # #     colourmapMain=None,
+# # # #     numthreads=10,
+# # # #     savePathBase = "./",
+# # # # ):
+
+# # # #     savePath = savePathBase + "Plots/Projections/"
+# # # #     tmp = ""
+
+# # # #     for savePathChunk in savePath.split("/")[:-1]:
+# # # #         tmp += savePathChunk + "/"
+# # # #         try:
+# # # #             os.mkdir(tmp)
+# # # #         except:
+# # # #             pass
+# # # #         else:
+# # # #             pass
+
+# # # #     if colourmapMain is None:
+# # # #         cmap = plt.get_cmap("inferno")
+# # # #     else:
+# # # #         cmap = plt.get_cmap(colourmapMain)
+
+# # # #     # Axes Labels to allow for adaptive axis selection
+# # # #     AxesLabels = ["z","x","y"]
+
+# # # #     # Centre image on centre of simulation (typically [0.,0.,0.] for centre of HaloID in set_centre)
+# # # #     imgcent = [0.0, 0.0, 0.0]
+
+# # # #     # --------------------------#
+# # # #     ## Slices and Projections ##
+# # # #     # --------------------------#
+
+# # # #     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+# # # #     nprojections = 3
+# # # #     # print(np.unique(snap.type))
+# # # #     print("\n" + f"Projection 1 of {nprojections}")
+
+# # # #     proj_T = snap.get_Aslice(
+# # # #         "Tdens",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         nz=int(boxlos / pixreslos),
+# # # #         boxz=boxlos,
+# # # #         axes=Axes,
+# # # #         proj=True,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     print("\n" + f"Projection 2 of {nprojections}")
+
+# # # #     proj_dens = snap.get_Aslice(
+# # # #         "rho_rhomean",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         nz=int(boxlos / pixreslos),
+# # # #         boxz=boxlos,
+# # # #         axes=Axes,
+# # # #         proj=True,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     print("\n" + f" Projection 3 of {nprojections}")
+
+# # # #     proj_vol = snap.get_Aslice(
+# # # #         "vol",
+# # # #         box=[boxsize, boxsize],
+# # # #         center=imgcent,
+# # # #         nx=int(boxsize / pixres),
+# # # #         ny=int(boxsize / pixres),
+# # # #         nz=int(boxlos / pixreslos),
+# # # #         boxz=boxlos,
+# # # #         axes=Axes,
+# # # #         proj=True,
+# # # #         numthreads=numthreads,
+# # # #     )
+
+# # # #     # ------------------------------------------------------------------------------#
+# # # #     # PLOTTING TIME
+# # # #     # Define halfsize for histogram ranges which are +/-
+# # # #     halfbox = boxsize / 2.0
+
+# # # #     if titleBool is True:
+# # # #         # Redshift
+# # # #         redshift = snap.redshift  # z
+# # # #         aConst = 1.0 / (1.0 + redshift)  # [/]
+
+# # # #         # [0] to remove from numpy array for purposes of plot title
+# # # #         tlookback = snap.cosmology_get_lookback_time_from_a(np.array([aConst]))[
+# # # #             0
+# # # #         ]  # [Gyrs]
+# # # #     # ==============================================================================#
+# # # #     #
+# # # #     #           Quad Plot for standard video
+# # # #     #
+# # # #     # ==============================================================================#
+# # # #     print(f" Quad Plot...")
+
+# # # #     fullTicks = [xx for xx in np.linspace(-1.0 * halfbox, halfbox, 9)]
+# # # #     fudgeTicks = fullTicks[1:]
+
+# # # #     aspect = "equal"
+
+# # # #     # DPI Controlled by user as lower res needed for videos #
+# # # #     fig, axes = plt.subplots(
+# # # #         nrows=1, ncols=2, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
+# # # #     )
+
+# # # #     if titleBool is True:
+# # # #         # Add overall figure plot
+# # # #         TITLE = (
+# # # #             r"Redshift $(z) =$"
+# # # #             + f"{redshift:0.03f} "
+# # # #             + " "
+# # # #             + r"$t_{Lookback}=$"
+# # # #             + f"{tlookback :0.03f} Gyr"
+# # # #         )
+# # # #         fig.suptitle(TITLE, fontsize=fontsizeTitle)
+
+# # # #     # cmap = plt.get_cmap(colourmapMain)
+# # # #     cmap = copy.copy(cmap)
+# # # #     cmap.set_bad(color="grey")
+
+# # # #     # -----------#
+# # # #     # Plot Temperature #
+# # # #     # -----------#
+# # # #     # print("pcm1")
+# # # #     ax1 = axes[0]
+
+# # # #     pcm1 = ax1.pcolormesh(
+# # # #         proj_T["x"],
+# # # #         proj_T["y"],
+# # # #         np.transpose(proj_T["grid"] / proj_dens["grid"]),
+# # # #         norm=matplotlib.colors.LogNorm(vmin=1e4, vmax=10 ** (6.5)),
+# # # #         cmap=cmap,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     ax1.set_title(f"Temperature Projection", fontsize=fontsize)
+# # # #     cax1 = inset_axes(ax1, width="5%", height="95%", loc="right")
+# # # #     fig.colorbar(pcm1, cax=cax1, orientation="vertical").set_label(
+# # # #         label="T (K)", size=fontsize, weight="bold"
+# # # #     )
+# # # #     cax1.yaxis.set_ticks_position("left")
+# # # #     cax1.yaxis.set_label_position("left")
+# # # #     cax1.yaxis.label.set_color("white")
+# # # #     cax1.tick_params(axis="y", colors="white", labelsize=fontsize)
+
+# # # #     ax1.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
+# # # #     # ax1.set_xlabel(f'{AxesLabels[Axes[0]]}"+" [kpc]"', fontsize = fontsize)
+# # # #     # ax1.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax1)
+# # # #     plt.xticks(fullTicks)
+# # # #     plt.yticks(fudgeTicks)
+
+# # # #     # -----------#
+# # # #     # Plot n_H Projection #
+# # # #     # -----------#
+# # # #     # print("pcm2")
+# # # #     ax2 = axes[1]
+
+# # # #     cmapVol = cm.get_cmap("seismic")
+# # # #     norm = matplotlib.colors.LogNorm(vmin = 5e-3, vmax = 5e3, clip=True)
+# # # #     pcm2 = ax2.pcolormesh(
+# # # #         proj_vol["x"],
+# # # #         proj_vol["y"],
+# # # #         np.transpose(proj_vol["grid"]) / int(boxlos / pixreslos),
+# # # #         norm=norm,
+# # # #         cmap=cmapVol,
+# # # #         rasterized=True,
+# # # #     )
+
+# # # #     # cmapVol = cm.get_cmap("seismic")
+# # # #     # bounds = [0.5, 2.0, 4.0, 16.0]
+# # # #     # norm = matplotlib.colors.BoundaryNorm(bounds, cmapVol.N, extend="both")
+# # # #     # pcm2 = ax2.pcolormesh(
+# # # #     #     proj_vol["x"],
+# # # #     #     proj_vol["y"],
+# # # #     #     np.transpose(proj_vol["grid"]),
+# # # #     #     norm=norm,
+# # # #     #     cmap=cmapVol,
+# # # #     #     rasterized=True,
+# # # #     # )
+
+# # # #     ax2.set_title(r"Volume Projection", fontsize=fontsize)
+
+# # # #     # cax2 = inset_axes(ax2, width="95%", height="5%", loc="bottom")
+# # # #     fig.colorbar(pcm2, ax=ax2, orientation="horizontal").set_label(
+# # # #         label=r"V (kpc$^{3}$)", size=fontsize, weight="bold"
+# # # #     )
+# # # #     # cax2.yaxis.set_ticks_position("left")
+# # # #     # cax2.yaxis.set_label_position("left")
+# # # #     # cax2.yaxis.label.set_color("white")
+# # # #     # cax2.tick_params(axis="y", colors="white", labelsize=fontsize)
+# # # #     # ax2.set_ylabel(f'{AxesLabels[Axes[1]]} "+r" (kpc)"', fontsize=fontsize)
+# # # #     # ax2.set_xlabel(f'{AxesLabels[Axes[0]]} "+r" (kpc)"', fontsize=fontsize)
+# # # #     # ax2.set_aspect(aspect)
+
+# # # #     # Fudge the tick labels...
+# # # #     plt.sca(ax2)
+# # # #     plt.xticks(fullTicks)
+# # # #     plt.yticks(fullTicks)
+
+
+# # # #     # print("snapnum")
+# # # #     # Pad snapnum with zeroes to enable easier video making
+# # # #     if titleBool is True:
+# # # #         fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.90)
+# # # #     else:
+# # # #         fig.subplots_adjust(wspace=0.0, hspace=0.0, top=0.95)
+
+# # # #     # fig.tight_layout()
+
+# # # #     SaveSnapNumber = str(snapNumber).zfill(4)
+# # # #     savePath = savePath + f"Projection_Plot_{int(SaveSnapNumber)}.pdf" #_binary-split
+
+# # # #     print(f" Save {savePath}")
+# # # #     plt.savefig(savePath, transparent=False)
+# # # #     plt.close()
+
+# # # #     matplotlib.rc_file_defaults()
+# # # #     plt.close("all")
+# # # #     print(f" ...done!")
+
+# # # #     return
 
 def hy_load_pdf_versus_plot_data(
     selectKeysList,
@@ -4398,6 +4535,7 @@ def hy_load_phase_plot_data(
     snapRange,
     yParams = ["T"],
     xParams = ["rho_rhomean","R"],
+    colourBarKeys = ["mass","vol"],
     weightKeys = None,
     loadPathBase = "./",
     stack = True,
@@ -4415,6 +4553,7 @@ def hy_load_phase_plot_data(
             snapRange,
             yParams = yParams,
             xParams = xParams,
+            colourBarKeys = colourBarKeys,
             weightKeys = weightKeys,
             loadPathBase = datapath,
             stack = stack,
@@ -4457,8 +4596,6 @@ def hy_load_statistics_data(
         out.update({selectKey : copy.deepcopy(updatedtmp)})
 
     return out
-
-
 
 def hy_load_slice_plot_data(
     selectKeysList,
@@ -4507,9 +4644,7 @@ def hy_load_slice_plot_data(
     
     return out
 
-
-
-def get_linestyles_and_colours(selectKeysList,colourmapMain,colourGroupBy,linestyleGroupBy,lastColourOffset = 0.10):
+def get_linestyles_and_colours(selectKeysList,colourmapMain,colourGroupBy=False,linestyleGroupBy=False,lastColourOffset = 0.10):
     from itertools import cycle
 
     cmap = matplotlib.cm.get_cmap(colourmapMain)
@@ -4530,9 +4665,17 @@ def get_linestyles_and_colours(selectKeysList,colourmapMain,colourGroupBy,linest
 
     lineStyles = ["solid","dotted","dashed","dashdot"]
     linecycler = cycle(lineStyles)
-    linestyleList = [next(linecycler) for ii in range(0,len(linestyleGroupBy)+1)]
+    if (len(linestyleGroupBy)>1)&(type(linestyleGroupBy)==list):
+        linestyleList = [next(linecycler) for ii in range(0,len(linestyleGroupBy)+1)]
+        styleDict = {skey : {"colour" : colourList[-1], "linestyle" : linestyleList[-1]} for skey in selectKeysList}
+    elif (type(linestyleGroupBy) == str):
+        styleDict = {skey : {"colour" : colourList[-1], "linestyle" : linestyleGroupBy} for skey in selectKeysList}
+        linestyleList = list(linestyleGroupBy)
+        linestyleGroupBy = copy.deepcopy(linestyleList)
+    else:
+        linestyleList = [next(linecycler) for ii in range(0,len(selectKeysList)+1)]
+        styleDict = {skey : {"colour" : colourList[-1], "linestyle" : linestyleList[jj]} for jj,skey in enumerate(selectKeysList)}
 
-    styleDict = {skey : {"colour" : colourList[-1], "linestyle" : linestyleList[-1]} for skey in selectKeysList}
 
     if (Ncolours>1):
         for colour,colourGroup in zip(colourList[:-1],colourGroupBy):
@@ -4562,6 +4705,7 @@ def cr_medians_versus_plot(
     xParam="R",
     titleBool=False,
     legendBool = True,
+    separateLegend = False,
     labels = None,
     yaxisZeroLine = None,
     DPI=150,
@@ -4665,6 +4809,7 @@ def cr_medians_versus_plot(
                     xParam=xParam,
                     titleBool=titleBool,
                     legendBool = legendBool,
+                    separateLegend=separateLegend,
                     labels = labels,
                     yaxisZeroLine = yaxisZeroLine,
                     DPI=DPI,
@@ -4768,6 +4913,7 @@ def cr_medians_versus_plot(
                     xParam=xParam,
                     titleBool=titleBool,
                     legendBool = legendBool,
+                    separateLegend=separateLegend,
                     labels = labels,
                     yaxisZeroLine = yaxisZeroLine,
                     DPI=DPI,
@@ -4805,6 +4951,7 @@ def cr_pdf_versus_plot(
     xParams = ["T"],
     titleBool=False,
     legendBool=True,
+    separateLegend = False,
     labels = None,
     DPI=150,
     xsize=6.0,
@@ -4906,6 +5053,7 @@ def cr_pdf_versus_plot(
                     xParams = xParams,
                     titleBool = titleBool,
                     legendBool = legendBool,
+                    separateLegend=separateLegend,
                     labels = labels,
                     DPI = DPI,
                     xsize = xsize,
@@ -4996,6 +5144,7 @@ def cr_pdf_versus_plot(
                     xParams = xParams,
                     titleBool = titleBool,
                     legendBool = legendBool,
+                    separateLegend=separateLegend,
                     labels = labels,
                     DPI = DPI,
                     xsize = xsize,
@@ -5088,7 +5237,6 @@ def cr_load_pdf_versus_plot_data(
             out.update({selectKey : copy.deepcopy(tmp)})
 
     return out
-
 
 def cr_load_slice_plot_data(
     selectKeysList,
@@ -5485,3 +5633,4 @@ def cr_phase_plot(
 
 
     return
+    
