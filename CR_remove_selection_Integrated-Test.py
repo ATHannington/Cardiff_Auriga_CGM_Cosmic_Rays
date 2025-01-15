@@ -40,12 +40,12 @@ def test_single_type_sensible_remove(loadTypes,loadonlyhalo):
     snap = _load_snap(loadTypes,loadonlyhalo=loadonlyhalo)
     snap, _, _ = map_params_to_types(snap)
     whereToRemove = np.isin(snap.data["type"],np.array(loadTypes))
-    whereToRemove[127] = False
+    whereToRemove[-1] = False
     snap = remove_selection(
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_single_type_sensible_remove types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
     whereRemaining = np.isin(snap.data["type"],np.array(loadTypes))
     assert len(whereRemaining) == 1, f"[test_single_type_sensible_remove]: Expected single return value! Len values returned {len(whereRemaining)}"
@@ -56,12 +56,12 @@ def test_multi_type_sensible_remove(loadTypes):
     snap = _load_snap(loadTypes)
     snap, _, _ = map_params_to_types(snap)
     whereToRemove = np.isin(snap.data["type"],np.array(loadTypes))
-    whereToRemove[583] = False
+    whereToRemove[-1] = False
     snap = remove_selection(
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_sensible_remove types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
     whereRemaining = np.isin(snap.data["type"],np.array(loadTypes))
     assert len(whereRemaining) == 1, f"[test_multi_type_sensible_remove]: Expected single return value! Len values returned {len(whereRemaining)}"
@@ -84,7 +84,7 @@ def test_multi_type_degeneracy_test_xfail(loadTypes):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_degeneracy_test_xfail (before degeneracy) types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
 
     ## NO CALL TO map_params_to_types()
@@ -102,7 +102,7 @@ def test_multi_type_degeneracy_test_xfail(loadTypes):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_degeneracy_test_xfail (after degeneracy) types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
 
     assert True,"[test_multi_type_degeneracy_test_xfail]: we shouldn't get here..."
@@ -124,7 +124,7 @@ def test_multi_type_degeneracy_test_pass(loadTypes):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_degeneracy_test_pass (before degeneracy) types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
 
     snap, _, _ = map_params_to_types(snap)
@@ -140,7 +140,7 @@ def test_multi_type_degeneracy_test_pass(loadTypes):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_degeneracy_test_pass (after degeneracy) types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
 
     assert True,"[test_multi_type_degeneracy_test_pass]: all is good"
@@ -156,7 +156,7 @@ def test_multi_type_partial_remove(loadTypes,exclusionArg):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_partial_remove types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
     shapeAfter = np.shape(snap.data["type"])[0]
     assert shapeAfter == shapeBefore - removeShape, f"[test_multi_type_partial_remove]: Expected partial removal from one type, but not other! Incorrect removal of entire type detected! {shapeAfter} != {shapeBefore} - {removeShape} ({shapeBefore-removeShape})"
@@ -172,7 +172,7 @@ def test_multi_type_sub_partial_remove(loadTypes,exclusionArg):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_sub_partial_remove types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
     shapeAfter = np.shape(snap.data["type"])[0]
     assert shapeAfter == shapeBefore - removeShape, f"[test_multi_type_sub_partial_remove]: Expected removal from one type, but not other! Incorrect removal of entire type detected! {shapeAfter} != {shapeBefore} - {removeShape} ({shapeBefore-removeShape})"
@@ -188,7 +188,7 @@ def test_multi_type_no_remove(loadTypes):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_multi_type_no_remove types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
     shapeAfter = np.shape(snap.data["type"])[0]
     assert shapeAfter == shapeBefore, f"[test_multi_type_no_remove]: Expected removalof no data! Shapes should be the same! {shapeAfter} != {shapeBefore}"
@@ -203,5 +203,5 @@ def test_mixed_type_full_remove(loadTypes):
         snap=snap,
         removalConditionMask=whereToRemove,
         errorString = f"test_mixed_type_full_remove types {loadTypes}",
-        DEBUG = True,
+        verbose = True,
         )
