@@ -284,9 +284,9 @@ if __name__ == "__main__":
     snapNumber=snapRange[-1]
 
     tmp = []
-    for hkey, skeyList in selectKeysList:
-        skey = skeyList[0]
-        for key in ordering:
+    for key in ordering:
+        for hkey, skeyList in selectKeysList:
+            skey = skeyList[0]
             # print(hkey,skey,key)
             if ((skey == key)&(key in keepPercentiles)&(key not in tmp)):
                 tmp.append(key)
@@ -367,7 +367,7 @@ if __name__ == "__main__":
         selectKeysList = keepPercentiles,
         compareSelectKeysOn = CRPARAMS["compareSelectKeysOn"],
         subfigures = True,
-        subfigureDatasetLabelsDict = highResOnlyLegendLabels,
+        subfigureDatasetLabelsDict = None,
         subfigureDatasetLabelsBool = True,
         subfigureOffAlignmentAxisLabels = True,
         offAlignmentAxisLabels = haloLabels,
@@ -375,7 +375,6 @@ if __name__ == "__main__":
         replotFromData = True,
     )
 
-    
     # tmp = apt.cr_load_slice_plot_data(
     #     selectKeysList,
     #     CRPARAMSHALO,
@@ -567,7 +566,7 @@ if __name__ == "__main__":
         xParam=CRPARAMS["xParam"],
         titleBool=CRPARAMS["titleBool"],
         legendBool=CRPARAMS["legendBool"],
-        labels = highResOnlyLegendLabels,
+        # labels = highResOnlyLegendLabels,
         yaxisZeroLine = yaxisZeroLineDict,
         DPI = CRPARAMS["DPI"],
         xsize = CRPARAMS["xsize"]*0.60*0.85*2.0,

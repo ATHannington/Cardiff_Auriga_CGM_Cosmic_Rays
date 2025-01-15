@@ -31,7 +31,11 @@ matplotlib.use("Agg")  # For suppressing plotting on clusters
 
 DEBUG = False
 
-keepPercentiles = []
+keepPercentiles = [
+    (f"high",f"no_CRs"),
+    (f"high",f"with_CRs"),
+    (f"high",f"with_CRs_no_Alfven")
+]
 # keepPercentiles = [
 #     (f"high",f"no_CRs"),
 #     (f"high",f"with_CRs"),
@@ -47,21 +51,21 @@ dataToInclude = [
     (f"high",f"no_CRs"),
     (f"high",f"with_CRs"),
     (f"high",f"with_CRs_no_Alfven"),
-    (f"high",f"with_CRs_CR29"),
-    (f"high",f"with_CRs_CR29_no_Alfven"),
+    # (f"high",f"with_CRs_CR29"),
+    # (f"high",f"with_CRs_CR29_no_Alfven"),
 ]
 
 ordering = [
     (f"high",f"no_CRs"),
     (f"high",f"with_CRs"),
     (f"high",f"with_CRs_no_Alfven"),
-    (f"high",f"with_CRs_CR29"),
-    (f"high",f"with_CRs_CR29_no_Alfven"),
+    # (f"high",f"with_CRs_CR29"),
+    # (f"high",f"with_CRs_CR29_no_Alfven"),
     (f"standard",f"no_CRs"),
     (f"standard",f"with_CRs"),
     (f"standard",f"with_CRs_no_Alfven"),
-    (f"standard",f"with_CRs_CR29"),
-    (f"standard",f"with_CRs_CR29_no_Alfven"),
+    # (f"standard",f"with_CRs_CR29"),
+    # (f"standard",f"with_CRs_CR29_no_Alfven"),
 ]
 styleDictGroupingKeys = {skey : skey for skey in ordering}
 
@@ -79,26 +83,26 @@ styleDictGroupingKeys = {skey : skey for skey in ordering}
 # }
 
 
-customLegendLabels = {
-            (f"high",f"no_CRs") : f"no CRs",
-            (f"high",f"with_CRs") : f"CR28: with CRs",
-            (f"high",f"with_CRs_no_Alfven") : f"CR28: with CRs \n no Alfven",
-            (f"high",f"with_CRs_CR29") : f"CR29: with CRs",
-            (f"high",f"with_CRs_CR29_no_Alfven"): f"CR29: with CRs \n no Alfven",
-            (f"standard",f"no_CRs") : f"Std. Res. no CRs",
-            (f"standard",f"with_CRs") : f"Std. Res. CR28: \n with CRs",
-            (f"standard",f"with_CRs_no_Alfven") : f"Std. Res. CR28: \n with CRs  no Alfven",
-            (f"standard",f"with_CRs_CR29") : f"Std. Res. CR29: \n with CRs",
-            (f"standard",f"with_CRs_CR29_no_Alfven"): f"Std. Res. CR29: \n with CRs no Alfven",
-            # (f"high",f"with_CRs_no_Alfven") : f"CR28: with CRs \n no Alfven",
-            # (f"high",f"with_CRs_CR29") : f"CR29: with CRs",
-            # (f"high",f"with_CRs_CR29_no_Alfven"): f"CR29: with CRs \n no Alfven",
-            # (f"standard",f"no_CRs") : f"standard res. no CRs",
-            # (f"standard",f"with_CRs") : f"standard res. CR28: \n with CRs",
-            # (f"standard",f"with_CRs_no_Alfven") : f"standard res. CR28: \n with CRs  no Alfven",
-            # (f"standard",f"with_CRs_CR29") : f"standard res. CR29: \n with CRs",
-            # (f"standard",f"with_CRs_CR29_no_Alfven"): f"standard res. CR29: \n with CRs no Alfven",
- }
+# customLegendLabels = {
+#             (f"high",f"no_CRs") : f"High no CRs",
+#             (f"high",f"with_CRs") : f"High with CRs",
+#             (f"high",f"with_CRs_no_Alfven") : f"High with CRs no Alfven",
+#             # (f"high",f"with_CRs_CR29") : f"CR29: with CRs",
+#             # (f"high",f"with_CRs_CR29_no_Alfven"): f"CR29: with CRs no Alfven",
+#             (f"standard",f"no_CRs") : f"Standard no CRs",
+#             (f"standard",f"with_CRs") : f"Standard with CRs",
+#             (f"standard",f"with_CRs_no_Alfven") : f"Standard with CRs no Alfven",
+#             # (f"standard",f"with_CRs_CR29") : f"Std. Res. CR29: with CRs",
+#             # (f"standard",f"with_CRs_CR29_no_Alfven"): f"Std. Res. CR29: with CRs no Alfven",
+#             # (f"high",f"with_CRs_no_Alfven") : f"CR28: with CRs no Alfven",
+#             # (f"high",f"with_CRs_CR29") : f"CR29: with CRs",
+#             # (f"high",f"with_CRs_CR29_no_Alfven"): f"CR29: with CRs no Alfven",
+#             # (f"standard",f"no_CRs") : f"standard res. no CRs",
+#             # (f"standard",f"with_CRs") : f"standard res. CR28: with CRs",
+#             # (f"standard",f"with_CRs_no_Alfven") : f"standard res. CR28: with CRs no Alfven",
+#             # (f"standard",f"with_CRs_CR29") : f"standard res. CR29: with CRs",
+#             # (f"standard",f"with_CRs_CR29_no_Alfven"): f"standard res. CR29: with CRs no Alfven",
+#  }
 medianString = "50.00%"
 
 stack = True
@@ -208,33 +212,34 @@ xlimDict = {
     "mass": {"xmin": 4.0, "xmax": 9.0},
     "L": {"xmin": 1.5, "xmax": 4.5},
     "T": {"xmin": 3.5, "xmax": 7.0},
-    "n_H":  {"xmin": -6.0, "xmax": 1.0}, #{"xmin": -6.0, "xmax": -2.0},
-    "n_HI" : {"xmin": -12.0, "xmax": -2.0},
-    "n_H_col": {"xmin": 19.0, "xmax": 23.0},
-    "n_HI_col" : {"xmin": 13.0, "xmax": 22.0},
-    "B":{"xmin": -2.5, "xmax": 2.0},# {"xmin": -7.0, "xmax": 2.0},
+    "n_H": {"xmin": -6.0, "xmax": 1.0},
+    "n_HI" : {"xmin": -13.0, "xmax": 1.0},
+    "n_H_col": {"xmin": 19.0, "xmax": 22.0},
+    "n_HI_col" : {"xmin": 12.5, "xmax": 22.0},
+    "B": {"xmin": -2.5, "xmax": 2.0},
     "vrad": {"xmin": -200.0, "xmax": 200.0},
     "vrad_in": {"xmin": -200.0, "xmax": 200.0},
     "vrad_out": {"xmin": -200.0, "xmax": 200.0},
-    "gz": {"xmin": -2.0, "xmax": 1.0},
+    "gz": {"xmin": -2.5, "xmax": 1.5},
     "Pressure" : {"xmin": -16.0, "xmax": -10.0},
-    "P_thermal": {"xmin": -16.0, "xmax": -12.0},
-    "P_CR": {"xmin": -20.0, "xmax": -10.0},
-    "PCR_Pthermal": {"xmin": -4.5, "xmax": 2.5},#{"xmin": -8.0, "xmax": 2.5},
-    "PCR_Pmagnetic": {"xmin": -3.5, "xmax": 2.5},#{"xmin": -6.0, "xmax": 4.0},
-    "Pthermal_Pmagnetic": {"xmin": -2.5, "xmax": 3.5},#{"xmin": -2.0, "xmax": 5.0},
-    "P_magnetic": {"xmin": -23.0, "xmax": -13.0},
-    "P_kinetic":  {"xmin": -16.0, "xmax": -10.0},
-    "P_tot": {"xmin": -16.0, "xmax": -12.0},
-    "P_tot+k": {"xmin": -15.5, "xmax": -11.5},
-    "tcool": {"xmin": -4.0, "xmax": 4.0},
-    "theat": {"xmin": -4.0, "xmax": 4.0},
-    "tff": {"xmin": -1.5, "xmax": 0.75},
-    "tcool_tff": {"xmin": -2.5, "xmax": 2.0},
-    "rho_rhomean": {"xmin": 1.5, "xmax": 5.5},
-    "dens": {}, #{"xmin": -30.0, "xmax": -22.0},
-    "ndens": {"xmin": -6.0, "xmax": -1.0},
-    "rho" : {}, #{"xmin": 2.0, "xmax": 7.0},
+    "P_thermal": {"xmin": -16.0, "xmax": -10.0},
+    "P_CR": {"xmin": -19.0, "xmax": -4.0},
+    "PCR_Pthermal": {"xmin": -4.5, "xmax": 2.5},
+    "PCR_Pmagnetic": {"xmin": -3.5, "xmax": 2.5},
+    "Pthermal_Pmagnetic": {"xmin": -2.5, "xmax": 3.5},
+    "P_magnetic": {"xmin": -19.0, "xmax": -4.0},
+    "P_kinetic": {"xmin": -19.0, "xmax": -4.0},
+    "P_tot": {"xmin": -19.0, "xmax": -4.0},
+    "P_tot+k": {"xmin": -19.0, "xmax": -4.0},
+    "tcool": {"xmin": -5.0, "xmax": 4.0},
+    "theat": {"xmin": -5.0, "xmax": 4.0},
+    "tff": {"xmin": -5.5, "xmax": 0.75},
+    "tcool_tff": {"xmin": -5.5, "xmax": 2.0},
+    "rho_rhomean": {"xmin": 1.5, "xmax": 8.0},
+    "dens": {"xmin": -30.0, "xmax": -22.0},
+    "ndens": {"xmin": -4.5, "xmax": 4.5},
+    "rho_rhomean": {"xmin": 0.25, "xmax": 6.5},
+    "rho" : {"xmin": 2.0, "xmax": 7.0},
     "vol": {},
     "cool_length" : {"xmin": -1.0, "xmax": 2.0},
     "csound" : {},
@@ -325,11 +330,13 @@ if __name__ == "__main__":
 
             if ("R" in CRPARAMS["logParameters"]):
                 xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+
+
         # ----------------------------------------------------------------------#
         #  Plots...
         # ----------------------------------------------------------------------#
         
-        tmpstyleDict = apt.get_linestyles_and_colours(styleKeys,colourmapMain="plasma",colourGroupBy=[f"no_CRs",f"with_CRs",f"with_CRs_no_Alfven",f"with_CRs_CR29",f"with_CRs_CR29_no_Alfven"],linestyleGroupBy=["high","standard"],lastColourOffset=0.0)
+        tmpstyleDict = apt.get_linestyles_and_colours(styleKeys,colourmapMain="plasma",colourGroupBy=[f"no_CRs",f"with_CRs_no_Alfven",f"with_CRs"],linestyleGroupBy=["high","standard"],lastColourOffset=0.0)
 
         styleDict = {}
 
@@ -396,7 +403,7 @@ if __name__ == "__main__":
             selectKeysList = dataToInclude,
             compareSelectKeysOn = CRPARAMS["compareSelectKeysOn"],
             subfigures = True,
-            subfigureDatasetLabelsDict = customLegendLabels,
+            # subfigureDatasetLabelsDict = customLegendLabels,
             subfigureDatasetLabelsBool = True,
             subfigureOffAlignmentAxisLabels = False,
             offAlignmentAxisLabels = None,
@@ -465,7 +472,7 @@ if __name__ == "__main__":
             tmpxlimDict[key] = value
 
         dataToIncludeCol = [tuple(list(sKey)+["col"]) for sKey in dataToInclude]
-        customLegendLabelsCol = {tuple(list(sKey)+["col"]):label for sKey,label in customLegendLabels.items()}
+        # customLegendLabelsCol = {tuple(list(sKey)+["col"]):label for sKey,label in customLegendLabels.items()}
 
         tmpdict = apt.plot_slices(tmp3,
             ylabel=ylabel,
@@ -586,7 +593,8 @@ if __name__ == "__main__":
             xParam=CRPARAMS["xParam"],
             titleBool=CRPARAMS["titleBool"],
             legendBool=CRPARAMS["legendBool"],
-            labels = customLegendLabels,
+            separateLegend = True,
+            # labels = customLegendLabels,
             yaxisZeroLine = yaxisZeroLineDict,
             DPI = CRPARAMS["DPI"],
             xsize = CRPARAMS["xsize"],
@@ -618,7 +626,8 @@ if __name__ == "__main__":
             xParam=CRPARAMS["xParam"],
             titleBool=CRPARAMS["titleBool"],
             legendBool=CRPARAMS["legendBool"],
-            labels = customLegendLabels,
+            separateLegend = True,
+            # labels = customLegendLabels,
             yaxisZeroLine = yaxisZeroLineDict,
             DPI = CRPARAMS["DPI"],
             xsize = CRPARAMS["xsize"]*0.60*0.85*2.0,
@@ -643,6 +652,22 @@ if __name__ == "__main__":
             hush = not DEBUG,
             )
 
+        for sKey, data in statsOut.items():
+            if sKey not in []:
+                dataCopy = copy.deepcopy(data)
+                for key,dd in data.items():
+                    if key not in []:
+                        for kk, value in dd.items():
+                            splitkk = kk.split("_")
+                            perc = splitkk[-1]
+                            if (medianString not in splitkk)&(perc in loadPercentilesTypes):
+                                dataCopy[key].pop(kk)
+                statsOut[sKey].update(dataCopy)
+
+        orderedData = {}
+        for key in ordering:
+            orderedData.update({key : statsOut[key]})
+
         apt.cr_medians_versus_plot(
             orderedData,
             CRPARAMSHALO,
@@ -654,7 +679,8 @@ if __name__ == "__main__":
             xParam=CRPARAMS["xParam"],
             titleBool=CRPARAMS["titleBool"],
             legendBool=CRPARAMS["legendBool"],
-            labels = customLegendLabels,
+            separateLegend = True,
+            # labels = customLegendLabels,
             DPI = CRPARAMS["DPI"],
             xsize = CRPARAMS["xsize"]*0.60*0.85*2.0,
             ysize = CRPARAMS["ysize"]*0.60*0.85,
@@ -708,6 +734,18 @@ if __name__ == "__main__":
                 if (np.any(np.isin(np.asarray([additionalParam]),np.asarray(additionalColParams))) == False) \
                 & (additionalParam is not None) & (additionalParam != "count"):
                     additionalColParams.append(additionalParam)
+
+
+            tmp = np.asarray(list(CRPARAMS["nonMassWeightDict"].values()))
+            whereNone = np.where(tmp==None)[0]
+            whereNOTNone = np.where(tmp!=None)[0]
+
+            statsWeightkeys = ["mass"] + np.unique(tmp[whereNOTNone]).tolist()
+            exclusions = [] 
+            
+            for param in CRPARAMS["saveEssentials"]:
+                if param not in statsWeightkeys:
+                    exclusions.append(param)
             #---------------#
 
             # If there are other params to be tracked for col params, we need to create a projection
@@ -733,31 +771,49 @@ if __name__ == "__main__":
             for kk in COLCRPARAMSHALO.keys():
                 COLCRPARAMSHALO[kk]["saveParams"] = COLCRPARAMSHALO[kk]["saveParams"]+cols
 
-            tmp = apt.cr_load_statistics_data(
+            # tmp = apt.cr_load_statistics_data(
+            #     selectKeysListCol,
+            #     COLCRPARAMSHALO,
+            #     snapRange,
+            #     loadPathBase = CRPARAMS["savepathdata"],
+            #     loadFile = "colStatsDict",
+            #     fileType = ".h5",
+            #     stack = True,
+            #     selectKeyLen=4,
+            #     verbose = DEBUG,
+            #     )
+
+            colDict = apt.cr_load_column_density_data(
                 selectKeysListCol,
                 COLCRPARAMSHALO,
                 snapRange,
                 loadPathBase = CRPARAMS["savepathdata"],
-                loadFile = "colStatsDict",
+                loadFile = "colDict",
                 fileType = ".h5",
-                stack = True,
+                stack = False,
                 selectKeyLen=4,
+                delimiter="-",
                 verbose = DEBUG,
+                hush = False,
                 )
 
-            statsOutCol = copy.deepcopy(tmp)    
+            colStatsDict = {}
+            for selectKeyCol in colDict.keys():
+                innerColStatsDict = cr.cr_calculate_statistics(
+                    dataDict=colDict[selectKeyCol],
+                    CRPARAMS=COLCRPARAMS,
+                    xParam=COLCRPARAMS["xParam"],
+                    Nbins=COLCRPARAMS["NStatsBins"],
+                    xlimDict=tmpxlimDict,
+                    exclusions=exclusions,
+                    weightedStatsBool = False,
+                )
 
-            if (len(snapRange)>1)&(stack is True):
-                for sKey, data in statsOutCol.items():
-                    dataCopy = copy.deepcopy(data)
-                    for key,dd in data.items():
-                        for kk, value in dd.items():
-                            dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
-                    statsOutCol[sKey].update(dataCopy)
-
-            fullStatsOutCol = copy.deepcopy(statsOutCol)
+                colStatsDict.update({selectKeyCol: {selectKeyCol:innerColStatsDict}})
             
-            for sKey, data in statsOutCol.items():
+            fullStatsOutCol = copy.deepcopy(colStatsDict)
+            
+            for sKey, data in colStatsDict.items():
                 if sKey not in keepPercentilesCol:
                     dataCopy = copy.deepcopy(data)
                     for key,dd in data.items():
@@ -767,11 +823,11 @@ if __name__ == "__main__":
                                 perc = splitkk[-1]
                                 if (medianString not in splitkk)&(perc in loadPercentilesTypes):
                                     dataCopy[key].pop(kk)
-                    statsOutCol[sKey].update(dataCopy)
+                    colStatsDict[sKey].update(dataCopy)
 
             orderedData = {}
             for key in orderingCol:
-                orderedData.update({key : statsOutCol[key]})
+                orderedData.update({key : colStatsDict[key]})
 
             apt.cr_medians_versus_plot(
                 statsDict = orderedData,
@@ -784,7 +840,7 @@ if __name__ == "__main__":
                 titleBool=COLCRPARAMS["titleBool"],
                 legendBool=COLCRPARAMS["legendBool"],
                 separateLegend = True,
-                labels = customLegendLabelsCol,
+                # labels = customLegendLabelsCol,
                 DPI = COLCRPARAMS["DPI"],
                 xsize = COLCRPARAMS["xsize"],
                 ysize = COLCRPARAMS["ysize"],
@@ -814,12 +870,12 @@ if __name__ == "__main__":
                 yParam=[["n_H_col"],[ "n_HI_col" ]],
                 xParam=COLCRPARAMS["xParam"],
                 titleBool=COLCRPARAMS["titleBool"],
-                legendBool= False,#COLCRPARAMS["legendBool"],
-                separateLegend = False,
-                labels = customLegendLabelsCol,
+                legendBool=COLCRPARAMS["legendBool"],
+                separateLegend = True,
+                # labels = customLegendLabelsCol,
                 DPI = COLCRPARAMS["DPI"],
-                xsize = COLCRPARAMS["xsize"]*0.60*0.85*2.0,
-                ysize = COLCRPARAMS["ysize"]*0.60*0.85,
+                xsize = COLCRPARAMS["xsize"]*0.60*0.95*2.0,
+                ysize = COLCRPARAMS["ysize"]*0.60*0.95,
                 fontsize = COLCRPARAMS["fontsize"],
                 fontsizeTitle = COLCRPARAMS["fontsizeTitle"],
                 linewidth=COLCRPARAMS["linewidth"],
@@ -841,42 +897,52 @@ if __name__ == "__main__":
                 )
             selectKey = (f"{CRPARAMS['resolution']}", 
                     f"{CRPARAMS['CR_indicator']}"+f"{CRPARAMS['no-alfven_indicator']}")
-
+     
             print(
                 "\n" + f"[@{CRPARAMS['halo']}]: Time averaged PDF of column Density gas plot"
             )
             matplotlib.rc_file_defaults()
             plt.close("all")     
 
-            tmp = apt.cr_load_pdf_versus_plot_data(
-                selectKeysListCol,
-                COLCRPARAMSHALO,
-                snapRange,
-                weightKeys = COLCRPARAMS['nonMassWeightDict'],
-                xParams = COLCRPARAMS["colParams"],
-                cumulative = False,
-                loadPathBase = COLCRPARAMS["savepathdata"],
-                SFR = False,
-                normalise = False,
-                stack = True,
-                selectKeyLen=4,
-                verbose = DEBUG,
-                hush = not DEBUG,
-                )
+            # tmp = apt.cr_load_pdf_versus_plot_data(
+            #     selectKeysListCol,
+            #     COLCRPARAMSHALO,
+            #     snapRange,
+            #     weightKeys = COLCRPARAMS['nonMassWeightDict'],
+            #     xParams = COLCRPARAMS["colParams"],
+            #     cumulative = False,
+            #     loadPathBase = COLCRPARAMS["savepathdata"],
+            #     SFR = False,
+            #     normalise = False,
+            #     stack = True,
+            #     selectKeyLen=4,
+            #     verbose = DEBUG,
+            #     hush = not DEBUG,
+            #     )
 
-            pdfOutCol = copy.deepcopy(tmp)    
+            # pdfOutCol = copy.deepcopy(tmp)    
 
-            if (len(snapRange)>1)&(stack is True):
-                for sKey, data in pdfOutCol.items():
-                    dataCopy = copy.deepcopy(data)
-                    for key,dd in data.items():
-                        for kk, value in dd.items():
-                            dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
-                    pdfOutCol[sKey].update(dataCopy)
+            # if (len(snapRange)>1)&(stack is True):
+            #     for sKey, data in pdfOutCol.items():
+            #         dataCopy = copy.deepcopy(data)
+            #         for key,dd in data.items():
+            #             for kk, value in dd.items():
+            #                 dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
+            #         pdfOutCol[sKey].update(dataCopy)
 
             orderedData = {}
             for key in orderingCol:
-                orderedData.update({key : pdfOutCol[key]})
+                orderedData.update({key : colDict[key]})
+            
+            tmp = {}
+            for key, val in orderedData.items():
+                valcopy = copy.deepcopy(val)
+                for excl in singleValueKeys:
+                    if excl in list(valcopy.keys()):
+                        valcopy.pop(excl)
+                tmp.update({key : valcopy})
+            
+            orderedData = copy.deepcopy(tmp)
 
             matplotlib.rc_file_defaults()
             plt.close("all")   
@@ -890,6 +956,7 @@ if __name__ == "__main__":
                 xParams = COLCRPARAMS["colParams"],
                 titleBool=COLCRPARAMS["titleBool"],
                 legendBool=COLCRPARAMS["legendBool"],
+                # labels = customLegendLabelsCol,
                 DPI=COLCRPARAMS["DPI"],
                 xsize=COLCRPARAMS["xsize"]*0.75,
                 ysize=COLCRPARAMS["ysize"]*0.75,
@@ -907,12 +974,13 @@ if __name__ == "__main__":
                 normalise = normalise,
                 verbose = DEBUG,
                 inplace = inplace,
-                replotFromData = True,
+                replotFromData = False,
                 combineMultipleOntoAxis = True,
-                selectKeysList = None, #[('standard', 'with_CRs'),('standard', 'with_CRs_no_Alfven'),('standard', 'no_CRs')],
+                selectKeysList = selectKeysListCol,
                 styleDict = styleDict,
                 hush = not DEBUG,                                
             )
+            
             matplotlib.rc_file_defaults()
             plt.close("all")   
 
@@ -928,6 +996,7 @@ if __name__ == "__main__":
                 xParams = COLCRPARAMS["colParams"],
                 titleBool=COLCRPARAMS["titleBool"],
                 legendBool=COLCRPARAMS["legendBool"],
+                # labels = customLegendLabelsCol,
                 DPI=COLCRPARAMS["DPI"],
                 xsize=COLCRPARAMS["xsize"]*0.75,
                 ysize=COLCRPARAMS["ysize"]*0.75,
@@ -945,9 +1014,9 @@ if __name__ == "__main__":
                 normalise = False,
                 verbose = DEBUG,
                 inplace = inplace,
-                replotFromData = True,
+                replotFromData = False,
                 combineMultipleOntoAxis = True,
-                selectKeysList = None,#[('standard', 'with_CRs'),('standard', 'with_CRs_no_Alfven'),('standard', 'no_CRs')],
+                selectKeysList = selectKeysListCol,
                 styleDict = styleDict,
                 hush = not DEBUG,                                
             )
@@ -963,43 +1032,77 @@ if __name__ == "__main__":
                 plt.close("all")  
                 possibleTypes = [0,1,2,3,4,5,6]
 
+                tmpColDict = {}
+                for key, val in colDict.items():
+                    valcopy = copy.deepcopy(val)
+                    for excl in singleValueKeys:
+                        if excl in list(valcopy.keys()):
+                            valcopy.pop(excl)
+                    tmpColDict.update({key : valcopy})
+
                 for tp in possibleTypes:
                     print("Starting type load ",tp)          
-                    tmp = apt.cr_load_pdf_versus_plot_data(
-                        selectKeysListCol,
-                        COLCRPARAMSHALO,
-                        snapRange,
-                        weightKeys = COLCRPARAMS['nonMassWeightDict'],
-                        xParams = COLCRPARAMS["colParams"],
-                        cumulative = False,
-                        loadPathBase = COLCRPARAMS["savepathdata"],
-                        loadPathSuffix = f"type{int(tp)}/",
-                        SFR = False,
-                        normalise = False,
-                        stack = True,
-                        selectKeyLen=4,
-                        verbose = DEBUG,
-                        hush = not DEBUG,
-                    )
+
+                    binnedData = {}
+                    for selectKeyCol in tmpColDict.keys():
+                        whereNotType = tmpColDict[selectKeyCol]["type"] != tp
+
+                        innerBinnedData = cr.remove_selection(
+                            copy.deepcopy(tmpColDict[selectKeyCol]),
+                            removalConditionMask = whereNotType,
+                            errorString = "byType PDF whereNotType",
+                            verbose = DEBUG,
+                        )
+
+                        binnedData[selectKeyCol] = copy.deepcopy(innerBinnedData)
+
+                    print(f"[@{COLCRPARAMS['halo']}, @{COLCRPARAMS['resolution']}, @{COLCRPARAMS['CR_indicator']}{COLCRPARAMS['no-alfven_indicator']}: PDF of column density gas plot binned by Type")
+
+                    # tmp = apt.cr_load_pdf_versus_plot_data(
+                    #     selectKeysListCol,
+                    #     COLCRPARAMSHALO,
+                    #     snapRange,
+                    #     weightKeys = COLCRPARAMS['nonMassWeightDict'],
+                    #     xParams = COLCRPARAMS["colParams"],
+                    #     cumulative = False,
+                    #     loadPathBase = COLCRPARAMS["savepathdata"],
+                    #     loadPathSuffix = subdir,
+                    #     SFR = False,
+                    #     normalise = False,
+                    #     stack = True,
+                    #     selectKeyLen=4,
+                    #     verbose = DEBUG,
+                    #     hush = not DEBUG,
+                    # )
                     
-                    loadedHasData = np.all(np.asarray([bool(val) for key,val in tmp.items()]))
-                    if loadedHasData == False:
-                        print("\n" + f"[@load_pdf_versus_plot_data]: Loaded Dictionary is empty! Skipping...")
-                        continue
+                    # loadedHasData = np.all(np.asarray([bool(val) for key,val in tmp.items()]))
+                    # if loadedHasData == False:
+                    #     print("\n" + f"[@load_pdf_versus_plot_data]: Loaded Dictionary is empty! Skipping...")
+                    #     continue
             
-                    binnedpdfOut = copy.deepcopy(tmp)    
+                    # binnedpdfOut = copy.deepcopy(tmp)    
 
-                    if (len(snapRange)>1)&(stack is True):
-                        for sKey, data in binnedpdfOut.items():
-                            dataCopy = copy.deepcopy(data)
-                            for key,dd in data.items():
-                                for kk, value in dd.items():
-                                    dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
-                            binnedpdfOut[sKey].update(dataCopy)
-
+                    # if (len(snapRange)>1)&(stack is True):
+                    #     for sKey, data in binnedpdfOut.items():
+                    #         dataCopy = copy.deepcopy(data)
+                    #         for key,dd in data.items():
+                    #             for kk, value in dd.items():
+                    #                 dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
+                    #         binnedpdfOut[sKey].update(dataCopy)
+                            
                     orderedData = {}
                     for key in orderingCol:
-                        orderedData.update({key : binnedpdfOut[key]})
+                        orderedData.update({key : binnedData[key]})
+
+                    tmp = {}
+                    for key, val in orderedData.items():
+                        valcopy = copy.deepcopy(val)
+                        for excl in singleValueKeys:
+                            if excl in list(valcopy.keys()):
+                                valcopy.pop(excl)
+                        tmp.update({key : valcopy})
+                    
+                    orderedData = copy.deepcopy(tmp)
 
 
                     apt.cr_pdf_versus_plot(
@@ -1012,6 +1115,7 @@ if __name__ == "__main__":
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
                         legendBool=COLCRPARAMS["legendBool"],
+                        # labels = customLegendLabelsCol,
                         DPI=COLCRPARAMS["DPI"],
                         xsize=COLCRPARAMS["xsize"]*0.75,
                         ysize=COLCRPARAMS["ysize"]*0.75,
@@ -1030,9 +1134,9 @@ if __name__ == "__main__":
                         normalise = normalise,
                         verbose = DEBUG,
                         inplace = inplace,
-                        replotFromData = True,
+                        replotFromData = False,
                         combineMultipleOntoAxis = True,
-                        selectKeysList = None,
+                        selectKeysList = selectKeysListCol,
                         styleDict = styleDict,
                         hush = not DEBUG,                                
                     )
@@ -1049,6 +1153,7 @@ if __name__ == "__main__":
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
                         legendBool=COLCRPARAMS["legendBool"],
+                        # labels = customLegendLabelsCol,
                         DPI=COLCRPARAMS["DPI"],
                         xsize=COLCRPARAMS["xsize"]*0.75,
                         ysize=COLCRPARAMS["ysize"]*0.75,
@@ -1067,9 +1172,9 @@ if __name__ == "__main__":
                         normalise = False,
                         verbose = DEBUG,
                         inplace = inplace,
-                        replotFromData = True,
+                        replotFromData = False,
                         combineMultipleOntoAxis = True,
-                        selectKeysList = None,
+                        selectKeysList = selectKeysListCol,
                         styleDict = styleDict,
                         hush = not DEBUG,                                
                     )
@@ -1095,49 +1200,83 @@ if __name__ == "__main__":
                     tmpxlimDict["R"]['xmin'] = 0.0
                     tmpxlimDict["R"]['xmax'] = COLCRPARAMS['Router']
 
+                tmpColDict = {}
+                for key, val in colDict.items():
+                    valcopy = copy.deepcopy(val)
+                    for excl in singleValueKeys:
+                        if excl in list(valcopy.keys()):
+                            valcopy.pop(excl)
+                    tmpColDict.update({key : valcopy})
                 
                 binIndices = range(0,COLCRPARAMS["NParamBins"]+1,1)
                 for ii,(lowerIndex,upperIndex) in enumerate(zip(binIndices[:-1],binIndices[1:])):
                     print("Starting Binned PDF plot load ",ii+1," of ",COLCRPARAMS["NParamBins"])
                     
                     bins = np.round(np.linspace(start=tmpxlimDict[COLCRPARAMS["xParam"]]["xmin"],stop=tmpxlimDict[COLCRPARAMS["xParam"]]["xmax"],num=COLCRPARAMS["NParamBins"]+1,endpoint=True),decimals=2)
-                    
-                    subdir = f"/{bins[lowerIndex]}-{COLCRPARAMS['xParam']}-{bins[upperIndex]}/"
-                    tmp = apt.cr_load_pdf_versus_plot_data(
-                        selectKeysListCol,
-                        COLCRPARAMSHALO,
-                        snapRange,
-                        weightKeys = COLCRPARAMS['nonMassWeightDict'],
-                        xParams = COLCRPARAMS["colParams"],
-                        cumulative = False,
-                        loadPathBase = COLCRPARAMS["savepathdata"],
-                        loadPathSuffix = subdir,
-                        SFR = False,
-                        normalise = False,
-                        stack = True,
-                        selectKeyLen=4,
-                        verbose = DEBUG,
-                        hush = not DEBUG,
-                    )
-                    
-                    loadedHasData = np.all(np.asarray([bool(val) for key,val in tmp.items()]))
-                    if loadedHasData == False:
-                        print("\n" + f"[@load_pdf_versus_plot_data]: Loaded Dictionary is empty! Skipping...")
-                        continue
-            
-                    binnedpdfOut = copy.deepcopy(tmp)    
 
-                    if (len(snapRange)>1)&(stack is True):
-                        for sKey, data in binnedpdfOut.items():
-                            dataCopy = copy.deepcopy(data)
-                            for key,dd in data.items():
-                                for kk, value in dd.items():
-                                    dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
-                            binnedpdfOut[sKey].update(dataCopy)
+                    binnedData = {}
+                    for selectKeyCol in tmpColDict.keys():
+                        whereNotInBin = ((tmpColDict[selectKeyCol][COLCRPARAMS["binParam"]]>=bins[lowerIndex])&(tmpColDict[selectKeyCol][COLCRPARAMS["binParam"]]<=bins[upperIndex]))==False
+
+                        innerBinnedData = cr.remove_selection(
+                            copy.deepcopy(tmpColDict[selectKeyCol]),
+                            removalConditionMask = whereNotInBin,
+                            errorString = "binByParam PDF whereNotInBin",
+                            verbose = DEBUG,
+                            )
+                        
+                        binnedData[selectKeyCol] = copy.deepcopy(innerBinnedData)
+
+                    subdir = f"/{bins[lowerIndex]}-{COLCRPARAMS['binParam']}-{bins[upperIndex]}/"
+
+                    print(
+                        f"[@{COLCRPARAMS['halo']}, @{COLCRPARAMS['resolution']}, @{COLCRPARAMS['CR_indicator']}{COLCRPARAMS['no-alfven_indicator']}: PDF of column density gas plot binned by {COLCRPARAMS['binParam']}"
+                    )
+                    # tmp = apt.cr_load_pdf_versus_plot_data(
+                    #     selectKeysListCol,
+                    #     COLCRPARAMSHALO,
+                    #     snapRange,
+                    #     weightKeys = COLCRPARAMS['nonMassWeightDict'],
+                    #     xParams = COLCRPARAMS["colParams"],
+                    #     cumulative = False,
+                    #     loadPathBase = COLCRPARAMS["savepathdata"],
+                    #     loadPathSuffix = subdir,
+                    #     SFR = False,
+                    #     normalise = False,
+                    #     stack = True,
+                    #     selectKeyLen=4,
+                    #     verbose = DEBUG,
+                    #     hush = not DEBUG,
+                    # )
+                    
+                    # loadedHasData = np.all(np.asarray([bool(val) for key,val in tmp.items()]))
+                    # if loadedHasData == False:
+                    #     print("\n" + f"[@load_pdf_versus_plot_data]: Loaded Dictionary is empty! Skipping...")
+                    #     continue
+            
+                    # binnedpdfOut = copy.deepcopy(tmp)    
+
+                    # if (len(snapRange)>1)&(stack is True):
+                    #     for sKey, data in binnedpdfOut.items():
+                    #         dataCopy = copy.deepcopy(data)
+                    #         for key,dd in data.items():
+                    #             for kk, value in dd.items():
+                    #                 dataCopy[key].update({kk: np.nanmedian(value,axis=-1)})
+                    #         binnedpdfOut[sKey].update(dataCopy)
                             
                     orderedData = {}
                     for key in orderingCol:
-                        orderedData.update({key : binnedpdfOut[key]})
+                        orderedData.update({key : binnedData[key]})
+
+                    tmp = {}
+                    for key, val in orderedData.items():
+                        valcopy = copy.deepcopy(val)
+                        for excl in singleValueKeys:
+                            if excl in list(valcopy.keys()):
+                                valcopy.pop(excl)
+                        tmp.update({key : valcopy})
+                    
+                    orderedData = copy.deepcopy(tmp)
 
                     apt.cr_pdf_versus_plot(
                         orderedData,
@@ -1149,6 +1288,7 @@ if __name__ == "__main__":
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
                         legendBool=COLCRPARAMS["legendBool"],
+                        # labels = customLegendLabelsCol,
                         DPI=COLCRPARAMS["DPI"],
                         xsize=COLCRPARAMS["xsize"]*0.75,
                         ysize=COLCRPARAMS["ysize"]*0.75,
@@ -1167,9 +1307,9 @@ if __name__ == "__main__":
                         normalise = normalise,
                         verbose = DEBUG,
                         inplace = inplace,
-                        replotFromData = True,
+                        replotFromData = False,
                         combineMultipleOntoAxis = True,
-                        selectKeysList = None,
+                        selectKeysList = selectKeysListCol,
                         styleDict = styleDict,
                         hush = not DEBUG,                                
                     )
@@ -1186,6 +1326,7 @@ if __name__ == "__main__":
                         xParams = COLCRPARAMS["colParams"],
                         titleBool=COLCRPARAMS["titleBool"],
                         legendBool=COLCRPARAMS["legendBool"],
+                        # labels = customLegendLabelsCol,
                         DPI=COLCRPARAMS["DPI"],
                         xsize=COLCRPARAMS["xsize"]*0.75,
                         ysize=COLCRPARAMS["ysize"]*0.75,
@@ -1204,9 +1345,9 @@ if __name__ == "__main__":
                         normalise = False,
                         verbose = DEBUG,
                         inplace = inplace,
-                        replotFromData = True,
+                        replotFromData = False,
                         combineMultipleOntoAxis = True,
-                        selectKeysList = None,
+                        selectKeysList = selectKeysListCol,
                         styleDict = styleDict,
                         hush = not DEBUG,                                
                     )

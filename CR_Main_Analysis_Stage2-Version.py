@@ -133,31 +133,31 @@ xlimDict = {
     "L": {"xmin": 1.5, "xmax": 4.5},
     "T": {"xmin": 3.5, "xmax": 7.0},
     "n_H": {"xmin": -6.0, "xmax": 1.0},
-    "n_HI" : {"xmin": -13.0, "xmax": 0.0},
+    "n_HI" : {"xmin": -13.0, "xmax": 1.0},
     "n_H_col": {"xmin": 19.0, "xmax": 22.0},
     "n_HI_col" : {"xmin": 12.5, "xmax": 22.0},
-    "B": {"xmin": -2.5, "xmax": 2.0},
+    "B": {"xmin": -2.0, "xmax": 2.0},
     "vrad": {"xmin": -200.0, "xmax": 200.0},
     "vrad_in": {"xmin": -200.0, "xmax": 200.0},
     "vrad_out": {"xmin": -200.0, "xmax": 200.0},
-    "gz": {"xmin": -2.0, "xmax": 1.0},
+    "gz": {"xmin": -1.0, "xmax": 1.5},
     "Pressure" : {"xmin": -16.0, "xmax": -10.0},
     "P_thermal": {"xmin": -16.0, "xmax": -10.0},
-    "P_CR": {"xmin": -19.5, "xmax": -10.0},
+    "P_CR": {"xmin": -19.0, "xmax": -4.0},
     "PCR_Pthermal": {"xmin": -4.5, "xmax": 2.5},
     "PCR_Pmagnetic": {"xmin": -3.5, "xmax": 2.5},
     "Pthermal_Pmagnetic": {"xmin": -2.5, "xmax": 3.5},
-    "P_magnetic": {"xmin": -19.5, "xmax": -10.0},
-    "P_kinetic": {"xmin": -19.5, "xmax": -10.0},
-    "P_tot": {"xmin": -19.5, "xmax": -10.0},
-    "P_tot+k": {"xmin": -19.5, "xmax": -10.0},
-    "tcool": {"xmin": -4.0, "xmax": 4.0},
-    "theat": {"xmin": -4.0, "xmax": 4.0},
-    "tff": {"xmin": -1.5, "xmax": 0.75},
-    "tcool_tff": {"xmin": -2.5, "xmax": 2.0},
-    "rho_rhomean": {"xmin": 1.5, "xmax": 6.0},
+    "P_magnetic": {"xmin": -19.0, "xmax": -4.0},
+    "P_kinetic": {"xmin": -19.0, "xmax": -4.0},
+    "P_tot": {"xmin": -19.0, "xmax": -4.0},
+    "P_tot+k": {"xmin": -19.0, "xmax": -4.0},
+    "tcool": {"xmin": -5.0, "xmax": 4.0},
+    "theat": {"xmin": -5.0, "xmax": 4.0},
+    "tff": {"xmin": -5.5, "xmax": 0.75},
+    "tcool_tff": {"xmin": -5.5, "xmax": 2.0},
+    "rho_rhomean": {"xmin": 1.5, "xmax": 8.0},
     "dens": {"xmin": -30.0, "xmax": -22.0},
-    "ndens": {"xmin": -6.0, "xmax": 2.0},
+    "ndens": {"xmin": -4.5, "xmax": 4.5},
     "rho_rhomean": {"xmin": 0.25, "xmax": 6.5},
     "rho" : {"xmin": 2.0, "xmax": 7.0},
     "vol": {},
@@ -663,32 +663,24 @@ if __name__ == "__main__":
                     if param not in statsWeightkeys:
                         exclusions.append(param)
 
-                # if ((np.nanmax(dataDict[selectKey]["R"])<=1.0) & ("R" in CRPARAMS["logParameters"])):
-                #     warnings.warn(
-                #           "xParam == R has been set to log scale, but the maximum value found in the dta is <= 1 ."
-                #           +"\n"
-                #           +"Assuming R has been set as R/R200c (R/Rvir in code variables) which is incompatible with log scaling."
-                #           +"\n"
-                #           +"Will return R to kpc units before calculating further values, but please ensure this is desired and that"
-                #           +" this logic has triggered correctly."
-                #           )
+                if ((np.nanmax(dataDict[selectKey]["R"])<=1.0) & ("R" in CRPARAMS["logParameters"])):
+                    warnings.warn(
+                          "xParam == R has been set to log scale, but the maximum value found in the data is <= 1 ."
+                          +"\n"
+                          +"Assuming R has been set as R/R200c (R/Rvir in code variables) which is incompatible with log scaling."
+                          +"\n"
+                          +"Will return R to kpc units before calculating further values, but please ensure this is desired and that"
+                          +" this logic has triggered correctly."
+                          )
                 
-                #     dataDict[selectKey]["R"] = (dataDict[selectKey]["R"])*dataDict[selectKey]["Rvir"]
+                    dataDict[selectKey]["R"] = (dataDict[selectKey]["R"])*dataDict[selectKey]["Rvir"]
 
-                #     xlimDict["R"]['xmin'] = 0.0
-                #     xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax']*dataDict[selectKey]["Rvir"])[0]
+                    xlimDict["R"]['xmin'] = 0.0
+                    xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax']*dataDict[selectKey]["Rvir"])[0]
                     
                 print(tmpCRPARAMS['analysisType'], xlimDict["R"]['xmin'],
                     xlimDict["R"]['xmax'])
                 
-                # # # if (("M_H" not in list(dataDict[selectKey].keys()))
-                # # #     |("M_HI" not in list(dataDict[selectKey].keys()))
-                # # #     ):
-                # # #     dataDict[selectKey]["M_H"] = (dataDict[selectKey]["n_H"]*((c.parsec * 1e3) ** 3)*dataDict[selectKey]["vol"]*c.amu*dataDict[selectKey]["gmet"][:,0]/(c.msol))
-                # # #     dataDict[selectKey]["M_HI"] = (dataDict[selectKey]["n_HI"]*((c.parsec * 1e3) ** 3)*dataDict[selectKey]["vol"]*c.amu*dataDict[selectKey]["gmet"][:,0]/(c.msol))
-                # # #     tmpCRPARAMS["saveParams"] = tmpCRPARAMS["saveParams"] + ["M_H"]
-                # # #     tmpCRPARAMS["saveParams"] = tmpCRPARAMS["saveParams"] + ["M_HI"]
-
                 dat = cr.cr_calculate_statistics(
                     dataDict=dataDict[selectKey],
                     CRPARAMS=tmpCRPARAMS,
@@ -700,6 +692,7 @@ if __name__ == "__main__":
 
                 if ("R" in CRPARAMS["logParameters"]):
                     xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+
 
                 # # for pressureRatio in ["Pthermal_Pmagnetic","PCR_Pthermal","PCR_Pmagnetic"]:
                 # #     if pressureRatio in list(dataDict[selectKey].keys()):
@@ -734,6 +727,8 @@ if __name__ == "__main__":
 
                     if ("R" in CRPARAMS["logParameters"]):
                         xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+
+
 
                     # Create variant of xlimDict specifically for images of col params
                     tmpxlimDict = copy.deepcopy(xlimDict)
@@ -816,6 +811,7 @@ if __name__ == "__main__":
 
                 if ("R" in CRPARAMS["logParameters"]):
                     xlimDict["R"]['xmax'] = np.log10(xlimDict["R"]['xmax'])
+
                     
                 apt.cr_medians_versus_plot(
                     tmpStatsDict,
@@ -913,7 +909,6 @@ if __name__ == "__main__":
                         savePathBase = COLCRPARAMS["savepathfigures"],
                         savePathBaseFigureData = COLCRPARAMS["savepathdata"] + figureDataSavePathModifier,
                         inplace = inplace,
-                        saveFigureData = True,
                         allowPlotsWithoutxlimits = determineXlimits,
                     )
 

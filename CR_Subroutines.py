@@ -173,6 +173,14 @@ def cr_analysis_radial(
 
     snap.data["R"] = np.linalg.norm(snap.data["pos"], axis=1)
     rvir = (snap_subfind.data["frc2"] * 1e3)[CRPARAMS["HaloID"]]
+    
+    ## This should allow for R to remain in kpc when R is requested in logarithmic units. Keeps a copy of the original rvir for saving alongside that rest of single value parameters at end of function call.
+    if ("R" in CRPARAMS["logParameters"]):
+        rvirproper=copy.deepcopy(rvir)
+        rvir = 1.0
+    else:
+        rvirproper=copy.deepcopy(rvir)
+
     stellarType = 4
     rdisc = (snap_subfind.data["shmt"] * 1e3)[CRPARAMS["HaloID"]][stellarType]
     
@@ -182,7 +190,8 @@ def cr_analysis_radial(
         f"[@{int(snapNumber)}]: Remove beyond {boxmax:2.2f} kpc..."
     )
 
-    whereOutsideBox = np.abs(snap.data["pos"]) > boxmax
+    ## For images we want to expand boxmax (which is given in _radial_ distance) to cover the diagonals of the plotted area (plus 2.5% to remove any fuzziness at corners of image)
+    whereOutsideBox = np.abs(snap.data["pos"]) > boxmax*np.sqrt(2.0)*1.025
 
     snap = remove_selection(
         snap,
@@ -256,7 +265,7 @@ def cr_analysis_radial(
         # Thus, we want to provide empty limits for the colourbars of these images as they will almost
         # certainly require different limits to those provided for the PDF plots, for example. 
         # In particular, params like mass will need very different limits to those used in the
-        # PDF plots. We have left this side effect in this code version as it provides a useful
+        # PDF plots. I have left this side effect in this code version as it provides a useful
         # way of testing whether making a projection of unusual params to image (e.g. mass, or volume)
         # provide sensible, physical results.
         for key in additionalColParams:
@@ -300,7 +309,7 @@ def cr_analysis_radial(
             )
 
             if tmpdict is not None:
-                innerColout.update({param: (copy.deepcopy(tmpdict[param]["grid"])).reshape(-1)})
+                innerColout.update({param: (copy.deepcopy(tmpdict[param]["grid"])).flatten()})
                 
                 # !!
                 # You !! MUST !! provide type data for data that is no longer snapshot associated and thus
@@ -316,23 +325,42 @@ def cr_analysis_radial(
                 newShape = np.shape(innerColout[param])
                 innerColout.update({"type": np.full(shape=newShape, fill_value=0)})
 
-                if (CRPARAMS["xParam"] == "R") & (CRPARAMS["xParam"] not in list(innerColout.keys())):
-                    xx = (copy.deepcopy(tmpdict[param]["x"])).reshape(-1)
-                    xx = np.array(
-                        [
-                            (x1 + x2) / 2.0
-                            for (x1, x2) in zip(xx[:-1], xx[1:])
-                        ]
-                    )
-                    yy = (copy.deepcopy(tmpdict[param]["y"])).reshape(-1)
-                    yy = np.array(
-                        [
-                            (x1 + x2) / 2.0
-                            for (x1, x2) in zip(yy[:-1], yy[1:])
-                        ]
-                    )
-                    values = np.linalg.norm(np.asarray(np.meshgrid(xx,yy)), axis=0).reshape(-1)
-                    innerColout.update({"R": values/rvir})
+
+                if CRPARAMS["averageAcrossAxes"] is True:
+                    xx = (copy.deepcopy(tmpdict[param]["x"]))[:,0]
+                    yy = (copy.deepcopy(tmpdict[param]["y"]))[:,0]
+                else:
+                    xx = (copy.deepcopy(tmpdict[param]["x"]))[0]
+                    yy = (copy.deepcopy(tmpdict[param]["y"]))[0]
+
+                xx = np.array(
+                    [
+                        (x1 + x2) / 2.0
+                        for (x1, x2) in zip(xx[:-1], xx[1:])
+                    ]
+                )
+                
+                yy = np.array(
+                    [
+                        (x1 + x2) / 2.0
+                        for (x1, x2) in zip(yy[:-1], yy[1:])
+                    ]
+                )
+
+                coordGrid = np.asarray(np.meshgrid(xx,yy))
+                values = np.linalg.norm(coordGrid, axis=0).flatten()
+                if CRPARAMS["averageAcrossAxes"] is True:
+                    tmp = copy.deepcopy(values)
+                    values = np.stack((values,values,values),axis=0)
+                    tmpxx = copy.deepcopy(coordGrid[0,:,:])
+                    tmpyy = copy.deepcopy(coordGrid[1,:,:])
+                    xx = np.stack((tmpxx,tmpxx,tmpxx),axis=0)
+                    yy = np.stack((tmpyy,tmpyy,tmpyy),axis=0)
+                
+                innerColout.update({"R": (copy.deepcopy(values/rvir)).flatten(order="F")})
+                innerColout.update({"x": (copy.deepcopy(xx/rvir)).flatten(order="F")})
+                innerColout.update({"y": (copy.deepcopy(yy/rvir)).flatten(order="F")})
+                
     
     for param in CRPARAMS["imageParams"]+["Tdens", "rho_rhomean"]:
         try:
@@ -649,31 +677,31 @@ def cr_analysis_radial(
     inner["Redshift"] = np.array([redshift])
     inner["Lookback"] = np.array([lookback])
     inner["Snap"] = np.array([snapNumber])
-    inner["Rvir"] = np.array([rvir])
+    inner["Rvir"] = np.array([rvirproper])
     inner["Rdisc"] = np.array([rdisc])
 
     innerStars["Redshift"] = np.array([redshift])
     innerStars["Lookback"] = np.array([lookback])
     innerStars["Snap"] = np.array([snapNumber])
-    innerStars["Rvir"] = np.array([rvir])
+    innerStars["Rvir"] = np.array([rvirproper])
     innerStars["Rdisc"] = np.array([rdisc])
 
     innerColout["Redshift"] = np.array([redshift])
     innerColout["Lookback"] = np.array([lookback])
     innerColout["Snap"] = np.array([snapNumber])
-    innerColout["Rvir"] = np.array([rvir])
+    innerColout["Rvir"] = np.array([rvirproper])
     innerColout["Rdisc"] = np.array([rdisc])
 
     quadPlotDict["Redshift"] = np.array([redshift])
     quadPlotDict["Lookback"] = np.array([lookback])
     quadPlotDict["Snap"] = np.array([snapNumber])
-    quadPlotDict["Rvir"] = np.array([rvir])
+    quadPlotDict["Rvir"] = np.array([rvirproper])
     quadPlotDict["Rdisc"] = np.array([rdisc])
 
     innerFull["Redshift"] = np.array([redshift])
     innerFull["Lookback"] = np.array([lookback])
     innerFull["Snap"] = np.array([snapNumber])
-    innerFull["Rvir"] = np.array([rvir])
+    innerFull["Rvir"] = np.array([rvirproper])
     innerFull["Rdisc"] = np.array([rdisc])
 
     # # Make normal dictionary form of snap
@@ -883,7 +911,7 @@ def cr_flatten_wrt_time(input, stack = True, verbose = False, hush = False):
     else:
         dataDict = copy.deepcopy(input)
 
-    if hush is False: print("Flattening data...")
+    if verbose: print("Flattening data...")
     flatData = {}
 
     keys = list(dataDict.keys())
@@ -902,21 +930,22 @@ def cr_flatten_wrt_time(input, stack = True, verbose = False, hush = False):
     digitTruthy = np.asarray([str(kk).isdigit() for kk in keysLastElements])
     isNumericSequence = np.all(digitTruthy)
     if isNumericSequence == True:
-        if hush is False: print("\n"+f"[@cr_flatten_wrt_time]: Last element of tuple in keys detected as being numeric! Will sort data by these numerals, in ascending order."+"\n")
+        if verbose: print("\n"+f"[@cr_flatten_wrt_time]: Last element of tuple in keys detected as being numeric! Will sort data by these numerals, in ascending order."+"\n")
         keysLastElements = [float(kk) for kk in keysLastElements]
         order = np.argsort(np.asarray(keysLastElements)).tolist()
         keysLastElements = [keysLastElements[ii] for ii in order]
         keysRestOfElements = [keysRestOfElements[ii] for ii in order]
         if verbose: print(f"[@cr_flatten_wrt_time]: Sorted keysLastElements (the numerals...): {keysLastElements}")
         if verbose: print(f"[@cr_flatten_wrt_time]: Sorted keysRestOfElements (the rest of the original tuple keys...): {keysRestOfElements}")
-        
+    else:
+        if hush is False: warnings.warn(f"[@cr_flatten_wrt_time]: Last element of tuple in keys detected as non-numeric!")
 
 
     combinedDataKeys = pd.unique(keysRestOfElements)
     if verbose: print(f"[@cr_flatten_wrt_time]: combinedDataKeys (the new unique tuple keys after data is flattened...): {combinedDataKeys}")
 
     for ii, key in enumerate(combinedDataKeys):
-        if hush is False: print(f"{float(ii)/float(len(combinedDataKeys)):3.1%}")
+        if verbose: print(f"{float(ii)/float(len(combinedDataKeys)):3.1%}")
         flattenList = []
         for kk in dataDict.keys():
             if ((len(kk[:-1])>1) & (tuple(kk[:-1])==key)) or ((len(kk[:-1])==1) & (kk[0]==key)):
@@ -934,6 +963,8 @@ def cr_flatten_wrt_time(input, stack = True, verbose = False, hush = False):
                     raise Exception(f"[@cr_flatten_wrt_time]: ERROR! FATAL! Data for {kk} {dd} not found! Cannot flatten data where data contained is inconsistent between snapshots/entries!")
                 toCombine.append(np.asarray(tmp))
 
+            if verbose: print(f"[@cr_flatten_wrt_time]: original dataDict {key} data {dd} has data of shape {tmp.shape}")
+
             if stack == True:
                 outvals = np.stack((toCombine), axis=-1)
             else:
@@ -947,7 +978,7 @@ def cr_flatten_wrt_time(input, stack = True, verbose = False, hush = False):
 
         flatData.update({key: innerData})
     
-    if hush is False: print("...flattening done!")
+    if verbose: print("...flattening done!")
     return flatData
 
 
@@ -981,6 +1012,7 @@ def cr_calculate_statistics(
     printpercent=5.0,
     exclusions = ["Redshift", "Lookback", "Snap", "Rvir", "Rdisc"],
     weightedStatsBool = True,
+    averageAcrossAxes = False,
 ):
 
     if exclusions is None:
@@ -996,27 +1028,33 @@ def cr_calculate_statistics(
     
     print(f"[@cr_calculate_statistics]: Excluded properties (as passed into 'exclusions' kwarg): {exclusions}")
 
+    if dataDict[xParam].ndim>1:
+        warnings.warn(f"[@cr_calculate_statistics]: xParam data is has shape {np.shape(dataDict[xParam])}! Unless the data is in vector format, the data array should be one dimensional. Please ensure this is the desired behaviour...")
 
     print("[@cr_calculate_statistics]: Generate bins")
+
     xBins = np.linspace(
         start=xlimDict[xParam]["xmin"], stop=xlimDict[xParam]["xmax"], num=Nbins+1
     )
-
-    if ((xParam in CRPARAMS["logParameters"])):
+    if (xParam in CRPARAMS["logParameters"]):
         xBins = np.power(10.0,xBins)
+
 
     xmin, xmax = np.nanmin(xBins), np.nanmax(xBins)
 
-    where_within = np.where((dataDict[xParam] >= xmin) & (dataDict[xParam] < xmax))[0]
+    where_within = np.where((dataDict[xParam] >= xmin) & (dataDict[xParam] < xmax))#[0]
 
     sort_ind = np.argsort(dataDict[xParam][where_within],axis=0)
-    
+
     sortedData ={}
     print("[@cr_calculate_statistics]: Sort data by xParam")
     for param, values in dataDict.items():
         if (param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]) & (
             param not in exclusions
         ):
+            if values.ndim>1:
+                warnings.warn(f"[@cr_calculate_statistics]: {param} data is has shape {np.shape(values)}! Unless the data is in vector format, the data array should be one dimensional. Please ensure this is the desired behaviour...")
+            
             sortedData.update({param: copy.deepcopy(values[where_within][sort_ind])})
     
     xData = []
@@ -1025,20 +1063,30 @@ def cr_calculate_statistics(
     # print(xBins)
     print("[@cr_calculate_statistics]: Calculate statistics from binned data")
     for (ii, (xmin, xmax)) in enumerate(zip(xBins[:-1], xBins[1:])):
-        # print(xmin,xParam,xmax)
+        # if (CRPARAMS["averageAcrossAxes"] is True)&(param == "n_H_col"): print(f"DEBUG [@cr_calculate_statistics]: xmin={xmin}, xParam={xParam}, xmax={xmax}")
         percentage = (float(ii) / float(len(xBins[:-1]))) * 100.0
         if percentage >= printcount:
             print(f"{percentage:0.02f}% of statistics calculated!")
             printcount += printpercent
         xData.append((float(xmax) + float(xmin)) / 2.0)
+
         whereData = np.where((sortedData[xParam] >= xmin) & (sortedData[xParam] < xmax))[0]
+
+        ## By design this next loop will also iterate over xParam. This means that as the data is binned, and removed for each param, the range of xParam values used to bin will also be removed. This keeps the data shapes consistent for broadcasting, and allows for significant speed increases as the searched arrays reduce in size.
         binnedData = {}
         for param, values in sortedData.items():
-            if (param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]) & (
-                param not in exclusions
-            ):
+            if ((param in CRPARAMS["saveParams"] + CRPARAMS["saveEssentials"]) & (
+                param not in exclusions)
+                ):
+                
+                # if (CRPARAMS["averageAcrossAxes"] is True)&(param == "n_H_col"):
+                    # print(
+                    #     f"DEBUG [@cr_calculate_statistics]: {xParam} 3D! First 3 {xParam} values in current binning are {sortedData[xParam][whereData][0:3]}"
+                    #     +"\n"
+                    #     +f"First 3 {param} data values in current binning are {values[whereData][0:3]}")
                 binnedData.update({param: values[whereData]})
                 sortedData.update({param: np.delete(values,whereData,axis=0)})
+                # if param == "n_H_col": STOP1081
 
         dat = tr.calculate_statistics(
             binnedData,
@@ -1052,6 +1100,59 @@ def cr_calculate_statistics(
         datList.append(dat)
 
     statsData = {key: np.asarray([dd[key] for dd in datList if key in dd.keys()]) for key in datList[0].keys()}
+
+    ##===========##
+    ## Check for ratios of other physical properties, and revert to ratio of each individual property's statistics rather than statistics of their ratio
+    ##===========##
+    ratioParams = []
+    ratiosToReplace = []
+    dataDictKeys = list(dataDict.keys())
+    splitKeys = [key.split("_")[:-1] for key in list(statsData.keys())]
+
+    ## Assuming any ratio will be given in form "XX_YY", check for length two entries
+    if len(splitKeys) > 0:
+        for paramKeys in splitKeys:
+            if (len(paramKeys)==2):
+                ratioPair = []
+                replacePair = []
+                ## Possible ratio. Check if any of the original keys in dataDict match one of the entries in the possible ratio
+                for individualParam in paramKeys:
+                    if individualParam in dataDictKeys:
+                        ratioPair.append(individualParam)
+                        replacePair.append(individualParam) ## Replace key is already in original parameter format, so is same as ratio key
+
+                    ## Also check for ratios in format "XX_YY" where original properties are stored as "X_X" and "Y_Y" e.g. n_H, P_thermal, etc, but are stored as nH/YY or Pthermal/YY (or XX/nH etc.)
+                    for nn in range(0,len(individualParam)): 
+                        testParam = individualParam[:nn]+"_"+individualParam[nn:]
+                        if testParam in dataDictKeys:
+                            ratioPair.append(testParam)
+                            replacePair.append(individualParam) ## Replace key is ~not~ in original parameter format, so need to add statsData specific key version that we are replacing
+                            
+                if ((len(ratioPair)==2)&(len(replacePair)!=2))|((len(ratioPair)!=2)&(len(replacePair)==2)):
+                    raise AttributeError(f"[@cr_calculate_statistics]: ratioPair and replacePair are not both of length 2! len(ratioPair)={len(ratioPair)} , len(replacePair)={len(replacePair)} . Check logic!")
+                elif ((len(ratioPair)==2)&(len(replacePair)==2)):
+                    ratioParams.append(ratioPair)
+                    ratiosToReplace.append(replacePair)
+                elif ((len(ratioPair)==0)&(len(replacePair)==0)):
+                    pass
+
+    if len(ratioParams) >0:
+        for ((numerator,denominator),(replaceNumer,replaceDenom)) in zip(ratioParams,ratiosToReplace):
+            for percentile in CRPARAMS["percentiles"]:
+                numeratorPerc = numerator + "_"+ f"{percentile:.2f}%"
+                denominatorPerc = denominator + "_"+ f"{percentile:.2f}%"
+                replace = replaceNumer+"_"+replaceDenom + "_"+ f"{percentile:.2f}%"
+                try:
+                    statsData[replace] = copy.deepcopy(statsData[numeratorPerc]/statsData[denominatorPerc])
+                except:
+                    raise AttributeError(f"[@cr_calculate_statistics]:{replace} cannot be replace with ratio of statistics of {numerator} divided by statistics of {denominator}. This should not happen, as all replacement keys are compared to available original data dictionary keys. Check logic!")
+                
+            replace = replaceNumer+"_"+replaceDenom
+            print(f"[@cr_calculate_statistics]: {replace} replaced with ratio of statistics of {numerator} divided by statistics of {denominator}.")
+            
+            
+
+    ##===========##
 
     # # paramsInData = list(dataDict.keys())
     # # for param in exclusions:
