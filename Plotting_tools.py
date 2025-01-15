@@ -1050,7 +1050,7 @@ def pdf_versus_plot(
                         hist = hist/1e10   #1e10 Msol units
 
 
-                elif cumulative is True:
+                if cumulative is True:
                     hist = np.cumsum(hist)
                     if normalise is True:
                         hist /= np.nanmax(hist)
@@ -1078,8 +1078,41 @@ def pdf_versus_plot(
                 else:
                     label= ""
 
-                colour = "blue"
-                linestyle = "solid"
+                if combineMultipleOntoAxis is False:
+                    colour = "blue"
+                    linestyle = "solid"
+                else:
+                    if selectKeysList is not None:
+                        analysisSelectKey = selectKeysList[jj]
+                        if ("Stars" in analysisSelectKey) | ("col" in analysisSelectKey) :
+                            analysisSelectKeyShort = tuple([xx for xx in analysisSelectKey if (xx != "Stars") & (xx != "col")])
+                        else:
+                            analysisSelectKeyShort = analysisSelectKey
+                        
+                        if labels is None:
+                            labelKey = analysisSelectKeyShort
+                        else:
+                            labelKey = labels[analysisSelectKey]
+
+                            
+                        if type(labelKey)!=tuple:
+                            labelKey = tuple([labelKey])
+
+                        accentCorrectSKeyList = [yy if yy!="Alfven" else "Alfvén" for zz in [xx.split("_") for xx in list(labelKey)] for yy in zz]
+                        label = " ".join(accentCorrectSKeyList)
+                        if styleDict is not None:
+                            colour=styleDict[analysisSelectKeyShort]["colour"]
+                            linestyle=styleDict[analysisSelectKeyShort]["linestyle"]
+                        else:
+                            colour = None #"blue"
+                            linestyle = "solid"
+                            warnings.warn(f"[@pdf_versus_plot]: Failure labelling PDF curve. StyleDict evaluated as None. Check logic.")
+                    else:
+                        label = "" # edit this to reflect data source if possible...
+                        colour = "blue"
+                        linestyle = "solid"
+                        warnings.warn(f"[@pdf_versus_plot]: Failure labelling PDF curve. selectKeysList evaluated as None. Check logic.")
+                                            
                 xFromBins = np.array(
                     [
                         (x1 + x2) / 2.0
@@ -1091,8 +1124,8 @@ def pdf_versus_plot(
                 if combineMultipleOntoAxis is False:
                     selectKey = (analysisParam, weightKey)
                     try:
-                        hist = dataDict[selectKey]["y"]
-                        xFromBins = dataDict[selectKey]["x"]
+                        hist = dataDict[selectKey]["y"].flatten()
+                        xFromBins = dataDict[selectKey]["x"].flatten()
                     except Exception as e:
                         # raise Exception(e)
                         print(f"{str(e)}")
@@ -1129,16 +1162,18 @@ def pdf_versus_plot(
                         else:
                             colour = None #"blue"
                             linestyle = "solid"
+                            warnings.warn(f"[@pdf_versus_plot]: Failure labelling PDF curve. StyleDict evaluated as None. Check logic.")
                     else:
                         label = "" # edit this to reflect data source if possible...
                         colour = "blue"
                         linestyle = "solid"
+                        warnings.warn(f"[@pdf_versus_plot]: Failure labelling PDF curve. selectKeysList evaluated as None. Check logic.")
 
                     selectKey = (analysisParam, weightKey)
 
                     try:
-                        hist = dataDict[selectKey]["y"]
-                        xFromBins = dataDict[selectKey]["x"]
+                        hist = dataDict[selectKey]["y"].flatten()
+                        xFromBins = dataDict[selectKey]["x"].flatten()
                     except Exception as e:
                         # raise Exception(e)
                         print(f"{str(e)}")
@@ -1168,7 +1203,7 @@ def pdf_versus_plot(
                         #Move to integrated histogram for SFR when cumulative is true
                         tmphist = copy.deepcopy(hist)
                         hist = np.asarray([dx*(tmphist[ii]+tmphist[ii+1])/2.0 for ii in range(0,len(hist)-1)])
-                        if np.shape(hist)[0] != np.shape(xFromBins)[0]:
+                        if np.shape(hist)[0] != (np.shape(xFromBins)[0]):
                             hist = np.pad(hist,(1,0), "constant", constant_values=(tmphist[0]))
                         hist = hist/1e10   #1e10 Msol units
 
@@ -1575,7 +1610,7 @@ def load_pdf_versus_plot_data(
                 continue
             if skipBool is False: toCombine.update({("data",int(snapNumber)) : copy.deepcopy(tmp[tmpkey])})
         if skipBool is False:
-            flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = not verbose)
+            flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = hush)
             out.update({(analysisParam, weightKey) : flattened["data"]})
 
     return out
@@ -1591,6 +1626,7 @@ def load_phase_plot_data(
     selectKeyLen=2,
     delimiter="-",
     verbose = False,
+    hush = False,
     ):
 
     loadPath = loadPathBase + "Plots/Phases/"
@@ -1656,7 +1692,7 @@ def load_phase_plot_data(
                         continue
                     if skipBool is False: toCombine.update({("data",int(snapNumber)) : copy.deepcopy(tmp[tmpkey])})
                 if skipBool is False:
-                    flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = not verbose)
+                    flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = hush)
                     out.update({(xParam, yParam, colourBarKey) : flattened["data"]})
 
     return out
@@ -1670,6 +1706,7 @@ def load_statistics_data(
     selectKeyLen=2,
     delimiter="-",
     verbose = False,
+    hush = False
     ):
 
     loadPath = loadPathBase
@@ -1706,7 +1743,7 @@ def load_statistics_data(
             for key,val in tmp.items():
                 updatedtmp.update({tuple(list(key)+[str(snapNumber)]) : copy.deepcopy(val)})
             toCombine.update(updatedtmp)
-    flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = not verbose)
+    flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = hush)
     out.update(flattened)
 
     return out
@@ -1736,9 +1773,10 @@ def hy_load_individual_slice_plot_data(
 
     out = {}
 
-    # AxesLabels = ["z","x","y"]
+    # Axes Labels to allow for adaptive axis selection
+    AxesLabels = ["z","x","y"]
     # # #Legacy labelling...
-    AxesLabels = ["x","y","z"]
+    # AxesLabels = ["x","y","z"]
 
     if averageAcrossAxes & allowFindOtherAxesData:
         print(f"[hy_load_individual_slice_plot_data]: WARNING! Cannot have both averageAcrossAxes AND allowFindOtherAxesData both set to True"
@@ -1799,7 +1837,7 @@ def hy_load_individual_slice_plot_data(
                 fileFound = False
 
 
-        elif (((fileFound == False) & (allowFindOtherAxesData == True) ) | (averageAcrossAxes == True)):
+        if (((fileFound == False) & (allowFindOtherAxesData == True) ) | (averageAcrossAxes == True)):
             if averageAcrossAxes == False:
                 possibleAxes = permutations(range(len(AxesLabels)),2)
 
@@ -1893,8 +1931,6 @@ def hy_load_individual_slice_plot_data(
         tmp2 = cr.cr_flatten_wrt_time(toCombine, stack = False, verbose = verbose, hush = hush)
         # if paramSplitList[-1] == "col": STOP1891
         inner.update(tmp2)
-    
-    # """Andy, go and update all time-averaging scirpt instances of colDens plots to stack=False merge colDens data _again_ before plotting, and debug to ensure flattened versions of x, y, and grid map correctly to one another!"""
 
     if bool(inner) is False:
         raise Exception(f"[hy_load_individual_slice_plot_data]: FAILURE! No data found! Please check file locations and kwargs entered for this call!")
@@ -2246,6 +2282,25 @@ def plot_slices(snap,
             projection = np.pad(np.asarray(projection).reshape(-1,figshape[1]),((0,1),(0,0)),constant_values=None)
             projection = projection.flatten().tolist()
             hasPlotMask = np.pad(hasPlotMask,((0,1),(0,0)),constant_values=False)
+    else:
+        cbarscale = cbarscale/2.0
+
+        figshape = list(tuple([1,1]))
+        newxsize = xsize
+        newysize = ysize
+        width = 1.0 + cbarscale
+        height = 1.0
+        aspect_ratio = width/height
+        newxsize = xsize*aspect_ratio
+        newysize = ysize
+
+        tmp = list(figshape)
+        tmp[1] += 1
+        figshape = tuple(tmp)
+
+        # print(height,width)
+        # print(newysize,newxsize)
+
 
     if subfigures:
         if (compareSelectKeysOn.lower() == "horizontal"):
@@ -2277,6 +2332,18 @@ def plot_slices(snap,
             cbardrawn = np.full(figshape[1],fill_value=False)
             whereNoPlots = np.where(np.all(~hasPlotMask,axis=0)==True)[0]
             cbardrawn[whereNoPlots] = True
+
+    else:
+        fig, axes = plt.subplots(
+            nrows=1,
+            ncols=2,
+            figsize=(newxsize, newysize),
+            dpi=DPI,
+            gridspec_kw={'width_ratios': [1]*multcols + [cbarscale]},
+            sharey = sharey,
+            sharex = sharex,
+            squeeze = False,
+        )
 
         # if np.any(np.asarray(figshape)==1):
         #     reorder = np.argsort(figshape)
@@ -2504,7 +2571,8 @@ def plot_slices(snap,
                     #out = {param: copy.deepcopy(slice)}
                     toCombine.update({(param, str(jj)): copy.deepcopy(tmp[param])})
                 out = cr.cr_flatten_wrt_time(toCombine, stack = True, verbose = verbose, hush = not verbose)
-
+                
+                # check shape and key vals of out. assess shape of data needed for subsequent sections inc. return to func above that called, saving and loading, plotting, averaging. e.g. [grid_n,grid_n,3,n_snaps] ??
 
                 # # # for sKey, data in out.items():
                 # # #     dataCopy = copy.deepcopy(data)
@@ -2553,7 +2621,74 @@ def plot_slices(snap,
                 nz=None #int(boxlos / pixreslos)
                 boxz= None #boxlos
 
-            if param == "T":
+            ##===========##
+            ## Check for ratios of other physical properties, and revert to ratio of each individual property's slice rather than slice of their ratio
+            ##===========##
+            ratioParams = []
+            ratiosToReplace = []
+            dataDictKeys = list(snap.data.keys())
+            splitKeys = [param.split("_")]
+
+            ## Assuming any ratio will be given in form "XX_YY", check for length two entries
+            if len(splitKeys) > 0:
+                for paramKeys in splitKeys:
+                    if (len(paramKeys)==2):
+                        ratioPair = []
+                        replacePair = []
+                        ## Possible ratio. Check if any of the original keys in dataDict match one of the entries in the possible ratio
+                        for individualParam in paramKeys:
+                            if individualParam in dataDictKeys:
+                                ratioPair.append(individualParam)
+                                replacePair.append(individualParam) ## Replace key is already in original parameter format, so is same as ratio key
+
+                            ## Also check for ratios in format "XX_YY" where original properties are stored as "X_X" and "Y_Y" e.g. n_H, P_thermal, etc, but are stored as nH/YY or Pthermal/YY (or XX/nH etc.)
+                            for nn in range(0,len(individualParam)): 
+                                testParam = individualParam[:nn]+"_"+individualParam[nn:]
+                                if testParam in dataDictKeys:
+                                    ratioPair.append(testParam)
+                                    replacePair.append(individualParam) ## Replace key is ~not~ in original parameter format, so need to add the original version to ratioPair, and indicate that the original version of the key should be used when replacing the data from the original properties used in the ratio
+                                    
+                        if ((len(ratioPair)==2)&(len(replacePair)!=2))|((len(ratioPair)!=2)&(len(replacePair)==2)):
+                            raise AttributeError(f"[@plot_slices]: ratioPair and replacePair are not both of length 2! len(ratioPair)={len(ratioPair)} , len(replacePair)={len(replacePair)} . Check logic!")
+                        elif ((len(ratioPair)==2)&(len(replacePair)==2)):
+                            ratioParams.append(ratioPair)
+                            ratiosToReplace.append(replacePair)
+                        elif ((len(ratioPair)==0)&(len(replacePair)==0)):
+                            pass
+
+            if len(ratioParams) >0:
+                for replaceNumer,replaceDenom in ratioParams:
+                    try:
+                        slice = snap.get_Aslice(
+                            replaceNumer,
+                            box=[boxsize, boxsize],
+                            center=imgcent,
+                            nx=int(boxsize / pixres),
+                            ny=int(boxsize / pixres),
+                            nz=nz,
+                            boxz=boxz,
+                            axes=Axes,
+                            proj=proj,
+                            numthreads=numthreads,
+                        )
+                        denomslice = snap.get_Aslice(
+                            replaceDenom,
+                            box=[boxsize, boxsize],
+                            center=imgcent,
+                            nx=int(boxsize / pixres),
+                            ny=int(boxsize / pixres),
+                            nz=nz,
+                            boxz=boxz,
+                            axes=Axes,
+                            proj=proj,
+                            numthreads=numthreads,
+                        )                    
+                        slice["grid"] = slice["grid"]/denomslice["grid"]
+                        print(f"[@plot_slices]:{param} replaced with ratio of slice of {replaceNumer} divided by slice of {replaceDenom}.")
+                    except:
+                        raise AttributeError(f"[@plot_slices]:{param} cannot be replace with ratio of slice of {replaceNumer} divided by slice of {replaceDenom}. This should not happen, as all replacement keys are compared to available original data dictionary keys. Check logic!")                   
+                     
+            elif param == "T":
                 slice  = snap.get_Aslice(
                     "Tdens",
                     box=[boxsize, boxsize],
@@ -2610,10 +2745,10 @@ def plot_slices(snap,
 
         if saveFigure is True:
             if subfigures == False:
-                fig, axes = plt.subplots(
-                    nrows=1, ncols=1, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
-                )
-                currentAx = axes
+                # fig, axes = plt.subplots(
+                #     nrows=1, ncols=1, figsize=(xsize, ysize), dpi=DPI, sharex=True, sharey=True
+                # )
+                currentAx = axes[0,0]
                 currentAx.tick_params(axis="both", which="both", direction="in",labelsize=fontsize, top=True, bottom=True, left=True, right=True)
 
             else:
@@ -2743,7 +2878,10 @@ def plot_slices(snap,
                 caxtickloc = "left"
                 labellocation = "left"
                 im = imageArray[0]
-                clb = plt.colorbar(im, ax = currentAx, ticks=cbarticklocator, format=formatter, orientation = caxorient, ticklocation = caxtickloc)#, shrink=0.85)
+                tmpAx = axes[0,1]
+                tmpAx.axis('off')
+                #cax1 = inset_axes(currentAx, width="5%", height="95%", loc="right")
+                clb = plt.colorbar(im, ax = axes[0,1], ticks=cbarticklocator, format=formatter, orientation = caxorient, ticklocation = caxtickloc)
                 clb.set_label(label=f"{ylabel[param]}", size=fontsize)
                 clb.ax.yaxis.set_ticks_position(labellocation)
                 clb.ax.tick_params(axis="both", which="both", labelsize=fontsize)
@@ -2786,7 +2924,11 @@ def plot_slices(snap,
                 opslaan = savePath + f"Projection_Plot_{AxesLabels[Axes[0]]}-{AxesLabels[Axes[1]]}_{param}{SaveSnapNumber}.pdf"
 
             if subfigures == False:
+                currentAx.set_xlabel(f"{AxesLabels[Axes[0]]}" + " (kpc)", fontsize=fontsize)
+                currentAx.set_ylabel(f"{AxesLabels[Axes[1]]}" + " (kpc)", fontsize=fontsize)
                 print(f" Save {opslaan}")
+                plt.gca()
+                plt.subplots_adjust(hspace=0.0, wspace=0.0, top=0.925, bottom=0.075, left=0.15, right=0.90)
                 plt.savefig(opslaan, transparent=False)
                 plt.close()
 
@@ -3290,7 +3432,6 @@ def medians_versus_plot(
                             xData = np.array(copy.deepcopy(simDict[selectKey][xParam]))
 
 
-
                     loadPercentilesTypes = [
                         analysisParam + "_" + str(percentile) + "%"
                         for percentile in PARAMS[selectKeyShort]["percentiles"]
@@ -3301,14 +3442,12 @@ def medians_versus_plot(
                     LO = (
                         analysisParam
                         + "_"
-                        + str(min(PARAMS[selectKeyShort]["percentiles"]))
-                        + "%"
+                        + f"{min(PARAMS[selectKeyShort]['percentiles']):.2f}%"
                     )
                     UP = (
                         analysisParam
                         + "_"
-                        + str(max(PARAMS[selectKeyShort]["percentiles"]))
-                        + "%"
+                        + f"{max(PARAMS[selectKeyShort]['percentiles']):.2f}%"
                     )
                     median = analysisParam + "_" + "50.00%"
 
@@ -3350,6 +3489,7 @@ def medians_versus_plot(
                         if replotFromData is False: skipBool = True
                         continue
 
+    
                     if skipBool == True: continue
 
                     if superParamKey in PARAMS[selectKeyShort]["logParameters"]:
@@ -4597,6 +4737,49 @@ def hy_load_statistics_data(
 
     return out
 
+def hy_load_column_density_data(
+    selectKeysList,
+    loadPathList,
+    snapRange,
+    loadPathBase = "./",
+    loadFile = "colDict",
+    fileType = ".h5",
+    stack = False,
+    selectKeyLen=4,
+    delimiter="-",
+    verbose = False,
+    hush = False,
+    ):
+
+    out = {}
+
+    for loadpath,selectKey in zip(loadPathList,selectKeysList):
+        print(selectKey)
+
+        datapath = loadPathBase + loadpath + "Data"
+
+        toCombine = {}
+        for snapNumber in snapRange:
+            loadPathSnap = datapath + f"_{int(snapNumber)}_"+loadFile+fileType
+            try:
+                tmp = tr.hdf5_load(loadPathSnap,selectKeyLen=selectKeyLen,delimiter=delimiter)
+            except Exception as e:
+                print(str(e))
+                continue
+
+            if ((list(tmp.keys())[0][-1]).isdigit() == True):
+                toCombine.update(copy.deepcopy(tmp))
+            else:
+                updatedtmp = {}
+                for val in tmp.values():
+                    updatedtmp.update({tuple(list(selectKey)+[str(snapNumber)]) : copy.deepcopy(val)})
+                toCombine.update(updatedtmp)   
+
+        flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = hush)
+        out.update(copy.deepcopy(flattened))
+
+    return out
+
 def hy_load_slice_plot_data(
     selectKeysList,
     loadPathList,
@@ -5511,6 +5694,60 @@ def cr_load_statistics_data(
                 )
 
             out.update({selectKey : copy.deepcopy(tmp)})
+
+    return out
+
+def cr_load_column_density_data(
+    selectKeysList,
+    CRPARAMS,
+    snapRange,
+    loadPathBase = "./",
+    loadFile = "colDict",
+    fileType = ".h5",
+    stack = False,
+    selectKeyLen=4,
+    delimiter="-",
+    verbose = False,
+    hush = False,
+    ):
+
+    out = {}
+
+    for selectKey in selectKeysList:
+        if ("Stars" in selectKey) | ("col" in selectKey) :
+            selectKeyShort = tuple([xx for xx in selectKey if (xx != "Stars") & (xx != "col")])
+        else:
+            selectKeyShort = selectKey
+
+        loadpath = CRPARAMS[selectKeyShort]["simfile"]
+        if loadpath is not None:
+            print(f"{CRPARAMS[selectKeyShort]['resolution']}, {CRPARAMS[selectKeyShort]['CR_indicator']}{CRPARAMS[selectKeyShort]['no-alfven_indicator']}")
+
+            simSavePath = f"type-{CRPARAMS[selectKeyShort]['analysisType']}/{CRPARAMS[selectKeyShort]['halo']}/"+f"{CRPARAMS[selectKeyShort]['resolution']}/{CRPARAMS[selectKeyShort]['CR_indicator']}"+f"{CRPARAMS[selectKeyShort]['no-alfven_indicator']}/"
+
+
+            datapath = loadPathBase + simSavePath + "CR-Data"
+
+            toCombine = {}
+            for snapNumber in snapRange:
+                loadPathSnap = datapath + f"_{int(snapNumber)}_"+loadFile+fileType
+                try:
+                    tmp = tr.hdf5_load(loadPathSnap,selectKeyLen=selectKeyLen,delimiter=delimiter)
+                except Exception as e:
+                    print(str(e))
+                    continue
+
+                if ((list(tmp.keys())[0][-1]).isdigit() == True):
+                    toCombine.update(copy.deepcopy(tmp))
+                else:
+                    updatedtmp = {}
+                    for key,val in tmp.items():
+                        updatedtmp.update({tuple(list(key)+[str(snapNumber)]) : copy.deepcopy(val)})
+                    toCombine.update(updatedtmp)   
+
+            flattened = cr.cr_flatten_wrt_time(toCombine, stack = stack, verbose = verbose, hush = hush)
+
+            out.update(flattened)
 
     return out
 
