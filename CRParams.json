@@ -1,11 +1,11 @@
 {
   "analysisType": "cgm",
 
-  "restartFlag": true,
+  "restartFlag": false,
 
   "savepathfigures": "./",
 
-  "savepathdata": "/home/universe/c1838736/Cosmic_Rays/Stage2/V3-3/",
+  "savepathdata": "/home/universe/c1838736/Cosmic_Rays/Stage2/V3-4/",
 
   "loadRotationMatrix" : false,
 
@@ -29,7 +29,7 @@
 
   "colParams" : [ "n_H_col", "n_HI_col" ],
 
-  "imageParams": [ "T", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "gz"],
+  "imageParams": [ "T", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "gz", "P_CR", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "PCR_Pthermal", "PCR_Pmagnetic"],
 
   "pdfParams": [ "T", "R", "ndens", "rho_rhomean", "n_H", "n_HI", "B", "vrad", "vrad_in", "vrad_out", "gz", "L", "P_CR", "PCR_Pmagnetic", "PCR_Pthermal", "P_kinetic", "P_thermal", "P_magnetic", "Pthermal_Pmagnetic", "P_tot+k" ,"P_tot", "tcool", "tff", "tcool_tff" ],
 
@@ -45,7 +45,7 @@
 
   "Nbins": 250,
 
-  "opacityPercentiles": 0.25,
+  "opacityPercentiles": 0.20,
 
   "linewidth": 2.0,
 
@@ -111,7 +111,7 @@
 
   "windowBins": 0.100,
 
-  "logParameters": [ "nh", "dens", "ndens", "rho_rhomean", "rho", "vol", "csound", "T", "n_H", "n_H_col", "n_HI", "n_HI_col", "B", "gz", "L", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal", "PCR_Pmagnetic", "gah", "Grad_T", "Grad_n_H", "Grad_bfld", "Grad_P_CR", "tcool", "theat", "tcross", "tff", "tcool_tff", "mass", "count", "e_CR"],
+  "logParameters": ["nh", "dens", "ndens", "rho_rhomean", "rho", "vol", "csound", "T", "n_H", "n_H_col", "n_HI", "n_HI_col", "B", "gz", "L", "P_thermal", "P_magnetic", "P_kinetic", "P_tot+k" ,"P_tot", "Pthermal_Pmagnetic", "P_CR", "PCR_Pthermal", "PCR_Pmagnetic", "gah", "Grad_T", "Grad_n_H", "Grad_bfld", "Grad_P_CR", "tcool", "theat", "tcross", "tff", "tcool_tff", "mass", "count", "e_CR"],
 
   "nonMassWeightDict": {
    "nh": "vol",
