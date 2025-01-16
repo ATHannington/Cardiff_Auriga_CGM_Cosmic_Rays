@@ -1,9 +1,9 @@
 # Cosmic Ray feedback models - analysis tools
-### Forming the basis of the research into: the impacts of Cosmic Ray (CR) feedback models on the evolution of the multi-phase Circumgalactic Medium (CGM) of low-redshift Milky Way-mass Galaxies
-### Using cosmological zoom in Auriga galaxy formation and evolution simulations using the massively parallelised magneto-hydrodynamical simulation code Arepo
+### Forming the basis of the research into: the impacts of Cosmic Ray (CR) feedback models on the evolution of the multi-phase Circumgalactic Medium (CGM) of low-redshift Milky Way-mass Galaxies.
+### Using cosmological zoom in Auriga galaxy formation and evolution simulations using the massively parallelised magneto-hydrodynamical simulation code Arepo.
 
 The analysis tools in this repository were developed to build upon the `Tracers_Subroutines.py` package of my previous work in [CGM_Multi-Phase](https://github.com/ATHannington/Cardiff_Auriga_CGM_Multi_Phase). 
-Moreover, the tools of this repository were developed in conjunction with `Plotting_tools.py` [CGM_Hybrid-Refinement](hhttps://github.com/ATHannington/Cardiff_Auriga_CGM_Arepo_Hybrid_Refinement). 
+Moreover, the tools of this repository were developed in conjunction with `Plotting_tools.py` [CGM_Hybrid-Refinement](https://github.com/ATHannington/Cardiff_Auriga_CGM_Arepo_Hybrid_Refinement). 
 Both `Tracers_Subroutines.py` and `Plotting_tools.py` are regularly updated with the latest versions from their respective repos, but for each of these, the versions presented in this repo should be considered the latest stable version.
 In this manner, the repositories are cross-dependent but can be used as standalone toolsets.
 
