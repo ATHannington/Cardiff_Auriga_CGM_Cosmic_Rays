@@ -7,9 +7,6 @@ Moreover, the tools of this repository were developed in conjunction with `Plott
 Both `Tracers_Subroutines.py` and `Plotting_tools.py` are regularly updated with the latest versions from their respective repos, but for each of these, the versions presented in this repo should be considered the latest stable version.
 In this manner, the repositories are cross-dependent but can be used as standalone toolsets.
 
-Originally focused on Cosmic Ray feedback models, this repo provides tools for analysing environmental evolution around simulated galaxies, developed alongside and interdependent with Cardiff_Auriga_CGM_Arepo_Hybrid_Refinement.
-These tools are built on the proprietary methods of the Auriga project, which uses the Arepo magneto-hydrodynamics code.
-
 ---
 
 ## Affiliations
